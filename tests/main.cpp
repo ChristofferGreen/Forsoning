@@ -5,7 +5,7 @@
 
 TEST_CASE("Standard") {
     Forsoning::PathSpace space;
-    Forsoning::View view(space, []{return true;});
+    Forsoning::View view(space, [](std::filesystem::path const &path){return Forsoning::Security{true, true};});
     view.insert("/test", 5);
     auto const res = view.grab<int>("/test");
     CHECK(res.has_value());
