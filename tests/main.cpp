@@ -4,6 +4,7 @@
 #include "PathSpace.hpp"
 
 #include <iostream>
+#include <map>
 
 using namespace Forsoning;
 
@@ -48,35 +49,34 @@ TEST_CASE("Space Linking") {
 }
 
 TEST_CASE("Blocking") {
-    PathSpaceTE space(PathSpace{});
-    View view(space, Security::Policy::AlwaysAllow);
-    auto const path = "/test";
-    view.insert(path, 0);
+    View view(PathSpace{}, Security::Policy::AlwaysAllow);
     auto const iterations = 100;
-    int firstIter = 0;
-    int secondIter = 0;
-    auto fun = [&view, &path, &firstIter, &secondIter](std::string const &name, std::string const &other){
-        int value = 0;
-        while(value < iterations) {
-            view.grabBlock<int>("/"+name);
-            auto const valueOpt = view.grabBlock<int>(path);
-            CHECK(valueOpt.has_value());
-            value = valueOpt.value();
-            view.insert(path, valueOpt.value()+1);
-            view.insert("/"+other, 1);
-            if(name=="first") firstIter++;
-            else if(name=="second") secondIter++;
-        }
+    view.insert("/baton_first", 0);
+    auto fun = [&view](std::string const &name){
+        std::string const batonSelfPath = "/baton_"+name;
+        std::string const batonOtherPath = "/baton_"+std::string(name=="first" ? "second" : "first");
+        while(auto const batonOpt = view.grabBlock<int>(batonSelfPath)) {
+            view.insert(batonOtherPath, batonOpt.value()+1);
+            if(batonOpt.value()>=iterations) {
+                view.insert("/result_"+name, batonOpt.value());
+                break;
+            }
+        };
     };
-    view.insert("/first", 1);
-    std::thread first(fun, "first", "second");
-    std::thread second(fun, "second", "first");
+    std::thread first(fun, "first");
+    std::thread second(fun, "second");
 
     first.join();
     second.join();
 
-    auto const valueOpt = view.grabBlock<int>(path);
-    CHECK(*valueOpt == iterations+2);
-    CHECK(firstIter == secondIter);
-    CHECK(firstIter == (iterations/2)+1);
+    CHECK(*view.grabBlock<int>("/result_first")  == iterations);
+    CHECK(*view.grabBlock<int>("/result_second")  == iterations+1);
+}
+
+TEST_CASE("Sub Paths") {
+    View view(PathSpace{}, Security::Policy::AlwaysAllow);
+    view.insert("/test1/test2", 5);
+    auto res = view.grab<int>("/test1/test2");
+    CHECK(res.has_value());
+    CHECK(*res == 5);
 }
