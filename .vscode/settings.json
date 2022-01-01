@@ -78,6 +78,7 @@
         "utility": "cpp",
         "variant": "cpp",
         "vector": "cpp",
-        "format": "cpp"
+        "format": "cpp",
+        "shared_mutex": "cpp"
     }
 }

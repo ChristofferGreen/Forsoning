@@ -1,19 +1,26 @@
 #pragma once
 
+#include <condition_variable>
 #include <functional>
 #include <filesystem>
+#include <shared_mutex>
+#include <thread>
 #include <unordered_map>
 #include <optional>
 #include <variant>
 
 namespace Forsoning {
 
-enum struct SecurityType {
-    Grab = 0,
-    Insert
-};
-using SecFunT = std::function<bool(std::filesystem::path const &path, SecurityType const &sec)>;
-inline const SecFunT SecurityAlwaysAllow = [](std::filesystem::path const &path, SecurityType const &sec){ return true; };
+namespace Security {
+    enum struct Type {
+        Grab = 0,
+        Insert
+    };
+    using FunT = std::function<bool(std::filesystem::path const &path, Type const &sec)>;
+    namespace Policy {
+        inline const FunT AlwaysAllow = [](std::filesystem::path const &path, Type const &sec){ return true; };
+    }
+}
 
 struct Data {
     Data() = default;
@@ -34,9 +41,10 @@ class PathSpaceTE {
 		virtual ~concept_t() = default;
 		
 		virtual auto copy_()                                                      const -> std::shared_ptr<concept_t> = 0;
-		virtual auto size_()                                                      const -> int                       = 0;
+		virtual auto size_()                                                      const -> int                        = 0;
 		virtual auto insert_(std::filesystem::path const &path, Data const &data)       -> void                       = 0;
 		virtual auto grab_(std::filesystem::path const &path)                           -> std::optional<Data>        = 0;
+		virtual auto grabBlock_(std::filesystem::path const &path)                      -> Data                       = 0;
 	};
 public:
 	PathSpaceTE() = default;
@@ -52,6 +60,7 @@ public:
 	auto size()                                                      const -> int                 { return this->self->size_(); }
 	auto insert(std::filesystem::path const &path, Data const &data)       -> void                { this->self->insert_(path, data); }
 	auto grab(std::filesystem::path const &path)                           -> std::optional<Data> { return this->self->grab_(path); }
+	auto grabBlock(std::filesystem::path const &path)                      -> Data                { return this->self->grabBlock_(path); }
 private:
 	template<typename T> 
 	struct model final : concept_t {
@@ -61,6 +70,7 @@ private:
 		auto size_()                                                   const -> int                        override {return this->data.size();}
 		auto insert_(std::filesystem::path const &path, Data const &d)       -> void                       override {return this->data.insert(path, d);}
 		auto grab_(std::filesystem::path const &path)                        -> std::optional<Data>        override {return this->data.grab(path);}
+		auto grabBlock_(std::filesystem::path const &path)                   -> Data                       override {return this->data.grabBlock(path);}
 		
 		T data;
 	};
@@ -68,41 +78,64 @@ private:
 };
 
 struct PathSpace {
+    PathSpace() = default;
+    PathSpace(PathSpace const &ps) : data(ps.data) {}
 protected:
     friend PathSpaceTE;
 
     auto insert(std::filesystem::path const &path, Data const &data) -> void {
+        std::lock_guard<std::shared_mutex> lock(this->mut); // write
         this->data.insert(std::make_pair(path.filename().string(),  data));
+        this->cv.notify_all();
     };
 
     auto grab(std::filesystem::path const &path) -> std::optional<Data> {
         std::string const name = path.filename().string();
+        std::lock_guard<std::shared_mutex> lock(this->mut); // write
         if(this->data.count(name))
             return this->data.extract(name).mapped();
         return {};
     };
 
+    auto grabBlock(std::filesystem::path const &path) -> Data {
+        std::string const name = path.filename().string();
+        std::unique_lock<std::shared_mutex> lock(this->mut); // write
+        while(!this->data.count(name))
+            this->cv.wait(lock);
+        return this->data.extract(name).mapped();
+    };
+
     auto size() const -> int {
+        std::shared_lock<std::shared_mutex> lock(this->mut); // read
         return this->data.size();
     }
 
+    mutable std::shared_mutex mut;
+    mutable std::condition_variable_any cv;
     std::unordered_multimap<std::string, Data> data;
 };
 
 struct View {
-    View(PathSpaceTE const &space, SecFunT const &security) : space(space.link()), security(security) {};
+    View(PathSpaceTE const &space, Security::FunT const &security) : space(space.link()), security(security) {};
     
     auto insert(std::filesystem::path const &path, Data const &data) -> void {
-        if(this->security(path, SecurityType::Insert))
+        if(this->security(path, Security::Type::Insert))
             this->space.insert(path, data);
     };
 
     template<typename T>
     auto grab(std::filesystem::path const &path) -> std::optional<T> { 
-        if(this->security(path, SecurityType::Grab)) {
+        if(this->security(path, Security::Type::Grab)) {
             if(auto const val = this->space.grab(path))
                 return val.value().to<T>();
         }
+        return {};
+    };
+
+    template<typename T>
+    auto grabBlock(std::filesystem::path const &path) -> std::optional<T> { 
+        if(this->security(path, Security::Type::Grab))
+            return this->space.grabBlock(path).to<T>();
         return {};
     };
 
@@ -112,7 +145,7 @@ struct View {
 
     private:
         PathSpaceTE space;
-        SecFunT security;
+        Security::FunT security;
 };
 
 }
