@@ -50,7 +50,7 @@ TEST_CASE("Space Linking") {
 
 TEST_CASE("Blocking") {
     View view(PathSpace{}, Security::Policy::AlwaysAllow);
-    auto const iterations = 100;
+    auto const iterations = 50;
     view.insert("/baton_first", 0);
     auto fun = [&view](std::string const &name){
         std::string const batonSelfPath = "/baton_"+name;
@@ -59,9 +59,10 @@ TEST_CASE("Blocking") {
             view.insert(batonOtherPath, batonOpt.value()+1);
             if(batonOpt.value()>=iterations) {
                 view.insert("/result_"+name, batonOpt.value());
-                break;
+                return;
             }
         };
+        CHECK(false);
     };
     std::thread first(fun, "first");
     std::thread second(fun, "second");
