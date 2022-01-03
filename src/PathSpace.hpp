@@ -69,7 +69,7 @@ public:
     template<typename T>
 	auto grabBlock(std::filesystem::path const &path)                      -> std::optional<T> { 
         if(auto const val = this->self->grabBlock_(path))
-            if(auto const conv = val.value().template to<T>())
+            if(auto const conv = val.value().to<T>())
                 return conv.value();
         return {};
     }
@@ -89,37 +89,57 @@ private:
 	std::shared_ptr<concept_t> self;
 };
 
+auto nbr_elements(std::filesystem::path const &path) -> int {
+    int elements = 0;
+    for(auto const &element : path)
+        elements++;
+    return elements;
+}
+
 template<typename T=std::unordered_multimap<std::string, Data>>
 struct PathSpace {
     PathSpace() = default;
     PathSpace(PathSpace const &ps) : data(ps.data) {}
 
     virtual auto insert(std::filesystem::path const &path, Data const &data) -> void {
-        std::lock_guard<std::shared_mutex> lock(this->mut); // write
-        this->data.insert(std::make_pair(path.filename().string(),  data));
-        this->cv.notify_all();
+        this->insert(path.begin(), data);
     };
 
     virtual auto grab(std::filesystem::path const &path) -> std::optional<Data> {
-        std::string const name = path.filename().string();
-        std::lock_guard<std::shared_mutex> lock(this->mut); // write
-        if(this->data.count(name))
-            return this->data.extract(name).mapped();
-        return {};
+        return this->grab(path.begin());
     };
 
     virtual auto grabBlock(std::filesystem::path const &path) -> std::optional<Data> {
-        std::string const name = path.filename().string();
-        std::unique_lock<std::shared_mutex> lock(this->mut); // write
-        while(!this->data.count(name))
-            this->cv.wait(lock);
-        return this->data.extract(name).mapped();
+        return this->grabBlock(path.begin());
     };
 
     virtual auto size() const -> int {
         std::shared_lock<std::shared_mutex> lock(this->mut); // read
         return this->data.size();
     }
+
+private:
+    virtual auto insert(std::filesystem::path::const_iterator const &iter, Data const &data) -> void {
+        std::lock_guard<std::shared_mutex> lock(this->mut); // write
+        this->data.insert(std::make_pair(*iter, data));
+        this->cv.notify_all();
+    };
+    
+    virtual auto grab(std::filesystem::path::const_iterator const &iter) -> std::optional<Data> {
+        std::string const name = *iter;
+        std::lock_guard<std::shared_mutex> lock(this->mut); // write
+        if(this->data.count(name))
+            return this->data.extract(name).mapped();
+        return {};
+    };
+
+    virtual auto grabBlock(std::filesystem::path::const_iterator const &iter) -> std::optional<Data> {
+        std::string const name = *iter;
+        std::unique_lock<std::shared_mutex> lock(this->mut); // write
+        while(!this->data.count(name))
+            this->cv.wait(lock);
+        return this->data.extract(name).mapped();
+    };
 
     mutable std::shared_mutex mut;
     mutable std::condition_variable_any cv;

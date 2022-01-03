@@ -73,7 +73,7 @@ TEST_CASE("Blocking") {
     auto const iterations = 26;
     CHECK(!(iterations%2));
     space.insert("/baton_first", 0);
-    auto fun = [&space](std::string const &name){
+    auto fun = [&space, iterations](std::string const &name){
         std::string const batonSelfPath = "/baton_"+name;
         std::string const batonOtherPath = "/baton_"+std::string(name=="first" ? "second" : "first");
         while(auto const batonOpt = space.grabBlock<int>(batonSelfPath)) {
@@ -92,7 +92,7 @@ TEST_CASE("Blocking") {
     second.join();
 
     CHECK(*space.grabBlock<int>("/result_first") == iterations);
-    CHECK(*space.grabBlock<int>("/result_second") == iterations+1);
+    CHECK(*space.grabBlock<int>("/result_second") == iterations+2);
 }
 
 TEST_CASE("Sub Paths") {
