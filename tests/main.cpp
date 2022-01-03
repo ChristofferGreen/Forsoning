@@ -9,25 +9,45 @@
 using namespace Forsoning;
 
 TEST_CASE("Insert And Grab") {
-    View view(PathSpace{}, Security::Policy::AlwaysAllow);
-    view.insert("/test", 5);
-    view.insert("/test", 4);
-    view.insert("/test", 3);
-    auto res = view.grab<int>("/test");
+    PathSpaceTE space = PathSpace{};
+    space.insert("/test", 5);
+    space.insert("/test", 4);
+    space.insert("/test", 3);
+    auto res = space.grab<int>("/test");
     CHECK(res.has_value());
-    CHECK(*res == 5);
-    res = view.grab<int>("/test");
+    CHECK(res.value() == 5);
+    res = space.grab<int>("/test");
     CHECK(res.has_value());
     CHECK(*res == 4);
-    res = view.grab<int>("/test");
+    res = space.grab<int>("/test");
     CHECK(res.has_value());
     CHECK(*res == 3);
-    res = view.grab<int>("/test");
+    res = space.grab<int>("/test");
     CHECK(!res.has_value());
 }
 
-TEST_CASE("Space Linking") {
-    PathSpaceTE space(PathSpace{});
+TEST_CASE("Raw Linking") {
+    PathSpaceTE space = PathSpace{};
+    space.insert("/test", 5);
+    PathSpaceTE spaceCopy = space;
+    CHECK(spaceCopy.size() == 1);
+    PathSpaceTE spaceLink = space.link();
+    CHECK(spaceLink.size() == 1);
+
+    auto res = space.grab<int>("/test");
+    CHECK(res.has_value());
+    CHECK(*res == 5);
+
+    auto resCopy = spaceCopy.grab<int>("/test");
+    CHECK(resCopy.has_value());
+    CHECK(*resCopy == 5);
+
+    auto resLink = spaceLink.grab<int>("/test");
+    CHECK(!resLink.has_value());
+}
+
+TEST_CASE("View Linking") {
+    PathSpaceTE space = PathSpace{};
     View view(space, Security::Policy::AlwaysAllow);
     view.insert("/test", 5);
     CHECK(space.size() == view.size());
@@ -49,16 +69,17 @@ TEST_CASE("Space Linking") {
 }
 
 TEST_CASE("Blocking") {
-    View view(PathSpace{}, Security::Policy::AlwaysAllow);
-    auto const iterations = 50;
-    view.insert("/baton_first", 0);
-    auto fun = [&view](std::string const &name){
+    PathSpaceTE space = PathSpace{};
+    auto const iterations = 26;
+    CHECK(!(iterations%2));
+    space.insert("/baton_first", 0);
+    auto fun = [&space](std::string const &name){
         std::string const batonSelfPath = "/baton_"+name;
         std::string const batonOtherPath = "/baton_"+std::string(name=="first" ? "second" : "first");
-        while(auto const batonOpt = view.grabBlock<int>(batonSelfPath)) {
-            view.insert(batonOtherPath, batonOpt.value()+1);
+        while(auto const batonOpt = space.grabBlock<int>(batonSelfPath)) {
+            space.insert(batonOtherPath, batonOpt.value()+1);
             if(batonOpt.value()>=iterations) {
-                view.insert("/result_"+name, batonOpt.value());
+                space.insert("/result_"+name, batonOpt.value());
                 return;
             }
         };
@@ -70,14 +91,18 @@ TEST_CASE("Blocking") {
     first.join();
     second.join();
 
-    CHECK(*view.grabBlock<int>("/result_first")  == iterations);
-    CHECK(*view.grabBlock<int>("/result_second")  == iterations+1);
+    CHECK(*space.grabBlock<int>("/result_first") == iterations);
+    CHECK(*space.grabBlock<int>("/result_second") == iterations+1);
 }
 
 TEST_CASE("Sub Paths") {
-    View view(PathSpace{}, Security::Policy::AlwaysAllow);
-    view.insert("/test1/test2", 5);
-    auto res = view.grab<int>("/test1/test2");
-    CHECK(res.has_value());
-    CHECK(*res == 5);
+    PathSpace space;
+    space.insert("/test1/test2", 5);
+
+    auto const parent = space.grab("/test1");
+    CHECK(parent.has_value());
+
+    //auto const value = to<int>(parent.value().grab("/test1/test2"));
+    //CHECK(value.has_value());
+    //CHECK(*value == 5);
 }

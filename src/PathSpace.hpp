@@ -44,7 +44,7 @@ class PathSpaceTE {
 		virtual auto size_()                                                      const -> int                        = 0;
 		virtual auto insert_(std::filesystem::path const &path, Data const &data)       -> void                       = 0;
 		virtual auto grab_(std::filesystem::path const &path)                           -> std::optional<Data>        = 0;
-		virtual auto grabBlock_(std::filesystem::path const &path)                      -> Data                       = 0;
+		virtual auto grabBlock_(std::filesystem::path const &path)                      -> std::optional<Data>        = 0;
 	};
 public:
 	PathSpaceTE() = default;
@@ -59,8 +59,20 @@ public:
 	auto link()                                                      const -> PathSpaceTE         { return this->self; }
 	auto size()                                                      const -> int                 { return this->self->size_(); }
 	auto insert(std::filesystem::path const &path, Data const &data)       -> void                { this->self->insert_(path, data); }
-	auto grab(std::filesystem::path const &path)                           -> std::optional<Data> { return this->self->grab_(path); }
-	auto grabBlock(std::filesystem::path const &path)                      -> Data                { return this->self->grabBlock_(path); }
+    template<typename T>
+	auto grab(std::filesystem::path const &path)                           -> std::optional<T> {
+        if(auto const val = this->self->grab_(path))
+            if(auto const conv = val.value().to<T>())
+                return conv.value();
+        return {};
+    }
+    template<typename T>
+	auto grabBlock(std::filesystem::path const &path)                      -> std::optional<T> { 
+        if(auto const val = this->self->grabBlock_(path))
+            if(auto const conv = val.value().template to<T>())
+                return conv.value();
+        return {};
+    }
 private:
 	template<typename T> 
 	struct model final : concept_t {
@@ -70,26 +82,25 @@ private:
 		auto size_()                                                   const -> int                        override {return this->data.size();}
 		auto insert_(std::filesystem::path const &path, Data const &d)       -> void                       override {return this->data.insert(path, d);}
 		auto grab_(std::filesystem::path const &path)                        -> std::optional<Data>        override {return this->data.grab(path);}
-		auto grabBlock_(std::filesystem::path const &path)                   -> Data                       override {return this->data.grabBlock(path);}
+		auto grabBlock_(std::filesystem::path const &path)                   -> std::optional<Data>        override {return this->data.grabBlock(path);}
 		
 		T data;
 	};
 	std::shared_ptr<concept_t> self;
 };
 
+template<typename T=std::unordered_multimap<std::string, Data>>
 struct PathSpace {
     PathSpace() = default;
     PathSpace(PathSpace const &ps) : data(ps.data) {}
-protected:
-    friend PathSpaceTE;
 
-    auto insert(std::filesystem::path const &path, Data const &data) -> void {
+    virtual auto insert(std::filesystem::path const &path, Data const &data) -> void {
         std::lock_guard<std::shared_mutex> lock(this->mut); // write
         this->data.insert(std::make_pair(path.filename().string(),  data));
         this->cv.notify_all();
     };
 
-    auto grab(std::filesystem::path const &path) -> std::optional<Data> {
+    virtual auto grab(std::filesystem::path const &path) -> std::optional<Data> {
         std::string const name = path.filename().string();
         std::lock_guard<std::shared_mutex> lock(this->mut); // write
         if(this->data.count(name))
@@ -97,7 +108,7 @@ protected:
         return {};
     };
 
-    auto grabBlock(std::filesystem::path const &path) -> Data {
+    virtual auto grabBlock(std::filesystem::path const &path) -> std::optional<Data> {
         std::string const name = path.filename().string();
         std::unique_lock<std::shared_mutex> lock(this->mut); // write
         while(!this->data.count(name))
@@ -105,37 +116,48 @@ protected:
         return this->data.extract(name).mapped();
     };
 
-    auto size() const -> int {
+    virtual auto size() const -> int {
         std::shared_lock<std::shared_mutex> lock(this->mut); // read
         return this->data.size();
     }
 
     mutable std::shared_mutex mut;
     mutable std::condition_variable_any cv;
-    std::unordered_multimap<std::string, Data> data;
+    T data;
 };
 
+template<typename T>
+auto to(std::optional<Data> const &data) -> std::optional<T> {
+    if(data)
+        if(auto const val = data.value().to<T>())
+            return val;
+    return {};
+}
+
+template<typename T>
 struct View {
-    View(PathSpaceTE const &space, Security::FunT const &security) : space(space.link()), security(security) {};
+    View(T const &space, Security::FunT const &security) : space(space.link()), security(security) {};
     
     auto insert(std::filesystem::path const &path, Data const &data) -> void {
         if(this->security(path, Security::Type::Insert))
             this->space.insert(path, data);
     };
 
-    template<typename T>
-    auto grab(std::filesystem::path const &path) -> std::optional<T> { 
+    template <typename U>
+    auto grab(std::filesystem::path const &path) -> std::optional<U> { 
         if(this->security(path, Security::Type::Grab)) {
-            if(auto const val = this->space.grab(path))
-                return val.value().to<T>();
+            if(auto const val = this->space.template grab<U>(path))
+                return val.value();
         }
         return {};
     };
 
-    template<typename T>
-    auto grabBlock(std::filesystem::path const &path) -> std::optional<T> { 
-        if(this->security(path, Security::Type::Grab))
-            return this->space.grabBlock(path).to<T>();
+    template <typename U>
+    auto grabBlock(std::filesystem::path const &path) -> std::optional<U> {
+        if(this->security(path, Security::Type::Grab)) {
+            if(auto const val = this->space.template grabBlock<U>(path))
+                return val.value();
+        }
         return {};
     };
 
@@ -143,9 +165,9 @@ struct View {
         return this->space.size();
     }
 
-    private:
-        PathSpaceTE space;
-        Security::FunT security;
+private:
+    T space;
+    Security::FunT security;
 };
 
 }
