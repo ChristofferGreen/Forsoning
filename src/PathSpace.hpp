@@ -22,9 +22,17 @@ namespace Security {
     }
 }
 
+class PathSpaceTE;
 struct Data {
     Data() = default;
     Data(int d) : var(d) {}
+    Data(Data const &data) {
+        if(std::holds_alternative<int>(data.var)) {
+            this->var = std::get<int>(data.var);
+        } else if(std::holds_alternative<std::unique_ptr<PathSpaceTE>>(data.var)) {
+            this->var = std::make_unique<PathSpaceTE>(*std::get<std::unique_ptr<PathSpaceTE>>(data.var));
+        }
+    }
 
     template<typename T>
     auto to() const -> std::optional<T> { 
@@ -33,7 +41,7 @@ struct Data {
         return {};
     }
 
-    std::variant<int> var;
+    std::variant<int, std::unique_ptr<PathSpaceTE>> var;
 };
 
 class PathSpaceTE {
@@ -102,15 +110,15 @@ struct PathSpace {
     PathSpace(PathSpace const &ps) : data(ps.data) {}
 
     virtual auto insert(std::filesystem::path const &path, Data const &data) -> void {
-        this->insert(path.begin(), data);
+        this->insert(++path.begin(), path.end(), data);
     };
 
     virtual auto grab(std::filesystem::path const &path) -> std::optional<Data> {
-        return this->grab(path.begin());
+        return this->grab(++path.begin(), path.end());
     };
 
     virtual auto grabBlock(std::filesystem::path const &path) -> std::optional<Data> {
-        return this->grabBlock(path.begin());
+        return this->grabBlock(++path.begin(), path.end());
     };
 
     virtual auto size() const -> int {
@@ -119,13 +127,24 @@ struct PathSpace {
     }
 
 private:
-    virtual auto insert(std::filesystem::path::const_iterator const &iter, Data const &data) -> void {
+    virtual auto insert(std::filesystem::path::const_iterator const &iter, std::filesystem::path::const_iterator const &end, Data const &data) -> void {
         std::lock_guard<std::shared_mutex> lock(this->mut); // write
-        this->data.insert(std::make_pair(*iter, data));
-        this->cv.notify_all();
+        auto iterNext = iter;
+        iterNext++;
+        if(iterNext==end) {
+            this->data.insert(std::make_pair(*iter, data));
+            this->cv.notify_all();
+        } else {
+            if(this->data.count(*iter)>0) {
+
+            } else {
+                //this->data.insert(std::make_pair(*iter, PathSpaceTE{PathSpace{}}));
+                this->cv.notify_all();
+            }
+        }
     };
     
-    virtual auto grab(std::filesystem::path::const_iterator const &iter) -> std::optional<Data> {
+    virtual auto grab(std::filesystem::path::const_iterator const &iter, std::filesystem::path::const_iterator const &end) -> std::optional<Data> {
         std::string const name = *iter;
         std::lock_guard<std::shared_mutex> lock(this->mut); // write
         if(this->data.count(name))
@@ -133,7 +152,7 @@ private:
         return {};
     };
 
-    virtual auto grabBlock(std::filesystem::path::const_iterator const &iter) -> std::optional<Data> {
+    virtual auto grabBlock(std::filesystem::path::const_iterator const &iter, std::filesystem::path::const_iterator const &end) -> std::optional<Data> {
         std::string const name = *iter;
         std::unique_lock<std::shared_mutex> lock(this->mut); // write
         while(!this->data.count(name))

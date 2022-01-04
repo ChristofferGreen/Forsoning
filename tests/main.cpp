@@ -70,7 +70,7 @@ TEST_CASE("View Linking") {
 
 TEST_CASE("Blocking") {
     PathSpaceTE space = PathSpace{};
-    auto const iterations = 26;
+    auto const iterations = 20;
     CHECK(!(iterations%2));
     space.insert("/baton_first", 0);
     auto fun = [&space, iterations](std::string const &name){
@@ -92,7 +92,7 @@ TEST_CASE("Blocking") {
     second.join();
 
     CHECK(*space.grabBlock<int>("/result_first") == iterations);
-    CHECK(*space.grabBlock<int>("/result_second") == iterations+2);
+    CHECK(*space.grabBlock<int>("/result_second") == iterations+1);
 }
 
 TEST_CASE("Sub Paths") {
