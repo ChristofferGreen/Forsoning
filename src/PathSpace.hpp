@@ -26,6 +26,7 @@ class PathSpaceTE;
 struct Data {
     Data() = default;
     Data(int d) : var(d) {}
+    Data(std::unique_ptr<PathSpaceTE> ptr) : var(std::move(ptr)) {}
     Data(Data const &data) {
         if(std::holds_alternative<int>(data.var)) {
             this->var = std::get<int>(data.var);
@@ -38,6 +39,13 @@ struct Data {
     auto to() const -> std::optional<T> { 
         if(this->var.index()!=std::variant_npos)
             return std::get<T>(this->var);
+        return {};
+    }
+
+    template<typename T>
+    auto toMove() -> std::optional<T> { 
+        if(this->var.index()!=std::variant_npos)
+            return std::move(std::get<T>(this->var));
         return {};
     }
 
@@ -69,15 +77,15 @@ public:
 	auto insert(std::filesystem::path const &path, Data const &data)       -> void                { this->self->insert_(path, data); }
     template<typename T>
 	auto grab(std::filesystem::path const &path)                           -> std::optional<T> {
-        if(auto const val = this->self->grab_(path))
-            if(auto const conv = val.value().to<T>())
-                return conv.value();
+        if(auto val = this->self->grab_(path))
+            if(auto conv = val.value().toMove<T>())
+                return std::move(conv.value());
         return {};
     }
     template<typename T>
 	auto grabBlock(std::filesystem::path const &path)                      -> std::optional<T> { 
-        if(auto const val = this->self->grabBlock_(path))
-            if(auto const conv = val.value().to<T>())
+        if(auto val = this->self->grabBlock_(path))
+            if(auto conv = val.value().toMove<T>())
                 return conv.value();
         return {};
     }
@@ -138,7 +146,9 @@ private:
             if(this->data.count(*iter)>0) {
 
             } else {
-                //this->data.insert(std::make_pair(*iter, PathSpaceTE{PathSpace{}}));
+                auto node = PathSpace{};
+                node.insert(iterNext, end, data);
+                this->data.insert(std::make_pair(*iter, std::make_unique<PathSpaceTE>(PathSpaceTE{std::move(node)})));
                 this->cv.notify_all();
             }
         }

@@ -96,13 +96,14 @@ TEST_CASE("Blocking") {
 }
 
 TEST_CASE("Sub Paths") {
-    PathSpace space;
+    PathSpaceTE space = PathSpace{};
     space.insert("/test1/test2", 5);
 
-    auto const parent = space.grab("/test1");
+    auto const parent = space.grab<std::unique_ptr<PathSpaceTE>>("/test1");
     CHECK(parent.has_value());
+    CHECK(parent.value()->size()==1);
 
-    //auto const value = to<int>(parent.value().grab("/test1/test2"));
-    //CHECK(value.has_value());
-    //CHECK(*value == 5);
+    auto const value = parent.value()->grab<int>("/test2");
+    CHECK(value.has_value());
+    CHECK(*value == 5);
 }
