@@ -118,6 +118,8 @@ struct PathSpace {
     PathSpace(PathSpace const &ps) : data(ps.data) {}
 
     virtual auto insert(std::filesystem::path const &path, Data const &data) -> void {
+        this->createPathTo(path);
+        this->access(path, [](PathSpaceTE &space){space.});
         this->insert(++path.begin(), path.end(), data);
     };
 
@@ -136,8 +138,10 @@ struct PathSpace {
 
 private:
     virtual auto insert(std::filesystem::path::const_iterator const &iter, std::filesystem::path::const_iterator const &end, Data const &data) -> void {
+
+        
         std::lock_guard<std::shared_mutex> lock(this->mut); // write
-        auto iterNext = iter;
+        auto iterNext = iter++;
         iterNext++;
         if(iterNext==end) {
             this->data.insert(std::make_pair(*iter, data));
