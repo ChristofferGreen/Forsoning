@@ -22,6 +22,86 @@ namespace Security {
     }
 }
 
+using FCI = std::filesystem::path::const_iterator;
+auto space_path_range(std::filesystem::path const &pathWithoutFile) -> std::optional<std::pair<FCI, FCI>> {
+    auto start = pathWithoutFile.begin();
+    if(pathWithoutFile=="/")
+        return {};
+    if(*start=="/") // Sometimes we get a / in the start, remove it
+        start++;
+    return std::make_pair(start, pathWithoutFile.end());
+}
+
+struct PathSpace;
+using DataType = std::variant<int, PathSpace>;
+
+struct PathSpace {
+    PathSpace() = default;
+    PathSpace(PathSpace const &ps) : data(ps.data) {}
+
+    virtual auto insert(std::filesystem::path const &path, DataType const &data) -> void {
+        auto spacePath = path;
+        spacePath.remove_filename();
+        auto pathStart = path.begin();
+        std::lock_guard<std::shared_mutex> lock(this->mut); // write
+        if(auto const p = space_path_range(spacePath)) {
+            this->createNonExistingSpaces(p.value().first, p.value().second);
+            if(auto *space = this->findSpace(spacePath))
+                space->insertDirect(path.filename(), data);
+        }
+        else
+            this->insertDirect(path.filename(), PathSpace{});
+    };
+
+    virtual auto grab(std::filesystem::path const &path) -> std::shared_ptr<DataType> {
+        return {};
+    };
+
+    virtual auto grabBlock(std::filesystem::path const &path) -> std::shared_ptr<DataType> {
+        return {};
+    };
+
+    virtual auto size() const -> int {
+        std::shared_lock<std::shared_mutex> lock(this->mut); // read
+        return this->data.size();
+    }
+
+private:
+    auto insertDirect(std::string const &name, DataType const &data) -> void {
+        this->data.insert(std::make_pair(name, std::make_shared<DataType>(data)));
+        this->cv.notify_all();
+    }
+
+    auto createNonExistingSpaces(std::filesystem::path::const_iterator const &current, std::filesystem::path::const_iterator const &end) -> void {
+        if(*end=="/") // There are no spaces to step through
+            return;
+        auto next = current;
+        next++;
+        if(auto existingSpace = this->findSpace(*current)) {
+            existingSpace->createNonExistingSpaces(next, end);
+            return;
+        }
+        PathSpace newSpace;
+        if(current!=end) {
+            newSpace.createNonExistingSpaces(next, end);
+        }
+        this->data.insert(std::make_pair(*current, std::make_shared<DataType>(std::move(newSpace))));
+    }
+
+    auto findSpace(std::string const &name) const -> PathSpace* {
+        auto const range = this->data.equal_range(name);
+        for (auto it = range.first; it != range.second; ++it) 
+            if(std::holds_alternative<PathSpace>(*it->second))
+                return &std::get<PathSpace>(*it->second);
+        return nullptr;
+    }
+
+    mutable std::shared_mutex mut;
+    mutable std::condition_variable_any cv;
+    std::unordered_multimap<std::string, std::shared_ptr<DataType>> data;
+};
+
+/*
 class PathSpaceTE;
 struct Data {
     Data() = default;
@@ -221,6 +301,6 @@ struct View {
 private:
     T space;
     Security::FunT security;
-};
+};*/
 
 }

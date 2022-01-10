@@ -9,23 +9,30 @@
 using namespace Forsoning;
 
 TEST_CASE("Insert And Grab") {
-    PathSpaceTE space = PathSpace{};
+    PathSpace space;
+    CHECK(space.size()==0);
     space.insert("/test", 5);
+    CHECK(space.size()==1);
     space.insert("/test", 4);
+    CHECK(space.size()==2);
     space.insert("/test", 3);
-    auto res = space.grab<int>("/test");
-    CHECK(res.has_value());
-    CHECK(res.value() == 5);
-    res = space.grab<int>("/test");
-    CHECK(res.has_value());
-    CHECK(*res == 4);
-    res = space.grab<int>("/test");
-    CHECK(res.has_value());
-    CHECK(*res == 3);
-    res = space.grab<int>("/test");
-    CHECK(!res.has_value());
+    CHECK(space.size()==3);
+    auto res = space.grab("/test");
+    CHECK(res);
+    CHECK(std::get<int>(*res) == 5);
+    CHECK(space.size()==2);
+    res = space.grab("/test");
+    CHECK(res);
+    CHECK(std::get<int>(*res) == 4);
+    CHECK(space.size()==1);
+    res = space.grab("/test");
+    CHECK(res);
+    CHECK(std::get<int>(*res) == 3);
+    CHECK(space.size()==0);
+    res = space.grab("/test");
+    CHECK(!res);
 }
-
+/*
 TEST_CASE("Raw Linking") {
     PathSpaceTE space = PathSpace{};
     space.insert("/test", 5);
@@ -107,3 +114,4 @@ TEST_CASE("Sub Paths") {
     CHECK(value.has_value());
     CHECK(*value == 5);
 }
+*/
