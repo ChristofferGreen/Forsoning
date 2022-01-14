@@ -98,7 +98,7 @@ TEST_CASE_FIXTURE(PathSpace, "Insert: Iterator Version") {
     std::filesystem::path const path = "/test1/test2/test3";
     auto const optPair = PathUtils::path_range(path);
     CHECK(optPair.has_value());
-    space.insert(*optPair, 5, key);
+    space.insert(path, *optPair, 5, key);
 }
 
 TEST_CASE("PathSpace") {
