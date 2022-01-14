@@ -1,4 +1,4 @@
-FetchContent_Declare(doctest GIT_REPOSITORY https://github.com/onqtam/doctest GIT_TAG 2.3.7)
+FetchContent_Declare(doctest GIT_REPOSITORY https://github.com/onqtam/doctest GIT_TAG 2.4.7)
 FetchContent_MakeAvailable(doctest)
 
 list(APPEND DepIncludesPublic ${doctest_SOURCE_DIR}/doctest)

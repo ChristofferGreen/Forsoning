@@ -80,6 +80,7 @@
         "vector": "cpp",
         "format": "cpp",
         "shared_mutex": "cpp",
-        "filesystem": "cpp"
+        "filesystem": "cpp",
+        "numeric": "cpp"
     }
 }

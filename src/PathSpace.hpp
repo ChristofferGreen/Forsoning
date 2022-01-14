@@ -10,71 +10,191 @@
 #include <variant>
 
 namespace Forsoning {
+using PathIterConst        = std::filesystem::path::const_iterator;
+using PathIterConstPair    = std::pair<PathIterConst, PathIterConst>;
+using OptPathIterConstPair = std::optional<std::pair<PathIterConst, PathIterConst>>;
+namespace PathUtils {
+/*
+    Input: Path, must have at least one space component and one data component.
+    Output: Iterators to the first space component and the last space component of the path.
+*/
+auto path_range(std::filesystem::path const &path) -> OptPathIterConstPair {
+    auto start = path.begin();
+    auto end = path.end();
+    end--; // now at file
+    if(*end=="/") // we only had '/'
+        return {};
+    if(*start=="/") // Sometimes we get a / in the start, remove it
+        start++;
+    if(start==end)
+        return {};
+    return std::make_pair(start, end);
+}
+
+auto data_name(PathIterConstPair const &iters) -> std::optional<std::string> {
+    if(*iters.second=="")
+        return {};    
+    auto iter = iters.second;
+    iter++;
+    if(*iter=="")
+        return *iters.second;
+    return {};
+}
+
+auto data_name(std::filesystem::path const &path) -> std::optional<std::string> {
+    auto const name = path.filename();
+    if(name=="")
+        return {};
+    return name;
+}
+
+auto remove_filename(std::filesystem::path const &path) -> std::filesystem::path {
+    auto p = path;
+    p.remove_filename();
+    return p;
+}
+}
 
 namespace Security {
     enum struct Type {
         Grab = 0,
         Insert
     };
-    using FunT = std::function<bool(std::filesystem::path const &path, Type const &sec)>;
     namespace Policy {
-        inline const FunT AlwaysAllow = [](std::filesystem::path const &path, Type const &sec){ return true; };
+        using FunT = std::function<bool(Type const &sec, std::filesystem::path const &path)>;
+        inline const FunT AlwaysAllow  = [](Type const &sec, std::filesystem::path const &path){ return true; };
+        inline const FunT AlwaysReject = [](Type const &sec, std::filesystem::path const &path){ return false; };
     }
+
+    struct Key {
+        Key() = default;
+        Key(Policy::FunT const &policy) : policy(policy) {}
+        
+        auto allow(Type const &type, std::filesystem::path const &path) { return this->policy(type, path); }
+
+        private:
+            Policy::FunT policy = Policy::AlwaysAllow;
+    };
 }
 
-using FCI = std::filesystem::path::const_iterator;
-auto space_path_range(std::filesystem::path const &pathWithoutFile) -> std::optional<std::pair<FCI, FCI>> {
-    auto start = pathWithoutFile.begin();
-    if(pathWithoutFile=="/")
+using DataType = std::variant<int, std::string>;
+
+class PathSpaceTE {
+	struct concept_t {
+		virtual ~concept_t() = default;
+		
+		virtual auto copy_()                                                                                    const -> std::unique_ptr<concept_t>     = 0;
+		virtual auto size_()                                                                                    const -> int                            = 0;
+		virtual auto insert_(std::filesystem::path const &path, DataType const &data, Security::Key const &key)       -> bool                           = 0;
+        virtual auto insert_(PathIterConstPair const &iters, DataType const &data, Security::Key const &key)          -> bool                           = 0;
+		virtual auto data_()                                                                                    const -> const std::optional<DataType>& = 0;
+		virtual auto grab_(std::filesystem::path const &path, Security::Key const &key)                               -> std::optional<PathSpaceTE>     = 0;
+		virtual auto grabBlock_(std::filesystem::path const &path, Security::Key const &key)                          -> std::optional<PathSpaceTE>     = 0;
+	};
+public:
+	PathSpaceTE() = default;
+	template<typename T>
+	PathSpaceTE(T x)                             : self(std::make_unique<model<T>>(std::move(x))) {}
+	PathSpaceTE(PathSpaceTE const &rhs)          : self(rhs.self->copy_())                        {}
+	PathSpaceTE(std::unique_ptr<concept_t> self) : self(std::move(self))                          {}
+
+	auto operator=(PathSpaceTE const &rhs) -> PathSpaceTE& {return *this = PathSpaceTE(rhs);}
+	auto operator=(PathSpaceTE&&) noexcept -> PathSpaceTE& = default;
+
+	auto size()                                                                                   const -> int  { return this->self->size_(); }
+	auto insert(std::filesystem::path const &path, DataType const &data, Security::Key const &key)      -> bool { return this->self->insert_(path, data, key); }
+	auto insert(PathIterConstPair const &iters, DataType const &data, Security::Key const &key)         -> bool { return this->self->insert_(iters, data, key); }
+
+    template<typename T>
+    auto grab(std::filesystem::path const &path, Security::Key const &key) -> std::optional<T> {
+        if(auto val = this->self->grab_(path, key)) {
+            if constexpr(std::is_same<T, PathSpaceTE>::value)
+                return val.value();
+            else if(val.value().data())
+                return std::get<T>(val.value().data().value());
+        }
         return {};
-    if(*start=="/") // Sometimes we get a / in the start, remove it
-        start++;
-    return std::make_pair(start, pathWithoutFile.end());
-}
+    }
 
-struct PathSpace;
-using DataType = std::variant<int, PathSpace>;
+    template<typename T>
+	auto grabBlock(std::filesystem::path const &path, Security::Key const &key) -> std::optional<T> { 
+        return {};
+    }
+
+	auto data() -> const std::optional<DataType>& { 
+        return this->self->data_();
+    }
+private:
+	template<typename T> 
+	struct model final : concept_t {
+		model(T x) : data(std::move(x)) {}
+
+		auto copy_()                                                                             const -> std::unique_ptr<concept_t>     override {return std::make_unique<model>(*this);}
+		auto size_()                                                                             const -> int                            override {return this->data.size();}
+		auto insert_(std::filesystem::path const &path, DataType const &d, Security::Key const &key)   -> bool                           override {return this->data.insert(path, d, key);}
+		auto insert_(PathIterConstPair const &iters, DataType const &d, Security::Key const &key)      -> bool                           override {return this->data.insert(iters, d, key);}
+        auto data_()                                                                             const -> const std::optional<DataType>& override {return this->data.data();}
+		auto grab_(std::filesystem::path const &path, Security::Key const &key)                        -> std::optional<PathSpaceTE>     override {return this->data.grab(path, key);}
+		auto grabBlock_(std::filesystem::path const &path, Security::Key const &key)                   -> std::optional<PathSpaceTE>     override {return this->data.grabBlock(path, key);}
+		
+		T data;
+	};
+	std::unique_ptr<concept_t> self;
+};
 
 struct PathSpace {
     PathSpace() = default;
-    PathSpace(PathSpace const &ps) : data(ps.data) {}
+    PathSpace(DataType const &data) : data_(data) {}
+    PathSpace(PathSpace const &ps) : spaces(ps.spaces), data_(ps.data_) {}
 
-    virtual auto insert(std::filesystem::path const &path, DataType const &data) -> void {
-        auto spacePath = path;
-        spacePath.remove_filename();
-        auto pathStart = path.begin();
-        std::lock_guard<std::shared_mutex> lock(this->mut); // write
-        if(auto const p = space_path_range(spacePath)) {
-            this->createNonExistingSpaces(p.value().first, p.value().second);
-            if(auto *space = this->findSpace(spacePath))
-                space->insertDirect(path.filename(), data);
+    virtual auto insert(std::filesystem::path const &path, DataType const &data, Security::Key const &key) -> bool {
+        if(auto const iters = PathUtils::path_range(path))
+            return this->insert(*iters, data, key);
+        else if(auto name = PathUtils::data_name(path)) { // There is just one data space in the path, create and put the data in it
+            this->spaces.insert(std::make_pair(*name, PathSpace{data}));
+            return true;
         }
-        else
-            this->insertDirect(path.filename(), PathSpace{});
+        return false;
     };
 
-    virtual auto grab(std::filesystem::path const &path) -> std::shared_ptr<DataType> {
+    virtual auto insert(PathIterConstPair const &iters, DataType const &data, Security::Key const &key) -> bool {
+        auto next = iters;
+        next.first++;
+        if(iters.first==iters.second) {
+            this->data_ = data;
+            return true;
+        }
+        else if(auto space = this->findSpace(*iters.first)) {
+            return space->insert(next, data, key);
+        } else if(auto const &name = PathUtils::data_name(iters)) {
+            PathSpace newSpace;
+            if(!newSpace.insert(next, data, key))
+                return false;
+            this->spaces.insert(std::make_pair(*name, std::move(newSpace)));
+            return true;
+        }
+        return false;
+    };
+
+    virtual auto grab(std::filesystem::path const &path, Security::Key const &key) -> std::optional<PathSpaceTE> {
         return {};
     };
 
-    virtual auto grabBlock(std::filesystem::path const &path) -> std::shared_ptr<DataType> {
+    virtual auto grabBlock(std::filesystem::path const &path, Security::Key const &key) -> std::optional<PathSpaceTE> {
         return {};
     };
+
+    virtual const std::optional<DataType>& data() const {
+        return this->data_;
+    }
 
     virtual auto size() const -> int {
         std::shared_lock<std::shared_mutex> lock(this->mut); // read
-        return this->data.size();
+        return this->spaces.size() + (this->data_.has_value() ? 1 : 0);
     }
 
 private:
-    auto insertDirect(std::string const &name, DataType const &data) -> void {
-        this->data.insert(std::make_pair(name, std::make_shared<DataType>(data)));
-        this->cv.notify_all();
-    }
-
-    auto createNonExistingSpaces(std::filesystem::path::const_iterator const &current, std::filesystem::path::const_iterator const &end) -> void {
-        if(*end=="/") // There are no spaces to step through
-            return;
+    /*auto createNonExistingSpaces(std::filesystem::path::const_iterator const &current, std::filesystem::path::const_iterator const &end) -> void {
         auto next = current;
         next++;
         if(auto existingSpace = this->findSpace(*current)) {
@@ -85,222 +205,21 @@ private:
         if(current!=end) {
             newSpace.createNonExistingSpaces(next, end);
         }
-        this->data.insert(std::make_pair(*current, std::make_shared<DataType>(std::move(newSpace))));
-    }
+        this->spaces.insert(std::make_pair(*current, newSpace));
+    }*/
 
-    auto findSpace(std::string const &name) const -> PathSpace* {
-        auto const range = this->data.equal_range(name);
+    auto findSpace(std::string const &name) -> PathSpaceTE* {
+        auto const range = this->spaces.equal_range(name);
         for (auto it = range.first; it != range.second; ++it) 
-            if(std::holds_alternative<PathSpace>(*it->second))
-                return &std::get<PathSpace>(*it->second);
+            if(it->first==name)
+                return &it->second;
         return nullptr;
     }
 
     mutable std::shared_mutex mut;
     mutable std::condition_variable_any cv;
-    std::unordered_multimap<std::string, std::shared_ptr<DataType>> data;
+    std::unordered_multimap<std::string, PathSpaceTE> spaces;
+    std::optional<DataType> data_;
 };
-
-/*
-class PathSpaceTE;
-struct Data {
-    Data() = default;
-    Data(int d) : var(d) {}
-    Data(std::unique_ptr<PathSpaceTE> ptr) : var(std::move(ptr)) {}
-    Data(Data const &data) {
-        if(std::holds_alternative<int>(data.var)) {
-            this->var = std::get<int>(data.var);
-        } else if(std::holds_alternative<std::unique_ptr<PathSpaceTE>>(data.var)) {
-            this->var = std::make_unique<PathSpaceTE>(*std::get<std::unique_ptr<PathSpaceTE>>(data.var));
-        }
-    }
-
-    template<typename T>
-    auto to() const -> std::optional<T> { 
-        if(this->var.index()!=std::variant_npos)
-            return std::get<T>(this->var);
-        return {};
-    }
-
-    template<typename T>
-    auto toMove() -> std::optional<T> { 
-        if(this->var.index()!=std::variant_npos)
-            return std::move(std::get<T>(this->var));
-        return {};
-    }
-
-    std::variant<int, std::unique_ptr<PathSpaceTE>> var;
-};
-
-class PathSpaceTE {
-	struct concept_t {
-		virtual ~concept_t() = default;
-		
-		virtual auto copy_()                                                      const -> std::shared_ptr<concept_t> = 0;
-		virtual auto size_()                                                      const -> int                        = 0;
-		virtual auto insert_(std::filesystem::path const &path, Data const &data)       -> void                       = 0;
-		virtual auto grab_(std::filesystem::path const &path)                           -> std::optional<Data>        = 0;
-		virtual auto grabBlock_(std::filesystem::path const &path)                      -> std::optional<Data>        = 0;
-	};
-public:
-	PathSpaceTE() = default;
-	template<typename T>
-	PathSpaceTE(T x)                             : self(std::make_shared<model<T>>(std::move(x))) {}
-	PathSpaceTE(PathSpaceTE const &rhs)          : self(rhs.self->copy_())                        {}
-	PathSpaceTE(std::shared_ptr<concept_t> self) : self(self)                                     {}
-
-	auto operator=(PathSpaceTE const &rhs) -> PathSpaceTE& {return *this = PathSpaceTE(rhs);}
-	auto operator=(PathSpaceTE&&) noexcept -> PathSpaceTE& = default;
-
-	auto link()                                                      const -> PathSpaceTE         { return this->self; }
-	auto size()                                                      const -> int                 { return this->self->size_(); }
-	auto insert(std::filesystem::path const &path, Data const &data)       -> void                { this->self->insert_(path, data); }
-    template<typename T>
-	auto grab(std::filesystem::path const &path)                           -> std::optional<T> {
-        if(auto val = this->self->grab_(path))
-            if(auto conv = val.value().toMove<T>())
-                return std::move(conv.value());
-        return {};
-    }
-    template<typename T>
-	auto grabBlock(std::filesystem::path const &path)                      -> std::optional<T> { 
-        if(auto val = this->self->grabBlock_(path))
-            if(auto conv = val.value().toMove<T>())
-                return conv.value();
-        return {};
-    }
-private:
-	template<typename T> 
-	struct model final : concept_t {
-		model(T x) : data(std::move(x)) {}
-
-		auto copy_()                                                   const -> std::shared_ptr<concept_t> override {return std::make_shared<model>(*this);}
-		auto size_()                                                   const -> int                        override {return this->data.size();}
-		auto insert_(std::filesystem::path const &path, Data const &d)       -> void                       override {return this->data.insert(path, d);}
-		auto grab_(std::filesystem::path const &path)                        -> std::optional<Data>        override {return this->data.grab(path);}
-		auto grabBlock_(std::filesystem::path const &path)                   -> std::optional<Data>        override {return this->data.grabBlock(path);}
-		
-		T data;
-	};
-	std::shared_ptr<concept_t> self;
-};
-
-auto nbr_elements(std::filesystem::path const &path) -> int {
-    int elements = 0;
-    for(auto const &element : path)
-        elements++;
-    return elements;
-}
-
-template<typename T=std::unordered_multimap<std::string, Data>>
-struct PathSpace {
-    PathSpace() = default;
-    PathSpace(PathSpace const &ps) : data(ps.data) {}
-
-    virtual auto insert(std::filesystem::path const &path, Data const &data) -> void {
-        this->createPathTo(path);
-        this->access(path, [](PathSpaceTE &space){space.});
-        this->insert(++path.begin(), path.end(), data);
-    };
-
-    virtual auto grab(std::filesystem::path const &path) -> std::optional<Data> {
-        return this->grab(++path.begin(), path.end());
-    };
-
-    virtual auto grabBlock(std::filesystem::path const &path) -> std::optional<Data> {
-        return this->grabBlock(++path.begin(), path.end());
-    };
-
-    virtual auto size() const -> int {
-        std::shared_lock<std::shared_mutex> lock(this->mut); // read
-        return this->data.size();
-    }
-
-private:
-    virtual auto insert(std::filesystem::path::const_iterator const &iter, std::filesystem::path::const_iterator const &end, Data const &data) -> void {
-
-        
-        std::lock_guard<std::shared_mutex> lock(this->mut); // write
-        auto iterNext = iter++;
-        iterNext++;
-        if(iterNext==end) {
-            this->data.insert(std::make_pair(*iter, data));
-            this->cv.notify_all();
-        } else {
-            if(this->data.count(*iter)>0) {
-
-            } else {
-                auto node = PathSpace{};
-                node.insert(iterNext, end, data);
-                this->data.insert(std::make_pair(*iter, std::make_unique<PathSpaceTE>(PathSpaceTE{std::move(node)})));
-                this->cv.notify_all();
-            }
-        }
-    };
-    
-    virtual auto grab(std::filesystem::path::const_iterator const &iter, std::filesystem::path::const_iterator const &end) -> std::optional<Data> {
-        std::string const name = *iter;
-        std::lock_guard<std::shared_mutex> lock(this->mut); // write
-        if(this->data.count(name))
-            return this->data.extract(name).mapped();
-        return {};
-    };
-
-    virtual auto grabBlock(std::filesystem::path::const_iterator const &iter, std::filesystem::path::const_iterator const &end) -> std::optional<Data> {
-        std::string const name = *iter;
-        std::unique_lock<std::shared_mutex> lock(this->mut); // write
-        while(!this->data.count(name))
-            this->cv.wait(lock);
-        return this->data.extract(name).mapped();
-    };
-
-    mutable std::shared_mutex mut;
-    mutable std::condition_variable_any cv;
-    T data;
-};
-
-template<typename T>
-auto to(std::optional<Data> const &data) -> std::optional<T> {
-    if(data)
-        if(auto const val = data.value().to<T>())
-            return val;
-    return {};
-}
-
-template<typename T>
-struct View {
-    View(T const &space, Security::FunT const &security) : space(space.link()), security(security) {};
-    
-    auto insert(std::filesystem::path const &path, Data const &data) -> void {
-        if(this->security(path, Security::Type::Insert))
-            this->space.insert(path, data);
-    };
-
-    template <typename U>
-    auto grab(std::filesystem::path const &path) -> std::optional<U> { 
-        if(this->security(path, Security::Type::Grab)) {
-            if(auto const val = this->space.template grab<U>(path))
-                return val.value();
-        }
-        return {};
-    };
-
-    template <typename U>
-    auto grabBlock(std::filesystem::path const &path) -> std::optional<U> {
-        if(this->security(path, Security::Type::Grab)) {
-            if(auto const val = this->space.template grabBlock<U>(path))
-                return val.value();
-        }
-        return {};
-    };
-
-    auto size() const -> int {
-        return this->space.size();
-    }
-
-private:
-    T space;
-    Security::FunT security;
-};*/
 
 }
