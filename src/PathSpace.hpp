@@ -90,6 +90,7 @@ class PathSpaceTE {
         virtual auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data, Security::Key const &key)       -> bool                           = 0;
 		virtual auto data_()                                                                                                                    const -> const std::optional<DataType>& = 0;
 		virtual auto grab_(std::filesystem::path const &path, Security::Key const &key)                                                               -> std::optional<PathSpaceTE>     = 0;
+		virtual auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters, Security::Key const &key)                               -> std::optional<PathSpaceTE>     = 0;
 		virtual auto grabBlock_(std::filesystem::path const &path, Security::Key const &key)                                                          -> std::optional<PathSpaceTE>     = 0;
 	};
 public:
@@ -118,6 +119,17 @@ public:
     }
 
     template<typename T>
+    auto grab(std::filesystem::path const &path, PathIterConstPair const &iters, Security::Key const &key) -> std::optional<T> {
+        if(auto val = this->self->grab_(path, iters, key)) {
+            if constexpr(std::is_same<T, PathSpaceTE>::value)
+                return val.value();
+            else if(val.value().data())
+                return std::get<T>(val.value().data().value());
+        }
+        return {};
+    }
+
+    template<typename T>
 	auto grabBlock(std::filesystem::path const &path, Security::Key const &key) -> std::optional<T> { 
         return {};
     }
@@ -136,6 +148,7 @@ private:
 		auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &d, Security::Key const &key)      -> bool                           override {return this->data.insert(path, iters, d, key);}
         auto data_()                                                                             const                                    -> const std::optional<DataType>& override {return this->data.data();}
 		auto grab_(std::filesystem::path const &path, Security::Key const &key)                                                           -> std::optional<PathSpaceTE>     override {return this->data.grab(path, key);}
+		auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters, Security::Key const &key)                           -> std::optional<PathSpaceTE>     override {return this->data.grab(path, iters, key);}
 		auto grabBlock_(std::filesystem::path const &path, Security::Key const &key)                                                      -> std::optional<PathSpaceTE>     override {return this->data.grabBlock(path, key);}
 		
 		T data;
@@ -149,11 +162,12 @@ struct PathSpace {
     PathSpace(PathSpace const &ps) : spaces(ps.spaces), data_(ps.data_) {}
 
     virtual auto insert(std::filesystem::path const &path, DataType const &data, Security::Key const &key) -> bool {
-        if(!key.allow(Security::Type::Insert, path))
-            return false;
         if(auto const iters = PathUtils::path_range(path))
             return this->insert(path, *iters, data, key);
         else if(auto name = PathUtils::data_name(path)) { // There is just one data space in the path, create and put the data in it
+            if(!key.allow(Security::Type::Insert, path))
+                return false;
+            std::lock_guard<std::shared_mutex> lock(this->mut); // write
             this->spaces.insert(std::make_pair(*name, PathSpace{data}));
             return true;
         }
@@ -163,6 +177,49 @@ struct PathSpace {
     virtual auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data, Security::Key const &key) -> bool {
         if(!key.allow(Security::Type::Insert, path))
             return false;
+        return this->insertInternal(path, iters, data, key);
+    };
+
+    virtual auto grab(std::filesystem::path const &path, Security::Key const &key) -> std::optional<PathSpaceTE> {
+        if(auto const iters = PathUtils::path_range(path))
+            return this->grab(path, *iters, key);
+        else if(auto name = PathUtils::data_name(path)) { // There is just one data space in the path, grab it
+            if(this->spaces.count(name.value())) {
+                std::lock_guard<std::shared_mutex> lock(this->mut); // write
+                return this->spaces.extract(name.value()).mapped();
+            }
+            return {};
+        }
+        return {};
+    };
+
+    virtual auto grab(std::filesystem::path const &path, PathIterConstPair const &iters, Security::Key const &key) -> std::optional<PathSpaceTE> {
+        if(!key.allow(Security::Type::Grab, path))
+            return {};
+        return this->grabInternal(path, iters, key);
+    };
+
+    virtual auto grabBlock(std::filesystem::path const &path, Security::Key const &key) -> std::optional<PathSpaceTE> {
+        return {};
+    };
+
+    virtual const std::optional<DataType>& data() const {
+        return this->data_;
+    }
+
+    virtual auto size() const -> int {
+        std::shared_lock<std::shared_mutex> lock(this->mut); // read
+        return this->spaces.size() + (this->data_.has_value() ? 1 : 0);
+    }
+
+private:
+
+    virtual auto grabInternal(std::filesystem::path const &path, PathIterConstPair const &iters, Security::Key const &key) -> std::optional<PathSpaceTE> {
+        return {};
+    }
+
+    virtual auto insertInternal(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data, Security::Key const &key) -> bool {
+        std::lock_guard<std::shared_mutex> lock(this->mut); // write
         auto next = iters;
         next.first++;
         if(iters.first==iters.second) {
@@ -181,24 +238,6 @@ struct PathSpace {
         return false;
     };
 
-    virtual auto grab(std::filesystem::path const &path, Security::Key const &key) -> std::optional<PathSpaceTE> {
-        return {};
-    };
-
-    virtual auto grabBlock(std::filesystem::path const &path, Security::Key const &key) -> std::optional<PathSpaceTE> {
-        return {};
-    };
-
-    virtual const std::optional<DataType>& data() const {
-        return this->data_;
-    }
-
-    virtual auto size() const -> int {
-        std::shared_lock<std::shared_mutex> lock(this->mut); // read
-        return this->spaces.size() + (this->data_.has_value() ? 1 : 0);
-    }
-
-private:
     auto findSpace(std::string const &name) -> PathSpaceTE* {
         auto const range = this->spaces.equal_range(name);
         for (auto it = range.first; it != range.second; ++it) 

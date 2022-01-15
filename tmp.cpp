@@ -111,8 +111,6 @@ private:
     std::unordered_multimap<std::string, std::shared_ptr<DataType>> data;
 };
 
-
-
 //-----
 class PathSpaceTE;
 struct Data {
