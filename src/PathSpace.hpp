@@ -48,6 +48,12 @@ auto space_name(PathIterConstPair const &iters) -> std::optional<std::string> {
     return *iters.first;
 }
 
+auto next(PathIterConstPair const &iters) -> PathIterConstPair {
+    auto n = iters;
+    n.first++;
+    return n;
+}
+
 auto data_name(std::filesystem::path const &path) -> std::optional<std::string> {
     auto const name = path.filename();
     if(name=="")
@@ -170,7 +176,21 @@ struct PathSpace {
     };
 
     virtual auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data) -> bool {
-        return this->insertInternal(path, iters, data);
+        std::lock_guard<std::shared_mutex> lock(this->mut); // write
+        if(iters.first==path.end()) { // We are inserting the data into the previous space
+            this->data_ = data;
+            return true;
+        }
+        else if(auto space = this->findSpace(*iters.first)) {
+            return space->insert(path, PathUtils::next(iters), data);
+        } else if(auto const &name = PathUtils::space_name(iters)) {
+            PathSpace newSpace;
+            if(!newSpace.insert(path, PathUtils::next(iters), data))
+                return false;
+            this->spaces.insert(std::make_pair(*name, std::move(newSpace)));
+            return true;
+        }
+        return false;
     };
 
     virtual auto grab(std::filesystem::path const &path) -> std::optional<PathSpaceTE> {
@@ -187,7 +207,17 @@ struct PathSpace {
     };
 
     virtual auto grab(std::filesystem::path const &path, PathIterConstPair const &iters) -> std::optional<PathSpaceTE> {
-        return this->grabInternal(path, iters);
+        std::lock_guard<std::shared_mutex> lock(this->mut); // write
+        if(iters.first==iters.second) {
+            if(auto name = PathUtils::data_name(path)) {
+                if(this->spaces.count(name.value())>0)
+                    return this->spaces.extract(name.value()).mapped();
+                return {};
+            }
+        }
+        else if(auto space = this->findSpace(*iters.first))
+            return space->grab(path, PathUtils::next(iters));
+        return {};
     };
 
     virtual auto grabBlock(std::filesystem::path const &path) -> std::optional<PathSpaceTE> {
@@ -204,43 +234,6 @@ struct PathSpace {
     }
 
 private:
-    virtual auto grabInternal(std::filesystem::path const &path, PathIterConstPair const &iters) -> std::optional<PathSpaceTE> {
-        std::lock_guard<std::shared_mutex> lock(this->mut); // write
-        auto next = iters;
-        next.first++;
-        if(iters.first==iters.second) {
-            if(auto name = PathUtils::data_name(path)) {
-                if(this->spaces.count(name.value())>0)
-                    return this->spaces.extract(name.value()).mapped();
-                return {};
-            }
-        }
-        else if(auto space = this->findSpace(*iters.first)) {
-            return space->grab(path, next);
-        }
-        return {};
-    }
-
-    virtual auto insertInternal(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data) -> bool {
-        std::lock_guard<std::shared_mutex> lock(this->mut); // write
-        auto next = iters;
-        next.first++;
-        if(iters.first==path.end()) { // We are inserting the data into the previous space
-            this->data_ = data;
-            return true;
-        }
-        else if(auto space = this->findSpace(*iters.first)) {
-            return space->insert(path, next, data);
-        } else if(auto const &name = PathUtils::space_name(iters)) {
-            PathSpace newSpace;
-            if(!newSpace.insertInternal(path, next, data))
-                return false;
-            this->spaces.insert(std::make_pair(*name, std::move(newSpace)));
-            return true;
-        }
-        return false;
-    };
-
     auto findSpace(std::string const &name) -> PathSpaceTE* {
         auto const range = this->spaces.equal_range(name);
         for (auto it = range.first; it != range.second; ++it) 
