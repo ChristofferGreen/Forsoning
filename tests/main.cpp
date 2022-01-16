@@ -102,10 +102,10 @@ TEST_CASE_FIXTURE(PathSpace, "Insert: Iterator Version") {
 }
 
 TEST_CASE("PathSpace") {
+    PathSpaceTE space = PathSpace{};
+    auto const key = Security::Policy::AlwaysAllow;
+    
     SUBCASE("Insert And Grab") {
-        PathSpaceTE space = PathSpace{};
-        auto const key = Security::Policy::AlwaysAllow;
-
         // Insert
         CHECK(space.size()==0);
         CHECK(space.insert("/test", 5, key));
@@ -138,14 +138,13 @@ TEST_CASE("PathSpace") {
     }
 
     SUBCASE("Insert And Grab Spaces") {
-        PathSpace space;
-    /* CHECK(space.size()==0);
-        space.insert("/test1/test2/test3", 5);
+        CHECK(space.size()==0);
+        space.insert("/test1/test2/test3", 5, key);
         CHECK(space.size()==1);
-        auto res = space.grab("/test1/test2/3");
-        CHECK(res);
-        CHECK(std::get<int>(*res) == 5);
-        CHECK(space.size()==1);*/
+        auto res = space.grab<int>("/test1/test2/test3", key);
+        CHECK(res.has_value());
+        CHECK(res.value() == 5);
+        CHECK(space.size()==1);
     }
 
     /*

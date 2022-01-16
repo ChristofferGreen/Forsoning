@@ -44,6 +44,10 @@ auto data_name(PathIterConstPair const &iters) -> std::optional<std::string> {
     return {};
 }
 
+auto space_name(PathIterConstPair const &iters) -> std::optional<std::string> {
+    return *iters.first;
+}
+
 auto data_name(std::filesystem::path const &path) -> std::optional<std::string> {
     auto const name = path.filename();
     if(name=="")
@@ -117,16 +121,9 @@ public:
         }
         return {};
     }
-
-    template<typename T>
-    auto grab(std::filesystem::path const &path, PathIterConstPair const &iters, Security::Key const &key) -> std::optional<T> {
-        if(auto val = this->self->grab_(path, iters, key)) {
-            if constexpr(std::is_same<T, PathSpaceTE>::value)
-                return val.value();
-            else if(val.value().data())
-                return std::get<T>(val.value().data().value());
-        }
-        return {};
+    
+    auto grab(std::filesystem::path const &path, PathIterConstPair const &iters, Security::Key const &key) -> std::optional<PathSpaceTE> {
+        return this->self->grab_(path, iters, key);
     }
 
     template<typename T>
@@ -213,8 +210,20 @@ struct PathSpace {
     }
 
 private:
-
     virtual auto grabInternal(std::filesystem::path const &path, PathIterConstPair const &iters, Security::Key const &key) -> std::optional<PathSpaceTE> {
+        std::lock_guard<std::shared_mutex> lock(this->mut); // write
+        auto next = iters;
+        next.first++;
+        if(iters.first==iters.second) {
+            if(auto name = PathUtils::data_name(path)) {
+                if(this->spaces.count(name.value())>0)
+                    return this->spaces.extract(name.value()).mapped();
+                return {};
+            }
+        }
+        else if(auto space = this->findSpace(*iters.first)) {
+            return space->grab(path, next, key);
+        }
         return {};
     }
 
@@ -222,15 +231,15 @@ private:
         std::lock_guard<std::shared_mutex> lock(this->mut); // write
         auto next = iters;
         next.first++;
-        if(iters.first==iters.second) {
+        if(iters.first==path.end()) { // We are inserting the data into the previous space
             this->data_ = data;
             return true;
         }
         else if(auto space = this->findSpace(*iters.first)) {
             return space->insert(path, next, data, key);
-        } else if(auto const &name = PathUtils::data_name(iters)) {
+        } else if(auto const &name = PathUtils::space_name(iters)) {
             PathSpace newSpace;
-            if(!newSpace.insert(path, next, data, key))
+            if(!newSpace.insertInternal(path, next, data, key))
                 return false;
             this->spaces.insert(std::make_pair(*name, std::move(newSpace)));
             return true;
