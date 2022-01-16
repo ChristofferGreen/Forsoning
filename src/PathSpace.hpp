@@ -88,14 +88,14 @@ class PathSpaceTE {
 	struct concept_t {
 		virtual ~concept_t() = default;
 		
-		virtual auto copy_()                                                                                                                    const -> std::unique_ptr<concept_t>     = 0;
-		virtual auto size_()                                                                                                                    const -> int                            = 0;
-		virtual auto insert_(std::filesystem::path const &path, DataType const &data, Security::Key const &key)                                       -> bool                           = 0;
-        virtual auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data, Security::Key const &key)       -> bool                           = 0;
-		virtual auto data_()                                                                                                                    const -> const std::optional<DataType>& = 0;
-		virtual auto grab_(std::filesystem::path const &path, Security::Key const &key)                                                               -> std::optional<PathSpaceTE>     = 0;
-		virtual auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters, Security::Key const &key)                               -> std::optional<PathSpaceTE>     = 0;
-		virtual auto grabBlock_(std::filesystem::path const &path, Security::Key const &key)                                                          -> std::optional<PathSpaceTE>     = 0;
+		virtual auto copy_()                                                                                          const -> std::unique_ptr<concept_t>     = 0;
+		virtual auto size_()                                                                                          const -> int                            = 0;
+		virtual auto insert_(std::filesystem::path const &path, DataType const &data)                                       -> bool                           = 0;
+        virtual auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data)       -> bool                           = 0;
+		virtual auto data_()                                                                                          const -> const std::optional<DataType>& = 0;
+		virtual auto grab_(std::filesystem::path const &path)                                                               -> std::optional<PathSpaceTE>     = 0;
+		virtual auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters)                               -> std::optional<PathSpaceTE>     = 0;
+		virtual auto grabBlock_(std::filesystem::path const &path)                                                          -> std::optional<PathSpaceTE>     = 0;
 	};
 public:
 	PathSpaceTE() = default;
@@ -108,12 +108,12 @@ public:
 	auto operator=(PathSpaceTE&&) noexcept -> PathSpaceTE& = default;
 
 	auto size()                                                                                                                    const -> int  { return this->self->size_(); }
-	auto insert(std::filesystem::path const &path, DataType const &data, Security::Key const &key)                                       -> bool { return this->self->insert_(path, data, key); }
-	auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data, Security::Key const &key)       -> bool { return this->self->insert_(path, iters, data, key); }
+	auto insert(std::filesystem::path const &path, DataType const &data)                                       -> bool { return this->self->insert_(path, data); }
+	auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data)       -> bool { return this->self->insert_(path, iters, data); }
 
     template<typename T>
-    auto grab(std::filesystem::path const &path, Security::Key const &key) -> std::optional<T> {
-        if(auto val = this->self->grab_(path, key)) {
+    auto grab(std::filesystem::path const &path) -> std::optional<T> {
+        if(auto val = this->self->grab_(path)) {
             if constexpr(std::is_same<T, PathSpaceTE>::value)
                 return val.value();
             else if(val.value().data())
@@ -122,12 +122,12 @@ public:
         return {};
     }
     
-    auto grab(std::filesystem::path const &path, PathIterConstPair const &iters, Security::Key const &key) -> std::optional<PathSpaceTE> {
-        return this->self->grab_(path, iters, key);
+    auto grab(std::filesystem::path const &path, PathIterConstPair const &iters) -> std::optional<PathSpaceTE> {
+        return this->self->grab_(path, iters);
     }
 
     template<typename T>
-	auto grabBlock(std::filesystem::path const &path, Security::Key const &key) -> std::optional<T> { 
+	auto grabBlock(std::filesystem::path const &path) -> std::optional<T> { 
         return {};
     }
 
@@ -141,12 +141,12 @@ private:
 
 		auto copy_()                                                                             const                                    -> std::unique_ptr<concept_t>     override {return std::make_unique<model>(*this);}
 		auto size_()                                                                             const                                    -> int                            override {return this->data.size();}
-		auto insert_(std::filesystem::path const &path, DataType const &d, Security::Key const &key)                                      -> bool                           override {return this->data.insert(path, d, key);}
-		auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &d, Security::Key const &key)      -> bool                           override {return this->data.insert(path, iters, d, key);}
+		auto insert_(std::filesystem::path const &path, DataType const &d)                                      -> bool                           override {return this->data.insert(path, d);}
+		auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &d)      -> bool                           override {return this->data.insert(path, iters, d);}
         auto data_()                                                                             const                                    -> const std::optional<DataType>& override {return this->data.data();}
-		auto grab_(std::filesystem::path const &path, Security::Key const &key)                                                           -> std::optional<PathSpaceTE>     override {return this->data.grab(path, key);}
-		auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters, Security::Key const &key)                           -> std::optional<PathSpaceTE>     override {return this->data.grab(path, iters, key);}
-		auto grabBlock_(std::filesystem::path const &path, Security::Key const &key)                                                      -> std::optional<PathSpaceTE>     override {return this->data.grabBlock(path, key);}
+		auto grab_(std::filesystem::path const &path)                                                           -> std::optional<PathSpaceTE>     override {return this->data.grab(path);}
+		auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters)                           -> std::optional<PathSpaceTE>     override {return this->data.grab(path, iters);}
+		auto grabBlock_(std::filesystem::path const &path)                                                      -> std::optional<PathSpaceTE>     override {return this->data.grabBlock(path);}
 		
 		T data;
 	};
@@ -158,12 +158,10 @@ struct PathSpace {
     PathSpace(DataType const &data) : data_(data) {}
     PathSpace(PathSpace const &ps) : spaces(ps.spaces), data_(ps.data_) {}
 
-    virtual auto insert(std::filesystem::path const &path, DataType const &data, Security::Key const &key) -> bool {
+    virtual auto insert(std::filesystem::path const &path, DataType const &data) -> bool {
         if(auto const iters = PathUtils::path_range(path))
-            return this->insert(path, *iters, data, key);
+            return this->insert(path, *iters, data);
         else if(auto name = PathUtils::data_name(path)) { // There is just one data space in the path, create and put the data in it
-            if(!key.allow(Security::Type::Insert, path))
-                return false;
             std::lock_guard<std::shared_mutex> lock(this->mut); // write
             this->spaces.insert(std::make_pair(*name, PathSpace{data}));
             return true;
@@ -171,15 +169,13 @@ struct PathSpace {
         return false;
     };
 
-    virtual auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data, Security::Key const &key) -> bool {
-        if(!key.allow(Security::Type::Insert, path))
-            return false;
-        return this->insertInternal(path, iters, data, key);
+    virtual auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data) -> bool {
+        return this->insertInternal(path, iters, data);
     };
 
-    virtual auto grab(std::filesystem::path const &path, Security::Key const &key) -> std::optional<PathSpaceTE> {
+    virtual auto grab(std::filesystem::path const &path) -> std::optional<PathSpaceTE> {
         if(auto const iters = PathUtils::path_range(path))
-            return this->grab(path, *iters, key);
+            return this->grab(path, *iters);
         else if(auto name = PathUtils::data_name(path)) { // There is just one data space in the path, grab it
             if(this->spaces.count(name.value())) {
                 std::lock_guard<std::shared_mutex> lock(this->mut); // write
@@ -190,13 +186,11 @@ struct PathSpace {
         return {};
     };
 
-    virtual auto grab(std::filesystem::path const &path, PathIterConstPair const &iters, Security::Key const &key) -> std::optional<PathSpaceTE> {
-        if(!key.allow(Security::Type::Grab, path))
-            return {};
-        return this->grabInternal(path, iters, key);
+    virtual auto grab(std::filesystem::path const &path, PathIterConstPair const &iters) -> std::optional<PathSpaceTE> {
+        return this->grabInternal(path, iters);
     };
 
-    virtual auto grabBlock(std::filesystem::path const &path, Security::Key const &key) -> std::optional<PathSpaceTE> {
+    virtual auto grabBlock(std::filesystem::path const &path) -> std::optional<PathSpaceTE> {
         return {};
     };
 
@@ -210,7 +204,7 @@ struct PathSpace {
     }
 
 private:
-    virtual auto grabInternal(std::filesystem::path const &path, PathIterConstPair const &iters, Security::Key const &key) -> std::optional<PathSpaceTE> {
+    virtual auto grabInternal(std::filesystem::path const &path, PathIterConstPair const &iters) -> std::optional<PathSpaceTE> {
         std::lock_guard<std::shared_mutex> lock(this->mut); // write
         auto next = iters;
         next.first++;
@@ -222,12 +216,12 @@ private:
             }
         }
         else if(auto space = this->findSpace(*iters.first)) {
-            return space->grab(path, next, key);
+            return space->grab(path, next);
         }
         return {};
     }
 
-    virtual auto insertInternal(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data, Security::Key const &key) -> bool {
+    virtual auto insertInternal(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data) -> bool {
         std::lock_guard<std::shared_mutex> lock(this->mut); // write
         auto next = iters;
         next.first++;
@@ -236,10 +230,10 @@ private:
             return true;
         }
         else if(auto space = this->findSpace(*iters.first)) {
-            return space->insert(path, next, data, key);
+            return space->insert(path, next, data);
         } else if(auto const &name = PathUtils::space_name(iters)) {
             PathSpace newSpace;
-            if(!newSpace.insertInternal(path, next, data, key))
+            if(!newSpace.insertInternal(path, next, data))
                 return false;
             this->spaces.insert(std::make_pair(*name, std::move(newSpace)));
             return true;
@@ -259,6 +253,42 @@ private:
     mutable std::condition_variable_any cv;
     std::unordered_multimap<std::string, PathSpaceTE> spaces;
     std::optional<DataType> data_;
+};
+
+template<typename T>
+struct View {
+    View(T const &space, Security::Key const &key) : space(space), key(key) {};
+    
+    auto insert(std::filesystem::path const &path, DataType const &data) -> void {
+        if(this->key.allow(Security::Type::Insert, path))
+            this->space->insert(path, data);
+    };
+
+    template <typename U>
+    auto grab(std::filesystem::path const &path) -> std::optional<U> { 
+        if(this->key.allow(Security::Type::Grab, path)) {
+            if(auto const val = this->space->template grab<U>(path))
+                return val.value();
+        }
+        return {};
+    };
+
+    template <typename U>
+    auto grabBlock(std::filesystem::path const &path) -> std::optional<U> {
+        if(this->key.allow(Security::Type::Grab, path)) {
+            if(auto const val = this->space->template grabBlock<U>(path))
+                return val.value();
+        }
+        return {};
+    };
+
+    auto size() const -> int {
+        return this->space->size();
+    }
+
+private:
+    T space;
+    Security::Key key;
 };
 
 }

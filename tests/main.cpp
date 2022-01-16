@@ -94,61 +94,58 @@ TEST_CASE("PathUtils") {
 
 TEST_CASE_FIXTURE(PathSpace, "Insert: Iterator Version") {
     PathSpace space;
-    auto const key = Security::Policy::AlwaysAllow;
     std::filesystem::path const path = "/test1/test2/test3";
     auto const optPair = PathUtils::path_range(path);
     CHECK(optPair.has_value());
-    space.insert(path, *optPair, 5, key);
+    space.insert(path, *optPair, 5);
 }
 
 TEST_CASE("PathSpace") {
     PathSpaceTE space = PathSpace{};
-    auto const key = Security::Policy::AlwaysAllow;
     
     SUBCASE("Insert And Grab") {
         // Insert
         CHECK(space.size()==0);
-        CHECK(space.insert("/test", 5, key));
+        CHECK(space.insert("/test", 5));
         CHECK(space.size()==1);
-        CHECK(space.insert("/test", 4, key));
+        CHECK(space.insert("/test", 4));
         CHECK(space.size()==2);
-        CHECK(space.insert("/test", 3, key));
+        CHECK(space.insert("/test", 3));
         CHECK(space.size()==3);
 
-        CHECK(!space.insert("/", 2, key));
+        CHECK(!space.insert("/", 2));
         CHECK(space.size()==3);
 
         // Grab
-        auto res = space.grab<int>("/test", key);
+        auto res = space.grab<int>("/test");
         CHECK(res);
         CHECK(res.value() == 5);
         CHECK(space.size()==2);
-        res = space.grab<int>("/test", key);
+        res = space.grab<int>("/test");
         CHECK(res);
         CHECK(res.value() == 4);
         CHECK(space.size()==1);
-        res = space.grab<int>("/test", key);
+        res = space.grab<int>("/test");
         CHECK(res);
         CHECK(res.value() == 3);
 
         // Grab empty
         CHECK(space.size()==0);
-        res = space.grab<int>("/test", key);
+        res = space.grab<int>("/test");
         CHECK(!res);
     }
 
     SUBCASE("Insert And Grab Spaces") {
         CHECK(space.size()==0);
-        space.insert("/test1/test2/test3", 5, key);
+        space.insert("/test1/test2/test3", 5);
         CHECK(space.size()==1);
-        auto res = space.grab<int>("/test1/test2/test3", key);
+        auto res = space.grab<int>("/test1/test2/test3");
         CHECK(res.has_value());
         CHECK(res.value() == 5);
         CHECK(space.size()==1);
     }
 
-    /*
-    TEST_CASE("Raw Linking") {
+    /*SUBCASE("Raw Linking") {
         PathSpaceTE space = PathSpace{};
         space.insert("/test", 5);
         PathSpaceTE spaceCopy = space;
@@ -166,31 +163,20 @@ TEST_CASE("PathSpace") {
 
         auto resLink = spaceLink.grab<int>("/test");
         CHECK(!resLink.has_value());
-    }
+    }*/
 
-    TEST_CASE("View Linking") {
-        PathSpaceTE space = PathSpace{};
+    SUBCASE("View Linking") {
+        auto space = std::make_shared<PathSpaceTE>(PathSpace{});
         View view(space, Security::Policy::AlwaysAllow);
         view.insert("/test", 5);
-        CHECK(space.size() == view.size());
-        View viewCopy(PathSpaceTE{space}, Security::Policy::AlwaysAllow);
-        CHECK(viewCopy.size() == 1);
-        View viewLink(space, Security::Policy::AlwaysAllow);
-        CHECK(viewLink.size() == 1);
+        CHECK(space->size() == view.size());
 
         auto res = view.grab<int>("/test");
         CHECK(res.has_value());
         CHECK(*res == 5);
-
-        auto resCopy = viewCopy.grab<int>("/test");
-        CHECK(resCopy.has_value());
-        CHECK(*resCopy == 5);
-
-        auto resLink = viewLink.grab<int>("/test");
-        CHECK(!resLink.has_value());
     }
 
-    TEST_CASE("Blocking") {
+    /*SUBCASE("Blocking") {
         PathSpaceTE space = PathSpace{};
         auto const iterations = 20;
         CHECK(!(iterations%2));
@@ -217,7 +203,7 @@ TEST_CASE("PathSpace") {
         CHECK(*space.grabBlock<int>("/result_second") == iterations+1);
     }
 
-    TEST_CASE("Sub Paths") {
+    SUBCASE("Sub Paths") {
         PathSpaceTE space = PathSpace{};
         space.insert("/test1/test2", 5);
 
@@ -228,6 +214,5 @@ TEST_CASE("PathSpace") {
         auto const value = parent.value()->grab<int>("/test2");
         CHECK(value.has_value());
         CHECK(*value == 5);
-    }
-    */
+    }*/
 }
