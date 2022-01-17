@@ -73,6 +73,7 @@ namespace Security {
         Grab = 0,
         Insert
     };
+
     namespace Policy {
         using FunT = std::function<bool(Type const &sec, std::filesystem::path const &path)>;
         inline const FunT AlwaysAllow  = [](Type const &sec, std::filesystem::path const &path){ return true; };
@@ -102,6 +103,7 @@ class PathSpaceTE {
 		virtual auto grab_(std::filesystem::path const &path)                                                               -> std::optional<PathSpaceTE>     = 0;
 		virtual auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters)                               -> std::optional<PathSpaceTE>     = 0;
 		virtual auto grabBlock_(std::filesystem::path const &path)                                                          -> std::optional<PathSpaceTE>     = 0;
+		virtual auto grabBlock_(std::filesystem::path const &path, PathIterConstPair const &iters)                          -> std::optional<PathSpaceTE>     = 0;
 	};
 public:
 	PathSpaceTE() = default;
@@ -134,7 +136,17 @@ public:
 
     template<typename T>
 	auto grabBlock(std::filesystem::path const &path) -> std::optional<T> { 
+        if(auto val = this->self->grabBlock_(path)) {
+            if constexpr(std::is_same<T, PathSpaceTE>::value)
+                return val.value();
+            else if(val.value().data())
+                return std::get<T>(val.value().data().value());
+        }
         return {};
+    }
+
+    auto grabBlock(std::filesystem::path const &path, PathIterConstPair const &iters) -> std::optional<PathSpaceTE> {
+        return this->self->grab_(path, iters);
     }
 
 	auto data() -> const std::optional<DataType>& { 
@@ -145,14 +157,15 @@ private:
 	struct model final : concept_t {
 		model(T x) : data(std::move(x)) {}
 
-		auto copy_()                                                                             const                                    -> std::unique_ptr<concept_t>     override {return std::make_unique<model>(*this);}
-		auto size_()                                                                             const                                    -> int                            override {return this->data.size();}
+		auto copy_()                                                                             const          -> std::unique_ptr<concept_t>     override {return std::make_unique<model>(*this);}
+		auto size_()                                                                             const          -> int                            override {return this->data.size();}
 		auto insert_(std::filesystem::path const &path, DataType const &d)                                      -> bool                           override {return this->data.insert(path, d);}
 		auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &d)      -> bool                           override {return this->data.insert(path, iters, d);}
-        auto data_()                                                                             const                                    -> const std::optional<DataType>& override {return this->data.data();}
+        auto data_()                                                                             const          -> const std::optional<DataType>& override {return this->data.data();}
 		auto grab_(std::filesystem::path const &path)                                                           -> std::optional<PathSpaceTE>     override {return this->data.grab(path);}
 		auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters)                           -> std::optional<PathSpaceTE>     override {return this->data.grab(path, iters);}
 		auto grabBlock_(std::filesystem::path const &path)                                                      -> std::optional<PathSpaceTE>     override {return this->data.grabBlock(path);}
+		auto grabBlock_(std::filesystem::path const &path, PathIterConstPair const &iters)                      -> std::optional<PathSpaceTE>     override {return this->data.grabBlock(path, iters);}
 		
 		T data;
 	};
@@ -170,6 +183,7 @@ struct PathSpace {
         else if(auto name = PathUtils::data_name(path)) { // There is just one data space in the path, create and put the data in it
             std::lock_guard<std::shared_mutex> lock(this->mut); // write
             this->spaces.insert(std::make_pair(*name, PathSpace{data}));
+            this->cv.notify_all();
             return true;
         }
         return false;
@@ -188,6 +202,7 @@ struct PathSpace {
             if(!newSpace.insert(path, PathUtils::next(iters), data))
                 return false;
             this->spaces.insert(std::make_pair(*name, std::move(newSpace)));
+            this->cv.notify_all();
             return true;
         }
         return false;
@@ -221,6 +236,28 @@ struct PathSpace {
     };
 
     virtual auto grabBlock(std::filesystem::path const &path) -> std::optional<PathSpaceTE> {
+        if(auto const iters = PathUtils::path_range(path))
+            return this->grabBlock(path, *iters);
+        else if(auto name = PathUtils::data_name(path)) { // There is just one data space in the path, grab it
+            std::unique_lock<std::shared_mutex> lock(this->mut); // write
+            while(!this->spaces.count(name.value()))
+                this->cv.wait(lock);
+            return this->spaces.extract(name.value()).mapped();
+        }
+        return {};
+    };
+
+    virtual auto grabBlock(std::filesystem::path const &path, PathIterConstPair const &iters) -> std::optional<PathSpaceTE> {
+        std::unique_lock<std::shared_mutex> lock(this->mut); // write
+        if(iters.first==iters.second) {
+            if(auto name = PathUtils::data_name(path)) {
+                while(!this->spaces.count(name.value()))
+                    this->cv.wait(lock);
+                return this->spaces.extract(name.value()).mapped();
+            }
+        }
+        else if(auto space = this->findSpace(*iters.first))
+            return space->grab(path, PathUtils::next(iters));
         return {};
     };
 

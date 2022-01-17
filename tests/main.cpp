@@ -176,7 +176,7 @@ TEST_CASE("PathSpace") {
         CHECK(*res == 5);
     }
 
-    /*SUBCASE("Blocking") {
+    SUBCASE("Blocking") {
         PathSpaceTE space = PathSpace{};
         auto const iterations = 20;
         CHECK(!(iterations%2));
@@ -203,7 +203,7 @@ TEST_CASE("PathSpace") {
         CHECK(*space.grabBlock<int>("/result_second") == iterations+1);
     }
 
-    SUBCASE("Sub Paths") {
+    /*SUBCASE("Sub Paths") {
         PathSpaceTE space = PathSpace{};
         space.insert("/test1/test2", 5);
 
