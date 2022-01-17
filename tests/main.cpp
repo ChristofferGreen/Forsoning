@@ -203,16 +203,16 @@ TEST_CASE("PathSpace") {
         CHECK(*space.grabBlock<int>("/result_second") == iterations+1);
     }
 
-    /*SUBCASE("Sub Paths") {
+    SUBCASE("Sub Paths") {
         PathSpaceTE space = PathSpace{};
         space.insert("/test1/test2", 5);
 
-        auto const parent = space.grab<std::unique_ptr<PathSpaceTE>>("/test1");
+        auto parent = space.grab<PathSpaceTE>("/test1");
         CHECK(parent.has_value());
-        CHECK(parent.value()->size()==1);
+        CHECK(parent.value().size()==1);
 
-        auto const value = parent.value()->grab<int>("/test2");
+        auto const value = parent.value().grab<int>("/test2");
         CHECK(value.has_value());
         CHECK(*value == 5);
-    }*/
+    }
 }
