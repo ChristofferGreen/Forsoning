@@ -16,7 +16,9 @@ TEST_CASE("PathUtils") {
         CHECK(*range.value().first=="test1");
         CHECK(*range.value().second=="test2");
         range.value().first++;
-        CHECK(range.value().first->filename()=="test2");
+        CHECK(*range.value().first=="test2");
+        CHECK(range.value().first==range.value().second);
+        CHECK(*range.value().first==*range.value().second);
 
         path = "/";
         range = PathUtils::path_range(path);
@@ -32,9 +34,9 @@ TEST_CASE("PathUtils") {
         CHECK(*range.value().first=="test1");
         CHECK(*range.value().second=="test3");
         range.value().first++;
-        CHECK(range.value().first->filename()=="test2");
+        CHECK(*range.value().first=="test2");
         range.value().first++;
-        CHECK(range.value().first->filename()=="test3");
+        CHECK(*range.value().first=="test3");
 
         path = "/test1/test2/";
         range = PathUtils::path_range(path);
@@ -42,10 +44,10 @@ TEST_CASE("PathUtils") {
         CHECK(*range.value().first=="test1");
         CHECK(*range.value().second=="");
         range.value().first++;
-        CHECK(range.value().first->filename()=="test2");
+        CHECK(*range.value().first=="test2");
     }
 
-    SUBCASE("Path iters not equals") { // Make sure position matters for equals
+    SUBCASE("Path iters position matters") { // Make sure position matters for equals
         std::filesystem::path const path = "/test/test";
         auto iter1 = path.begin();
         iter1++;
@@ -57,9 +59,7 @@ TEST_CASE("PathUtils") {
     }
 
     SUBCASE("Remove filename") {
-        std::filesystem::path path = "/test1/test2";
-        path = PathUtils::remove_filename(path);
-        CHECK(path=="/test1/");
+        CHECK(PathUtils::remove_filename("/test1/test2")=="/test1/");
     }
 
     SUBCASE("Data name") {
@@ -77,6 +77,10 @@ TEST_CASE("PathUtils") {
 
         path = "/";
         CHECK(!PathUtils::data_name(path).has_value());
+    }
+
+    SUBCASE("Space name") {
+        CHECK(*PathUtils::space_name(*PathUtils::path_range("/test1/test2"))=="test1");
     }
 
     SUBCASE("Data name iters") {
@@ -97,7 +101,8 @@ TEST_CASE_FIXTURE(PathSpace, "Insert: Iterator Version") {
     std::filesystem::path const path = "/test1/test2/test3";
     auto const optPair = PathUtils::path_range(path);
     CHECK(optPair.has_value());
-    space.insert(path, *optPair, 5);
+    CHECK(space.insert(path, *optPair, 5));
+    CHECK(*PathSpaceTE{space}.grab<int>(path)==5);
 }
 
 TEST_CASE("PathSpace") {
