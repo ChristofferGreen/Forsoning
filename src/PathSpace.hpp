@@ -219,6 +219,12 @@ struct SpacesAegis : public Aegis<std::unordered_multimap<std::string, PathSpace
         return this->data.extract(name).mapped();
     }
 
+    auto waitForWrite(std::string const &name) {
+        std::unique_lock<std::shared_mutex> lock(this->mut); // write
+        while(!this->data.count(name))
+            this->cv.wait(lock);
+    }
+
     auto findSpace(std::string const &name) -> PathSpaceTE* {
         std::shared_lock<std::shared_mutex> lock(this->mut); // read
         auto const range = this->data.equal_range(name);
