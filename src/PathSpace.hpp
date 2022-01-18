@@ -115,7 +115,7 @@ struct Aegis {
         this->cv.wait(lock);
     }
 
-private:
+protected:
     T data;
     mutable std::shared_mutex mut;
     mutable std::condition_variable_any cv;
@@ -145,7 +145,7 @@ public:
 	auto operator=(PathSpaceTE const &rhs) -> PathSpaceTE& {return *this = PathSpaceTE(rhs);}
 	auto operator=(PathSpaceTE&&) noexcept -> PathSpaceTE& = default;
 
-	auto size()                                                                                          const -> int  { return this->self->size_(); }
+	auto size()                                                                                                                    const -> int  { return this->self->size_(); }
 	auto insert(std::filesystem::path const &path, DataType const &data)                                       -> bool { return this->self->insert_(path, data); }
 	auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data)       -> bool { return this->self->insert_(path, iters, data); }
 
@@ -202,27 +202,55 @@ private:
 	std::unique_ptr<concept_t> self;
 };
 
+struct SpacesAegis : public Aegis<std::unordered_multimap<std::string, PathSpaceTE>> {
+    auto insert(std::pair<std::string, PathSpaceTE> const &p) {
+        std::lock_guard<std::shared_mutex> lock(this->mut); // write
+        this->data.insert(p);
+        this->cv.notify_all();
+    }
+
+    auto count(std::string const &name) {
+        std::shared_lock<std::shared_mutex> lock(this->mut); // read
+        return this->data.count(name);
+    }
+
+    auto extract(std::string const &name) {
+        std::lock_guard<std::shared_mutex> lock(this->mut); // write
+        return this->data.extract(name).mapped();
+    }
+
+    auto findSpace(std::string const &name) -> PathSpaceTE* {
+        std::shared_lock<std::shared_mutex> lock(this->mut); // read
+        auto const range = this->data.equal_range(name);
+        for (auto it = range.first; it != range.second; ++it) 
+            if(it->first==name)
+                return &it->second;
+        return nullptr;
+    }
+};
+
 struct PathSpace {
     PathSpace() = default;
     PathSpace(DataType const &data) : data_(data) {}
-    PathSpace(PathSpace const &ps) {
-        this->spaces.write([&ps](auto &space){space=ps.spaces.read([](auto &rightSpace){return rightSpace;});});
-        this->data_.write([&ps](auto &dat){dat=ps.data_.read([](auto &rightSide){return rightSide;});});
-    }
+    PathSpace(PathSpace const &ps) : spaces(ps.spaces), data_(ps.data_) {}
 
     virtual auto insert(std::filesystem::path const &path, DataType const &data) -> bool {
         if(auto const iters = PathUtils::path_range(path))
             return this->insert(path, *iters, data);
         else if(auto name = PathUtils::data_name(path)) { // There is just one data space in the path, create and put the data in it
-            this->spaces.write([&name, &data](auto &spaces){spaces.insert(std::make_pair(*name, PathSpace{data}));});
+            std::lock_guard<std::shared_mutex> lock(this->mut); // write
+            this->spaces.insert(std::make_pair(*name, PathSpace{data}));
+            this->spaces2.insert(std::make_pair(*name, PathSpace{data}));
+            this->cv.notify_all();
             return true;
         }
         return false;
     };
 
     virtual auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data) -> bool {
+        std::lock_guard<std::shared_mutex> lock(this->mut); // write
         if(iters.first==path.end()) { // We are inserting the data into the previous space
-            this->data_.write([&data](auto &dat){dat=data;});
+            this->data_ = data;
             return true;
         }
         else if(auto space = this->findSpace(*iters.first)) {
@@ -231,7 +259,9 @@ struct PathSpace {
             PathSpace newSpace;
             if(!newSpace.insert(path, PathUtils::next(iters), data))
                 return false;
-            this->spaces.write([&name, &newSpace](auto &spaces){spaces.insert(std::make_pair(*name, std::move(newSpace)));});
+            this->spaces.insert(std::make_pair(*name, std::move(newSpace)));
+            this->spaces2.insert(std::make_pair(*name, PathSpace{data}));
+            this->cv.notify_all();
             return true;
         }
         return false;
@@ -241,10 +271,9 @@ struct PathSpace {
         if(auto const iters = PathUtils::path_range(path))
             return this->grab(path, *iters);
         else if(auto name = PathUtils::data_name(path)) { // There is just one data space in the path, grab it
-            auto const countSpaceItems = [&name](auto &space){return space.count(name.value());};
-            if(this->spaces.read(countSpaceItems)>0) {
-                auto const extract = [&name](auto &space){return space.extract(name.value()).mapped();};
-                return this->spaces.write(extract);
+            if(this->spaces.count(name.value())) {
+                std::lock_guard<std::shared_mutex> lock(this->mut); // write
+                return this->spaces.extract(name.value()).mapped();
             }
             return {};
         }
@@ -252,13 +281,11 @@ struct PathSpace {
     };
 
     virtual auto grab(std::filesystem::path const &path, PathIterConstPair const &iters) -> std::optional<PathSpaceTE> {
+        std::lock_guard<std::shared_mutex> lock(this->mut); // write
         if(iters.first==iters.second) {
             if(auto name = PathUtils::data_name(path)) {
-                auto const countSpaceItems = [&name](auto &space){return space.count(name.value());};
-                if(this->spaces.read(countSpaceItems)>0) {
-                    auto const extract = [&name](auto &space){return space.extract(name.value()).mapped();};
-                    return this->spaces.write(extract);
-                }
+                if(this->spaces.count(name.value())>0)
+                    return this->spaces.extract(name.value()).mapped();
                 return {};
             }
         }
@@ -271,23 +298,21 @@ struct PathSpace {
         if(auto const iters = PathUtils::path_range(path))
             return this->grabBlock(path, *iters);
         else if(auto name = PathUtils::data_name(path)) { // There is just one data space in the path, grab it
-            auto const countSpaceItems = [&name](auto &space){return space.count(name.value());};
-            while(!this->spaces.read(countSpaceItems))
-                this->spaces.waitForWrite();
-            auto const extract = [&name](auto &space){return space.extract(name.value()).mapped();};
-            return this->spaces.write(extract);
+            std::unique_lock<std::shared_mutex> lock(this->mut); // write
+            while(!this->spaces.count(name.value()))
+                this->cv.wait(lock);
+            return this->spaces.extract(name.value()).mapped();
         }
         return {};
     };
 
     virtual auto grabBlock(std::filesystem::path const &path, PathIterConstPair const &iters) -> std::optional<PathSpaceTE> {
+        std::unique_lock<std::shared_mutex> lock(this->mut); // write
         if(iters.first==iters.second) {
             if(auto name = PathUtils::data_name(path)) {
-                auto const countSpaceItems = [&name](auto &space){return space.count(name.value());};
-                while(!this->spaces.read(countSpaceItems))
-                    this->spaces.waitForWrite();
-                auto const extract = [&name](auto &space){return space.extract(name.value()).mapped();};
-                return this->spaces.write(extract);
+                while(!this->spaces.count(name.value()))
+                    this->cv.wait(lock);
+                return this->spaces.extract(name.value()).mapped();
             }
         }
         else if(auto space = this->findSpace(*iters.first))
@@ -295,26 +320,29 @@ struct PathSpace {
         return {};
     };
 
-    virtual auto data() const -> const std::optional<DataType> {
-        return this->data_.read([](auto &d){return d;});
+    virtual const std::optional<DataType>& data() const {
+        return this->data_;
     }
 
     virtual auto size() const -> int {
-        auto has_value = [](auto &dat){return dat.has_value();};
-        return this->spaces.read([](auto &space){return space.size();}) + (this->data_.read(has_value) ? 1 : 0);
+        std::shared_lock<std::shared_mutex> lock(this->mut); // read
+        return this->spaces.size() + (this->data_.has_value() ? 1 : 0);
     }
 
 private:
     auto findSpace(std::string const &name) -> PathSpaceTE* {
-        auto range = this->spaces.write([&name](auto &space){return space.equal_range(name);});
+        auto const range = this->spaces.equal_range(name);
         for (auto it = range.first; it != range.second; ++it) 
             if(it->first==name)
                 return &it->second;
         return nullptr;
     }
 
-    Aegis<std::unordered_multimap<std::string, PathSpaceTE>> spaces;
-    Aegis<std::optional<DataType>> data_;
+    mutable std::shared_mutex mut;
+    mutable std::condition_variable_any cv;
+    std::unordered_multimap<std::string, PathSpaceTE> spaces;
+    SpacesAegis spaces2;
+    std::optional<DataType> data_;
 };
 
 template<typename T>
