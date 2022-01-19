@@ -91,36 +91,6 @@ namespace Security {
     };
 }
 
-template <typename T>
-struct Aegis {
-    Aegis() = default;
-    Aegis(T const &t) : data(t) {}
-    Aegis(T &&t) : data(std::move(t)) {}
-
-    template<typename FunT>
-    auto read(FunT const &fun) const {
-        std::shared_lock<std::shared_mutex> lock(this->mut); // read
-        return fun(this->data);
-    }
-
-    template<typename FunT>
-    auto write(FunT const &fun) {
-        std::lock_guard<std::shared_mutex> lock(this->mut); // write
-        this->cv.notify_all();
-        return fun(this->data);
-    }
-
-    auto waitForWrite() const -> void {
-        std::unique_lock<std::shared_mutex> lock(this->mut); // write
-        this->cv.wait(lock);
-    }
-
-protected:
-    T data;
-    mutable std::shared_mutex mut;
-    mutable std::condition_variable_any cv;
-};
-
 class PathSpaceTE {
 	struct concept_t {
 		virtual ~concept_t() = default;
@@ -202,7 +172,10 @@ private:
 	std::unique_ptr<concept_t> self;
 };
 
-struct SpacesAegis : public Aegis<std::unordered_multimap<std::string, PathSpaceTE>> {
+struct SpacesAegis {
+    SpacesAegis() = default;
+    SpacesAegis(SpacesAegis const &other) : data(other.data) {}
+
     auto insert(std::pair<std::string, PathSpaceTE> const &p) {
         std::lock_guard<std::shared_mutex> lock(this->mut); // write
         this->data.insert(p);
@@ -214,9 +187,11 @@ struct SpacesAegis : public Aegis<std::unordered_multimap<std::string, PathSpace
         return this->data.count(name);
     }
 
-    auto extract(std::string const &name) {
+    auto extract(std::string const &name) -> std::optional<PathSpaceTE> {
         std::lock_guard<std::shared_mutex> lock(this->mut); // write
-        return this->data.extract(name).mapped();
+        if(this->data.count(name))
+            return this->data.extract(name).mapped();
+        return {};
     }
 
     auto waitForWrite(std::string const &name) {
@@ -233,6 +208,10 @@ struct SpacesAegis : public Aegis<std::unordered_multimap<std::string, PathSpace
                 return &it->second;
         return nullptr;
     }
+protected:
+    std::unordered_multimap<std::string, PathSpaceTE> data;
+    mutable std::shared_mutex mut;
+    mutable std::condition_variable_any cv;
 };
 
 struct PathSpace {
@@ -246,7 +225,6 @@ struct PathSpace {
         else if(auto name = PathUtils::data_name(path)) { // There is just one data space in the path, create and put the data in it
             std::lock_guard<std::shared_mutex> lock(this->mut); // write
             this->spaces.insert(std::make_pair(*name, PathSpace{data}));
-            this->spaces2.insert(std::make_pair(*name, PathSpace{data}));
             this->cv.notify_all();
             return true;
         }
@@ -266,7 +244,6 @@ struct PathSpace {
             if(!newSpace.insert(path, PathUtils::next(iters), data))
                 return false;
             this->spaces.insert(std::make_pair(*name, std::move(newSpace)));
-            this->spaces2.insert(std::make_pair(*name, PathSpace{data}));
             this->cv.notify_all();
             return true;
         }
