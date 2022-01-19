@@ -199,12 +199,6 @@ struct SpacesAegis {
         return {};
     }
 
-    auto waitForWrite(std::string const &name) {
-        std::unique_lock<std::shared_mutex> lock(this->mut); // write
-        while(!this->data.count(name))
-            this->cv.wait(lock);
-    }
-
     auto waitExtract(std::string const &name) {
         std::unique_lock<std::shared_mutex> lock(this->mut); // write
         while(!this->data.count(name))
