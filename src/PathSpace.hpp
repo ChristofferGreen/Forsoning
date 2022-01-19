@@ -206,6 +206,20 @@ struct SpacesAegis {
         return this->data.extract(name).mapped();
     }
 
+    auto grabRecurse(std::filesystem::path const &path, PathIterConstPair const &iters, std::string const &name) -> std::optional<PathSpaceTE> {
+        if(auto space = this->findSpace(*iters.first))
+            return space->grab(path, PathUtils::next(iters));
+        return {};
+   }
+
+    auto insertRecurse(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data) -> bool {
+        if(auto space = this->findSpace(*iters.first)) {
+            return space->insert(path, PathUtils::next(iters), data);
+            std::unique_lock<std::shared_mutex> lock(this->mut); // write
+        }
+        return false;
+    }
+private:
     auto findSpace(std::string const &name) -> PathSpaceTE* {
         std::shared_lock<std::shared_mutex> lock(this->mut); // read
         auto const range = this->data.equal_range(name);
@@ -240,9 +254,8 @@ struct PathSpace {
             this->data_ = data;
             return true;
         }
-        else if(auto space = this->spaces.findSpace(*iters.first)) {
-            return space->insert(path, PathUtils::next(iters), data);
-        } else if(auto const &name = PathUtils::space_name(iters)) {
+        else if(this->spaces.insertRecurse(path, PathUtils::next(iters), data)) {}
+        else if(auto const &name = PathUtils::space_name(iters)) {
             PathSpace newSpace;
             if(!newSpace.insert(path, PathUtils::next(iters), data))
                 return false;
@@ -271,8 +284,8 @@ struct PathSpace {
                 return {};
             }
         }
-        else if(auto space = this->spaces.findSpace(*iters.first))
-            return space->grab(path, PathUtils::next(iters));
+        else
+            return this->spaces.grabRecurse(path, iters, *iters.first);
         return {};
     };
 
@@ -289,8 +302,8 @@ struct PathSpace {
             if(auto name = PathUtils::data_name(path))
                 return this->spaces.waitExtract(name.value());
         }
-        else if(auto space = this->spaces.findSpace(*iters.first))
-            return space->grab(path, PathUtils::next(iters));
+        else
+            return this->spaces.grabRecurse(path, iters, *iters.first);
         return {};
     };
 
