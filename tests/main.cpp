@@ -220,4 +220,20 @@ TEST_CASE("PathSpace") {
         CHECK(value.has_value());
         CHECK(*value == 5);
     }
+
+    SUBCASE("std::string Insert/Grab") {
+        PathSpaceTE space = PathSpace{};
+        auto const str = std::string("Hello World!");
+        space.insert("/str", str);
+        auto const value = space.grab<std::string>("/str");
+        CHECK(value.has_value());
+        CHECK(*value == str);
+    }
+
+    SUBCASE("Execution") {
+        PathSpaceTE space = PathSpace{};
+        space.insert("/exec", [](){});
+        auto const value = space.grab<ExecutionType>("/exec");
+        CHECK(value.has_value());
+    }
 }
