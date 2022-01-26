@@ -1,5 +1,6 @@
 add_executable(ForsoningTest
   main.cpp
+  cpp_coroutine.cpp
 )
 
 target_include_directories(ForsoningTest 

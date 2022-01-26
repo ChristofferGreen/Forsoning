@@ -225,6 +225,9 @@ struct Aegis {
     // Data methods
     auto setData(DataType const &d) {
         std::unique_lock<std::shared_mutex> lock(this->dataMut); // write
+        if (std::holds_alternative<ExecutionType>(d)) {
+            std::get<ExecutionType>(d)();
+        }
         this->data = d;
     }
 
@@ -253,18 +256,9 @@ protected:
     mutable std::condition_variable_any cv;
 };
 
-struct ExecutionAegis {
-    ExecutionAegis() = default;
-    ExecutionAegis(ExecutionAegis const &other) : execution(other.execution) {}
-
-protected:
-    std::function<void()> execution;
-    mutable std::shared_mutex mut;
-};
-
 struct PathSpace {
     PathSpace() = default;
-    PathSpace(DataType const &data) : aegis(data) {}
+    PathSpace(DataType const &data) {this->aegis.setData(data);}
     PathSpace(PathSpace const &ps) : aegis(ps.aegis) {}
 
     virtual auto insert(std::filesystem::path const &path, DataType const &data) -> bool {
@@ -278,7 +272,7 @@ struct PathSpace {
     };
 
     virtual auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data) -> bool {
-        if(iters.first==path.end()) { // We are inserting the data into the previous space
+        if(iters.first==path.end()) {
             this->aegis.setData(data);
             return true;
         }

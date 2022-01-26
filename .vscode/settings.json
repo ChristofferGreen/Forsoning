@@ -81,6 +81,9 @@
         "format": "cpp",
         "shared_mutex": "cpp",
         "filesystem": "cpp",
-        "numeric": "cpp"
+        "numeric": "cpp",
+        "coroutine": "cpp",
+        "__functional_03": "cpp",
+        "memory_resource": "cpp"
     }
 }
