@@ -2,6 +2,7 @@ add_executable(ForsoningTest
   main.cpp
   cpp_coroutine.cpp
   cpp_json.cpp
+  cpp_asio.cpp
 )
 
 target_include_directories(ForsoningTest 
