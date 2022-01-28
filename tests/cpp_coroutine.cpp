@@ -5,6 +5,8 @@
 #include <experimental/coroutine>
 #include <memory>
 
+namespace CoRet {
+
 template <typename T>
 struct MyFuture {
     std::shared_ptr<T> value;
@@ -38,9 +40,10 @@ struct MyFuture {
 MyFuture<int> createFuture() {
     co_return 2021;
 }
+}
 
-// -------------------------
 
+namespace CoYield {
 template<typename T>
 struct Generator {
     struct promise_type;
@@ -103,17 +106,56 @@ Generator<int> getNext(int start = 0, int step = 1) {
         value += step;
     }
 }
+}
+
+namespace CoAwait {
+struct Job {
+    struct promise_type;
+    using handle_type = std::experimental::coroutine_handle<promise_type>; handle_type coro;
+    Job(handle_type h): coro(h){}
+    ~Job() {
+        if ( coro ) coro.destroy(); 
+    }
+    void start() { 
+        coro.resume();
+    }
+    struct promise_type {
+        auto get_return_object() {
+            return Job{handle_type::from_promise(*this)}; 
+        }
+        std::experimental::suspend_always initial_suspend() { 
+            std::cout << " Preparing job" << '\n';
+            return {};
+        }
+        std::experimental::suspend_always final_suspend() noexcept {
+            std::cout << " Performing job" << '\n';
+            return {}; 
+        }
+        void return_void() {}
+        void unhandled_exception() {}
+    };
+};
+Job prepareJob() {
+    co_await std::experimental::suspend_never();
+}
+}
 
 TEST_CASE("Coroutine Syntax Test") {
     SUBCASE("Single co_return") {
-        auto fut = createFuture();
+        auto fut = CoRet::createFuture();
         CHECK(fut.get()==2021);
    }
     SUBCASE("co_yield") {
-        auto gen = getNext();
+        auto gen = CoYield::getNext();
         for (int i = 0; i<= 10; ++i) {
             gen.next();
             std::cout << gen.getValue() << std::endl;
         }
+   }
+   SUBCASE("Awaitable") {
+       std::cout <<  "Before job" << '\n';
+       auto job = CoAwait::prepareJob();
+       job.start();
+       std::cout <<  "After job" <<  '\n';
    }
 }

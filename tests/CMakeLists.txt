@@ -1,11 +1,13 @@
 add_executable(ForsoningTest
   main.cpp
   cpp_coroutine.cpp
+  cpp_json.cpp
 )
 
 target_include_directories(ForsoningTest 
   PUBLIC
     ../src
+    ../ext
 )
 
 target_include_directories(ForsoningTest 
