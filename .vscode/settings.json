@@ -84,6 +84,11 @@
         "numeric": "cpp",
         "coroutine": "cpp",
         "__functional_03": "cpp",
-        "memory_resource": "cpp"
+        "memory_resource": "cpp",
+        "any": "cpp",
+        "codecvt": "cpp",
+        "forward_list": "cpp",
+        "future": "cpp",
+        "valarray": "cpp"
     }
 }

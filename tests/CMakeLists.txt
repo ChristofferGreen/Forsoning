@@ -1,5 +1,6 @@
 add_executable(ForsoningTest
   main.cpp
+  path.cpp
   cpp_coroutine.cpp
   cpp_json.cpp
   cpp_asio.cpp
