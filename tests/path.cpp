@@ -10,28 +10,27 @@ TEST_CASE("Path") {
     auto range = *rangeOpt;
 
     SUBCASE("Initial state") {
-        CHECK(*range.current=="test1");
-        CHECK(*range.end=="test3");
+        CHECK(*range.spaceName()=="test1");
+        CHECK(range.dataName()=="test3");
     }
 
     SUBCASE("Iteration") {
         range = range.next();
-        CHECK(*range.current=="test2");
-        CHECK(*range.end=="test3");
+        CHECK(*range.spaceName()=="test2");
+        CHECK(range.dataName()=="test3");
         range = range.next();
-        CHECK(*range.current=="test3");
-        CHECK(*range.end=="test3");
-        CHECK(*range.current==*range.end);
+        CHECK(*range.spaceName()=="test3");
+        CHECK(range.dataName()=="test3");
+        CHECK(*range.spaceName()==range.dataName());
     }
 
     SUBCASE("Ill formed ranges") {
         CHECK(not Path{"/"}.range().has_value());
-        CHECK(not Path{"/single_value"}.range().has_value());
     }
 
     SUBCASE("Only spaces") {
-        CHECK(*Path{"/test1/test2"}.range().value().end=="test2");
-        CHECK(*Path{"/test1/test2/"}.range().value().end=="");
+        CHECK(Path{"/test1/test2"}.range().value().dataName()=="test2");
+        CHECK(Path{"/test1/test2/"}.range().value().dataName()=="");
     }
 
     SUBCASE("Data name") {
