@@ -4,12 +4,15 @@
 #include "Coro.hpp"
 #include "Path.hpp"
 
+#include "nlohmann/json.hpp"
+
 namespace FSNG {
 class PathSpaceTE {
 	struct concept_t {
 		virtual ~concept_t() = default;
 		
 		virtual auto copy_()                                                                                          const -> std::unique_ptr<concept_t> = 0;
+		virtual auto toJSON_()                                      const -> nlohmann::json                        = 0;
 		virtual auto insert_(Path const &path, Data     const &data)                                       -> bool                       = 0;
 		/*virtual auto insert_(std::filesystem::path const &path, std::function<Coro<DataType>()> const &fun)                 -> bool                       = 0;
         virtual auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data)       -> bool                       = 0;
@@ -29,6 +32,7 @@ public:
 	auto operator=(PathSpaceTE const &rhs) -> PathSpaceTE& {return *this = PathSpaceTE(rhs);}
 	auto operator=(PathSpaceTE&&) noexcept -> PathSpaceTE& = default;
 
+	auto toJSON()                                          const -> nlohmann::json  { return this->self->toJSON_(); }
 	auto insert(Path const &path, Data const &data)                                           -> bool { return this->self->insert_(path, data); }
 	/*auto insert(std::filesystem::path const &path, std::function<Coro<DataType>()> const &fun)                 -> bool { return this->self->insert_(path, fun); }
 	auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data)       -> bool { return this->self->insert_(path, iters, data); }
@@ -72,6 +76,7 @@ private:
 		model(T x) : data(std::move(x)) {}
 
 		auto copy_()                                                                                      const -> std::unique_ptr<concept_t>     override {return std::make_unique<model>(*this);}
+		auto toJSON_()                                         const -> nlohmann::json                            override {return this->data.toJSON();}
 		auto insert_(Path const &path, Data const &d)                                          -> bool                           override {return this->data.insert(path, d);}
 		/*auto insert_(std::filesystem::path const &path, std::function<Coro<DataType>()> const &fun)             -> bool                           override {return this->data.insert(path, fun);}
 		auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &d)      -> bool                           override {return this->data.insert(path, iters, d);}
