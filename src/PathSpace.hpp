@@ -4,6 +4,7 @@
 #include "FSNG/Path.hpp"
 #include "FSNG/PathSpaceTE.hpp"
 #include "FSNG/Security.hpp"
+#include "FSNG/ArraysAegis.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -42,6 +43,21 @@ struct PathSpace {
     virtual auto insert(Path::Range const &range, Data const &data) -> bool {
         if(range.isAtData())
             return this->insert(range.dataName(), data);
+        if(auto const spaceName = range.spaceName()) {
+            auto const writeMutex = this->arrays.write();
+            if(this->arrays.data.count(spaceName.value())>0) {
+                auto &deque = this->arrays.data.at(spaceName.value());
+                if(std::holds_alternative<std::deque<PathSpaceTE>>(deque)) {
+                    auto &dequePS = std::get<std::deque<PathSpaceTE>>(deque);
+                    if(dequePS.size()>0) {
+                        return dequePS.at(0).insert(range.next(), data);
+                    }
+                }
+            } else {
+                this->arrays.data[spaceName.value()] = std::deque<PathSpaceTE>{PathSpaceTE(PathSpace{})};
+                return std::get<std::deque<PathSpaceTE>>(this->arrays.data.at(spaceName.value())).at(0).insert(range.next(), data);
+            }
+        }
         return false;
     }
 
@@ -61,20 +77,21 @@ struct PathSpace {
 
     virtual auto toJSON() const -> nlohmann::json {
         nlohmann::json json;
-        for(auto const &p : this->data) {
+        auto const readMutex = this->arrays.read();
+        for(auto const &p : this->arrays.data) {
             nlohmann::json array;
-            if(std::holds_alternative<std::deque<int>>(this->data.at(p.first)))
+            if(std::holds_alternative<std::deque<int>>(this->arrays.data.at(p.first)))
                 for(auto &v : std::get<std::deque<int>>(p.second))
                     array.push_back(v);
-            else if(std::holds_alternative<std::deque<double>>(this->data.at(p.first)))
+            else if(std::holds_alternative<std::deque<double>>(this->arrays.data.at(p.first)))
                 for(auto &v : std::get<std::deque<double>>(p.second))
                     array.push_back(v);
-            else if(std::holds_alternative<std::deque<std::string>>(this->data.at(p.first)))
+            else if(std::holds_alternative<std::deque<std::string>>(this->arrays.data.at(p.first)))
                 for(auto &v : std::get<std::deque<std::string>>(p.second))
                     array.push_back(v);
-            /*else if(std::holds_alternative<std::deque<std::unique_ptr<PathSpaceTE>>>(this->data.at(p.first)))
-                for(auto &v : std::get<std::deque<std::unique_ptr<PathSpaceTE>>>(p.second))
-                    array.push_back(v.toJSON());*/
+            else if(std::holds_alternative<std::deque<PathSpaceTE>>(this->arrays.data.at(p.first)))
+                for(auto &v : std::get<std::deque<PathSpaceTE>>(p.second))
+                    array.push_back(v.toJSON());
             json[p.first] = std::move(array);
         }
         return json;
@@ -144,15 +161,16 @@ struct PathSpace {
 private:
     template<typename T>
     auto insertT(std::string const &dataName, Data const &data) -> void {
-        if(this->data.count(dataName))
-            std::get<std::deque<T>>(this->data[dataName]).push_back(data.as<T>());
+        auto const writeMutex = this->arrays.write();
+        if(this->arrays.data.count(dataName))
+            std::get<std::deque<T>>(this->arrays.data[dataName]).push_back(data.as<T>());
         else
-            this->data.insert(std::make_pair(dataName, std::deque<T>{data.as<T>()}));
+            this->arrays.data.insert(std::make_pair(dataName, std::deque<T>{data.as<T>()}));
     }
     auto insertSpaceT(std::string const &dataName, Data const &data) -> void {
     }
 
-    using varT = std::variant<std::deque<int>, std::deque<double>, std::deque<std::string>, std::deque<PathSpaceTE>>;
-    std::unordered_map<std::string, varT> data;
+    using VarT = std::variant<std::deque<int>, std::deque<double>, std::deque<std::string>, std::deque<PathSpaceTE>>;
+    ArraysAegis arrays;
 };
 }
