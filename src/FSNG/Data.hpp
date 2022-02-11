@@ -10,6 +10,8 @@ struct Data {
     Data(int i) : data(i) {}
     Data(char const *s) : data(std::string(s)) {}
     Data(std::string const &s) : data(s) {}
+    Data(std::unique_ptr<PathSpaceTE> &&up) : data(std::move(up)) {}
+    Data(PathSpaceTE const &pste) : data(std::make_unique<PathSpaceTE>(pste)) {}
 
     template<typename T>
     auto is() const {
@@ -17,7 +19,7 @@ struct Data {
     }
 
     template<typename T>
-    auto as() const {
+    auto& as() const {
         return std::get<T>(this->data);
     }
 

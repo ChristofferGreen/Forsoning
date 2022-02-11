@@ -5,6 +5,7 @@
 namespace FSNG {
 struct Path {
     Path() = default;
+    Path(char const* const &path) : path(path) {}
     Path(std::filesystem::path const &path) : path(path) {}
 
     struct Range {

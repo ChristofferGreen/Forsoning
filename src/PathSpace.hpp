@@ -168,6 +168,11 @@ private:
             this->arrays.data.insert(std::make_pair(dataName, std::deque<T>{data.as<T>()}));
     }
     auto insertSpaceT(std::string const &dataName, Data const &data) -> void {
+        auto const writeMutex = this->arrays.write();
+        if(this->arrays.data.count(dataName))
+            std::get<std::deque<PathSpaceTE>>(this->arrays.data[dataName]).push_back(*data.as<std::unique_ptr<PathSpaceTE>>());
+        else
+            this->arrays.data.insert(std::make_pair(dataName, std::deque<PathSpaceTE>{*data.as<std::unique_ptr<PathSpaceTE>>()}));
     }
 
     using VarT = std::variant<std::deque<int>, std::deque<double>, std::deque<std::string>, std::deque<PathSpaceTE>>;

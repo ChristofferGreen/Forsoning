@@ -37,6 +37,13 @@ TEST_CASE("PathSpace") {
         nlohmann::json json;
         json["test"] = nlohmann::json::array({ nlohmann::json::object({ {"test2", {5}} }) });
         CHECK(space.toJSON() == json);
+    }
 
+    SUBCASE("Insert space") {
+        PathSpaceTE space2 = PathSpace{};
+        CHECK(space.insert("/space", space2) == true);
+        nlohmann::json json;
+        json["space"] = nlohmann::json::array({nlohmann::json()});
+        CHECK(space.toJSON() == json);
     }
 }
