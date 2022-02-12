@@ -45,5 +45,9 @@ TEST_CASE("PathSpace") {
         nlohmann::json json;
         json["space"] = nlohmann::json::array({nlohmann::json()});
         CHECK(space.toJSON() == json);
+
+        CHECK(space.insert("/space/val", 34) == true);
+        json["space"][0]["val"] = {34};
+        CHECK(space.toJSON() == json);
     }
 }

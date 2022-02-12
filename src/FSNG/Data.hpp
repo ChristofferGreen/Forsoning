@@ -7,6 +7,7 @@
 namespace FSNG {
 struct PathSpaceTE;
 struct Data {
+    Data() = default;
     Data(int i) : data(i) {}
     Data(char const *s) : data(std::string(s)) {}
     Data(std::string const &s) : data(s) {}

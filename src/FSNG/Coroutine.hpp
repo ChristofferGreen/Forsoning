@@ -1,30 +1,31 @@
 #pragma once
+#include "FSNG/Data.hpp"
+
 #include <experimental/coroutine>
 
 namespace FSNG {
-template<typename T>
-struct Coro {
+struct Coroutine {
     struct promise_type;
     using handle_type = std::experimental::coroutine_handle<promise_type>;
 
-    Coro(handle_type h): coro(h) {}
+    Coroutine(handle_type h): coro(h) {}
     handle_type coro;
 
-    ~Coro() {
+    ~Coroutine() {
         if ( coro ) coro. destroy();
     }
-    Coro(const Coro&) = delete;
-    Coro& operator= (const Coro&) = delete;
-    Coro(Coro&& oth) noexcept : coro(oth.coro){
+    Coroutine(const Coroutine&) = delete;
+    Coroutine& operator= (const Coroutine&) = delete;
+    Coroutine(Coroutine&& oth) noexcept : coro(oth.coro){
         oth.coro = nullptr;
     }
-    Coro& operator = (Coro&& oth) noexcept {
+    Coroutine& operator = (Coroutine&& oth) noexcept {
         coro = oth.coro;
         oth.coro = nullptr;
         return *this;
     }
-    T getValue() {
-        return coro.promise().current_value;
+    Data&& getValue() {
+        return std::move(coro.promise().current_value);
     }
     bool next() {
         coro.resume();
@@ -41,19 +42,19 @@ struct Coro {
             return std::experimental::suspend_always{};
         }
         auto get_return_object() {
-            return Coro {handle_type::from_promise(*this)};
+            return Coroutine {handle_type::from_promise(*this)};
         }
         auto return_void() {
             return std::experimental::suspend_never{};
         }
-        auto yield_value(const T value) {
-            current_value = value;
+        auto yield_value(Data &&value) {
+            current_value = std::move(value);
             return std::experimental::suspend_always{};
         }
         void unhandled_exception() {
             std::exit(1);
         }
-        T current_value;
+        Data current_value;
     };
 };
 }

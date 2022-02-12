@@ -1,8 +1,8 @@
 #pragma once
 #include <filesystem>
 
-#include "Coro.hpp"
-#include "Path.hpp"
+#include "FSNG/Coroutine.hpp"
+#include "FSNG/Path.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -11,12 +11,12 @@ class PathSpaceTE {
 	struct concept_t {
 		virtual ~concept_t() = default;
 		
-		virtual auto copy_()                                                                                          const -> std::unique_ptr<concept_t> = 0;
-		virtual auto toJSON_()                                      const -> nlohmann::json                        = 0;
-		virtual auto insert_(Path const &path, Data     const &data)                                       -> bool                       = 0;
-		virtual auto insert_(Path::Range const &range, Data     const &data)                                       -> bool                       = 0;
-		/*virtual auto insert_(std::filesystem::path const &path, std::function<Coro<DataType>()> const &fun)                 -> bool                       = 0;
-        virtual auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data)       -> bool                       = 0;
+		virtual auto copy_()                                                                               const -> std::unique_ptr<concept_t> = 0;
+		virtual auto toJSON_()                                                                             const -> nlohmann::json             = 0;
+		virtual auto insert_(Path const &path, Data const &data)                                                 -> bool                       = 0;
+		virtual auto insert_(Path::Range const &range, Data const &data)                                         -> bool                       = 0;
+		//virtual auto insert_(std::filesystem::path const &path, std::function<Coroutine<Data>()> const &fun) -> bool                       = 0;
+        /*virtual auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data)       -> bool                       = 0;
 		virtual auto popFrontData_()                                                                                        -> std::optional<DataType>    = 0;
 		virtual auto grab_(std::filesystem::path const &path)                                                               -> std::optional<PathSpaceTE> = 0;
 		virtual auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters)                               -> std::optional<PathSpaceTE> = 0;
