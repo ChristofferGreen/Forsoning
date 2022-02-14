@@ -25,6 +25,9 @@ struct Data {
     }
 
 private:
-    std::variant<int, double, std::string, std::unique_ptr<PathSpaceTE>> data;
+    std::variant<int,
+                 double,
+                 std::string,
+                 std::unique_ptr<PathSpaceTE>> data;
 };
 }
