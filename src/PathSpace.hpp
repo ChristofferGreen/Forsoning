@@ -5,7 +5,6 @@
 #include "FSNG/PathSpaceTE.hpp"
 #include "FSNG/Security.hpp"
 #include "FSNG/ArraysAegis.hpp"
-#include "FSNG/ArrayAegis.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -32,18 +31,18 @@ struct PathSpace {
         if(range.isAtData())
             return this->insert(range.dataName(), data);
         if(auto const spaceName = range.spaceName()) {
-            auto const writeMutex = this->arrays.writeMutex();
-            if(this->arrays.data.count(spaceName.value())>0) {
-                auto &deque = this->arrays.data.at(spaceName.value());
-                if(std::holds_alternative<std::deque<PathSpaceTE>>(deque)) {
-                    auto &dequePS = std::get<std::deque<PathSpaceTE>>(deque);
-                    if(dequePS.size()>0) {
-                        return dequePS.at(0).insert(range.next(), data);
+            auto const mapReadMutex = this->arrays.readMutex();
+            if(this->arrays.map.count(spaceName.value())>0) {
+                auto &array = this->arrays.map.at(spaceName.value());
+                auto arrayWriteMutex = array.writeMutex();
+                if(std::holds_alternative<std::deque<PathSpaceTE>>(array.array)) {
+                    if(auto &arrayPS = std::get<std::deque<PathSpaceTE>>(array.array); arrayPS.size()>0) {
+                        return arrayPS.at(0).insert(range.next(), data);
                     }
                 }
             } else {
-                this->arrays.data[spaceName.value()] = std::deque<PathSpaceTE>{PathSpaceTE(PathSpace{})};
-                return std::get<std::deque<PathSpaceTE>>(this->arrays.data.at(spaceName.value())).at(0).insert(range.next(), data);
+                this->arrays.map[spaceName.value()] = std::deque<PathSpaceTE>{PathSpaceTE(PathSpace{})};
+                return std::get<std::deque<PathSpaceTE>>(this->arrays.map.at(spaceName.value()).array).at(0).insert(range.next(), data);
             }
         }
         return false;
@@ -52,19 +51,20 @@ struct PathSpace {
     virtual auto toJSON() const -> nlohmann::json {
         nlohmann::json json;
         auto const readMutex = this->arrays.readMutex();
-        for(auto const &p : this->arrays.data) {
+        for(auto const &p : this->arrays.map) {
             nlohmann::json array;
-            if(std::holds_alternative<std::deque<int>>(this->arrays.data.at(p.first)))
-                for(auto &v : std::get<std::deque<int>>(p.second))
+            auto arrayReadMutex = this->arrays.map.at(p.first).readMutex();
+            if(std::holds_alternative<std::deque<int>>(this->arrays.map.at(p.first).array))
+                for(auto &v : std::get<std::deque<int>>(p.second.array))
                     array.push_back(v);
-            else if(std::holds_alternative<std::deque<double>>(this->arrays.data.at(p.first)))
-                for(auto &v : std::get<std::deque<double>>(p.second))
+            else if(std::holds_alternative<std::deque<double>>(this->arrays.map.at(p.first).array))
+                for(auto &v : std::get<std::deque<double>>(p.second.array))
                     array.push_back(v);
-            else if(std::holds_alternative<std::deque<std::string>>(this->arrays.data.at(p.first)))
-                for(auto &v : std::get<std::deque<std::string>>(p.second))
+            else if(std::holds_alternative<std::deque<std::string>>(this->arrays.map.at(p.first).array))
+                for(auto &v : std::get<std::deque<std::string>>(p.second.array))
                     array.push_back(v);
-            else if(std::holds_alternative<std::deque<PathSpaceTE>>(this->arrays.data.at(p.first)))
-                for(auto &v : std::get<std::deque<PathSpaceTE>>(p.second))
+            else if(std::holds_alternative<std::deque<PathSpaceTE>>(this->arrays.map.at(p.first).array))
+                for(auto &v : std::get<std::deque<PathSpaceTE>>(p.second.array))
                     array.push_back(v.toJSON());
             json[p.first] = std::move(array);
         }
@@ -89,18 +89,22 @@ private:
     template<typename T>
     auto insertT(std::string const &dataName, Data const &data) -> void {
         auto const writeMutex = this->arrays.writeMutex();
-        if(this->arrays.data.count(dataName))
-            std::get<std::deque<T>>(this->arrays.data[dataName]).push_back(data.as<T>());
+        if(this->arrays.map.count(dataName)) {
+            auto arraysWriteMutex = this->arrays.map[dataName].writeMutex();
+            std::get<std::deque<T>>(this->arrays.map[dataName].array).push_back(data.as<T>());
+        }
         else
-            this->arrays.data.insert(std::make_pair(dataName, std::deque<T>{data.as<T>()}));
+            this->arrays.map.insert(std::make_pair(dataName, std::deque<T>{data.as<T>()}));
     }
 
     auto insertSpaceT(std::string const &dataName, Data const &data) -> void {
         auto const writeMutex = this->arrays.writeMutex();
-        if(this->arrays.data.count(dataName))
-            std::get<std::deque<PathSpaceTE>>(this->arrays.data[dataName]).push_back(*data.as<std::unique_ptr<PathSpaceTE>>());
+        if(this->arrays.map.count(dataName)) {
+            auto arraysWriteMutex = this->arrays.map[dataName].writeMutex();
+            std::get<std::deque<PathSpaceTE>>(this->arrays.map[dataName].array).push_back(*data.as<std::unique_ptr<PathSpaceTE>>());
+        }
         else
-            this->arrays.data.insert(std::make_pair(dataName, std::deque<PathSpaceTE>{*data.as<std::unique_ptr<PathSpaceTE>>()}));
+            this->arrays.map.insert(std::make_pair(dataName, std::deque<PathSpaceTE>{*data.as<std::unique_ptr<PathSpaceTE>>()}));
     }
 
     ArraysAegis arrays;
