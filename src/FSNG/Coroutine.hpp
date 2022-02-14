@@ -11,7 +11,7 @@ struct Coroutine {
     Coroutine(handle_type h) : coro(h) {}
     Coroutine(const Coroutine&) = delete;
     Coroutine& operator= (const Coroutine&) = delete;
-    Coroutine(Coroutine&& other) noexcept : coro(other.coro){
+    Coroutine(Coroutine&& other) noexcept : coro(other.coro) {
         other.coro = nullptr;
     }
     Coroutine& operator = (Coroutine&& other) noexcept {

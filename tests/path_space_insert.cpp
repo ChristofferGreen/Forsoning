@@ -57,5 +57,10 @@ TEST_CASE("PathSpace") {
                 co_yield i;
             space.insert("/finished", 1);
         }) == true);
+        //space.grabBlock("/finished");
+        nlohmann::json json;
+        json["finished"] = {1};
+        json["test"] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        CHECK(space.toJSON() == json);
     }
 }

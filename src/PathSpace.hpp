@@ -24,7 +24,11 @@ struct PathSpace {
     };
 
     virtual auto insert(Path const &path, std::function<Coroutine()> const &fun) -> bool {
-        return false;
+        auto coroutine = fun();
+        while(coroutine.next())
+            if(!this->insert(path, coroutine.getValue()))
+                return false;
+        return true;
     }
 
     virtual auto insert(Path::Range const &range, Data const &data) -> bool {
