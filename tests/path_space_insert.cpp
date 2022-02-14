@@ -50,4 +50,12 @@ TEST_CASE("PathSpace") {
         json["space"][0]["val"] = {34};
         CHECK(space.toJSON() == json);
     }
+
+    SUBCASE("Insert coroutine") {
+        CHECK(space.insert(rootTestPath, [&space]()->Coroutine{
+            for(auto i = 0; i < 10; ++i)
+                co_yield i;
+            space.insert("/finished", 1);
+        }) == true);
+    }
 }
