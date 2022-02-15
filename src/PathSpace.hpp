@@ -86,22 +86,22 @@ struct PathSpace {
 private:
     virtual auto insert(std::string const &dataName, Data const &data) -> bool {
         if(data.is<int>())
-            this->insertT<int>(dataName, data);
+            this->insert<int>(dataName, data);
         else if(data.is<double>())
-            this->insertT<double>(dataName, data);
+            this->insert<double>(dataName, data);
         else if(data.is<std::string>())
-            this->insertT<std::string>(dataName, data);
+            this->insert<std::string>(dataName, data);
         else if(data.is<std::unique_ptr<PathSpaceTE>>())
-            this->insertPathSpace(dataName, data);
+            this->insert(dataName, data.as<std::unique_ptr<PathSpaceTE>>());
         else if(data.is<std::unique_ptr<std::function<Coroutine()>>>())
-            this->insertCoroutine(dataName, data);
+            this->insert(dataName, data.as<std::unique_ptr<std::function<Coroutine()>>>());
         else
             return false;
         return true;
     }
 
     template<typename T>
-    auto insertT(std::string const &dataName, Data const &data) -> void {
+    auto insert(std::string const &dataName, Data const &data) -> void {
         auto const writeMutex = this->arrays.writeMutex();
         if(this->arrays.map.count(dataName)) {
             auto arraysWriteMutex = this->arrays.map[dataName].writeMutex();
@@ -111,25 +111,30 @@ private:
             this->arrays.map.insert(std::make_pair(dataName, std::deque<T>{data.as<T>()}));
     }
 
-    auto insertPathSpace(std::string const &dataName, Data const &data) -> void {
+    auto insert(std::string const &dataName, std::unique_ptr<PathSpaceTE> const &space) -> void {
         auto const writeMutex = this->arrays.writeMutex();
         if(this->arrays.map.count(dataName)) {
             auto arraysWriteMutex = this->arrays.map[dataName].writeMutex();
-            std::get<std::deque<PathSpaceTE>>(this->arrays.map[dataName].array).push_back(*data.as<std::unique_ptr<PathSpaceTE>>());
+            std::get<std::deque<PathSpaceTE>>(this->arrays.map[dataName].array).push_back(*space);
         }
         else {
-            auto array = std::deque<PathSpaceTE>{*data.as<std::unique_ptr<PathSpaceTE>>()};
+            auto array = std::deque<PathSpaceTE>{*space};
             array.at(0).setProcessor(this->processor);
             this->arrays.map.insert(std::make_pair(dataName, std::move(array)));
         }
     }
 
-    auto insertCoroutine(std::string const &dataName, Data const &data) -> void {
+    auto insert(std::string const &dataName, std::unique_ptr<std::function<Coroutine()>> const &coroutinePtr) -> void {
         /*auto coroutine = fun();
         while(coroutine.next())
             if(!this->insert(path, coroutine.getValue()))
                 return false;
         return true;*/
+        auto inserter = [this, dataName](Data const &data){
+            this->insert(dataName, data);
+        };
+        if(this->processor)
+            this->processor->add(this, coroutinePtr, inserter);
     }
 
     ArraysAegis arrays;
