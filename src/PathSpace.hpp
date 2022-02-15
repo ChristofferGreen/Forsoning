@@ -17,7 +17,8 @@
 
 namespace FSNG {
 struct PathSpace {
-    PathSpace() = default;
+    PathSpace() : processor(std::make_shared<TaskProcessor>()) {};
+    PathSpace(std::shared_ptr<TaskProcessor> const &processor) : processor(processor) {};
 
     virtual auto insert(Path const &path, Data const &data) -> bool {
         if(auto range = path.range())
@@ -25,20 +26,17 @@ struct PathSpace {
         return false;
     };
 
-    virtual auto insert(Path const &path, std::function<Coroutine()> const &fun) -> bool {
-        auto coroutine = fun();
-        while(coroutine.next())
-            if(!this->insert(path, coroutine.getValue()))
-                return false;
-        return true;
-    }
-
     virtual auto insert(Path::Range const &range, Data const &data) -> bool {
         if(range.isAtData())
             return this->insert(range.dataName(), data);
         if(auto const spaceName = range.spaceName()) {
-            auto const mapReadMutex = this->arrays.readMutex();
-            if(this->arrays.map.count(spaceName.value())>0) {
+            int count = 0;
+            {
+                auto const mapReadMutex = this->arrays.readMutex();
+                count = this->arrays.map.count(spaceName.value());
+            }
+            if(count>0) {
+                auto const mapReadMutex = this->arrays.readMutex();
                 auto &array = this->arrays.map.at(spaceName.value());
                 auto arrayWriteMutex = array.writeMutex();
                 if(std::holds_alternative<std::deque<PathSpaceTE>>(array.array)) {
@@ -47,11 +45,11 @@ struct PathSpace {
                     }
                 }
             } else {
-                this->arrays.map[spaceName.value()] = std::deque<PathSpaceTE>{PathSpaceTE(PathSpace{})};
+                auto const mapWriteMutex = this->arrays.writeMutex();
+                this->arrays.map[spaceName.value()] = std::deque<PathSpaceTE>{PathSpaceTE(PathSpace{this->processor})};
                 auto &arrayAegis = this->arrays.map.at(spaceName.value());
                 auto arrayWriteMutex = arrayAegis.writeMutex();
-                auto &array = std::get<std::deque<PathSpaceTE>>(this->arrays.map.at(spaceName.value()).array).at(0);
-                array.setProcessor(this->processor);
+                auto &array = std::get<std::deque<PathSpaceTE>>(arrayAegis.array).at(0);
                 return array.insert(range.next(), data);
             }
         }
@@ -94,7 +92,9 @@ private:
         else if(data.is<std::string>())
             this->insertT<std::string>(dataName, data);
         else if(data.is<std::unique_ptr<PathSpaceTE>>())
-            this->insertSpaceT(dataName, data);
+            this->insertPathSpace(dataName, data);
+        else if(data.is<std::unique_ptr<std::function<Coroutine()>>>())
+            this->insertCoroutine(dataName, data);
         else
             return false;
         return true;
@@ -111,7 +111,7 @@ private:
             this->arrays.map.insert(std::make_pair(dataName, std::deque<T>{data.as<T>()}));
     }
 
-    auto insertSpaceT(std::string const &dataName, Data const &data) -> void {
+    auto insertPathSpace(std::string const &dataName, Data const &data) -> void {
         auto const writeMutex = this->arrays.writeMutex();
         if(this->arrays.map.count(dataName)) {
             auto arraysWriteMutex = this->arrays.map[dataName].writeMutex();
@@ -122,6 +122,14 @@ private:
             array.at(0).setProcessor(this->processor);
             this->arrays.map.insert(std::make_pair(dataName, std::move(array)));
         }
+    }
+
+    auto insertCoroutine(std::string const &dataName, Data const &data) -> void {
+        /*auto coroutine = fun();
+        while(coroutine.next())
+            if(!this->insert(path, coroutine.getValue()))
+                return false;
+        return true;*/
     }
 
     ArraysAegis arrays;
