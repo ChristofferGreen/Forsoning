@@ -94,7 +94,7 @@ private:
         else if(data.is<std::unique_ptr<PathSpaceTE>>())
             this->insert(dataName, data.as<std::unique_ptr<PathSpaceTE>>());
         else if(data.is<std::unique_ptr<std::function<Coroutine()>>>())
-            this->insert(dataName, data.as<std::unique_ptr<std::function<Coroutine()>>>());
+            return this->insert(dataName, *data.as<std::unique_ptr<std::function<Coroutine()>>>());
         else
             return false;
         return true;
@@ -124,17 +124,12 @@ private:
         }
     }
 
-    auto insert(std::string const &dataName, std::unique_ptr<std::function<Coroutine()>> const &coroutinePtr) -> void {
-        /*auto coroutine = fun();
-        while(coroutine.next())
-            if(!this->insert(path, coroutine.getValue()))
-                return false;
-        return true;*/
-        auto inserter = [this, dataName](Data const &data){
-            this->insert(dataName, data);
-        };
-        if(this->processor)
-            this->processor->add(this, coroutinePtr, inserter);
+    auto insert(std::string const &dataName, std::function<Coroutine()> const &coroutine) -> bool {
+        if(this->processor) {
+            this->processor->add(this, coroutine, [this, dataName](Data const &data){this->insert(dataName, data);});
+            return true;
+        }
+        return false;
     }
 
     ArraysAegis arrays;
