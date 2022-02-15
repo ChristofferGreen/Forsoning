@@ -3,6 +3,7 @@
 
 #include "FSNG/Coroutine.hpp"
 #include "FSNG/Path.hpp"
+#include "FSNG/TaskProcessor.hpp"
 
 #include "nlohmann/json.hpp"
 
@@ -13,6 +14,7 @@ class PathSpaceTE {
 		
 		virtual auto copy_()                                                          const -> std::unique_ptr<concept_t> = 0;
 		virtual auto toJSON_()                                                        const -> nlohmann::json             = 0;
+		virtual auto setProcessor_(std::shared_ptr<TaskProcessor> const &processor)         -> void                       = 0;
 		virtual auto insert_(Path const &path, Data const &data)                            -> bool                       = 0;
 		virtual auto insert_(Path::Range const &range, Data const &data)                    -> bool                       = 0;
 		virtual auto insert_(Path const &path, std::function<Coroutine()> const &fun)       -> bool                       = 0;
@@ -34,6 +36,7 @@ public:
 	auto operator=(PathSpaceTE&&) noexcept -> PathSpaceTE& = default;
 
 	auto toJSON()                                                  const -> nlohmann::json { return this->self->toJSON_(); }
+	auto setProcessor(std::shared_ptr<TaskProcessor> const &processor)   -> void           { return this->self->setProcessor_(processor); }
 	auto insert(Path const &path, Data const &data)                      -> bool           { return this->self->insert_(path, data); }
 	auto insert(Path::Range const &range, Data const &data)              -> bool           { return this->self->insert_(range, data); }
 	auto insert(Path const &path, std::function<Coroutine()> const &fun) -> bool           { return this->self->insert_(path, fun); }
@@ -79,6 +82,7 @@ private:
 
 		auto copy_()                                                           const -> std::unique_ptr<concept_t> override {return std::make_unique<model>(*this);}
 		auto toJSON_()                                                         const -> nlohmann::json             override {return this->data.toJSON();}
+		auto setProcessor_(std::shared_ptr<TaskProcessor> const &processor)          -> void                       override {return this->data.setProcessor(processor);}
 		auto insert_(Path const &path, Data const &d)                                -> bool                       override {return this->data.insert(path, d);}
 		auto insert_(Path::Range const &range, Data const &d)                        -> bool                       override {return this->data.insert(range, d);}
 		auto insert_(Path const &path, std::function<Coroutine()> const &fun)        -> bool                       override {return this->data.insert(path, fun);}

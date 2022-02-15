@@ -1,8 +1,11 @@
 #pragma once
 #include "FSNG/ArrayAegis.hpp"
+#include "FSNG/PathSpaceTE.hpp"
 
+#include <deque>
 #include <shared_mutex>
 #include <condition_variable>
+#include <variant>
 
 namespace FSNG {
 struct ArraysAegis {

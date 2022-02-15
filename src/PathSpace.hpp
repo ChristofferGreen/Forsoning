@@ -1,16 +1,18 @@
 #pragma once
+#include "FSNG/ArraysAegis.hpp"
 #include "FSNG/Coroutine.hpp"
 #include "FSNG/Data.hpp"
 #include "FSNG/Path.hpp"
 #include "FSNG/PathSpaceTE.hpp"
 #include "FSNG/Security.hpp"
-#include "FSNG/ArraysAegis.hpp"
+#include "FSNG/TaskProcessor.hpp"
 
 #include "nlohmann/json.hpp"
 
 #include <deque>
-#include <unordered_map>
+#include <memory>
 #include <string>
+#include <unordered_map>
 #include <variant>
 
 namespace FSNG {
@@ -46,10 +48,18 @@ struct PathSpace {
                 }
             } else {
                 this->arrays.map[spaceName.value()] = std::deque<PathSpaceTE>{PathSpaceTE(PathSpace{})};
-                return std::get<std::deque<PathSpaceTE>>(this->arrays.map.at(spaceName.value()).array).at(0).insert(range.next(), data);
+                auto &arrayAegis = this->arrays.map.at(spaceName.value());
+                auto arrayWriteMutex = arrayAegis.writeMutex();
+                auto &array = std::get<std::deque<PathSpaceTE>>(this->arrays.map.at(spaceName.value()).array).at(0);
+                array.setProcessor(this->processor);
+                return array.insert(range.next(), data);
             }
         }
         return false;
+    }
+
+    auto setProcessor(std::shared_ptr<TaskProcessor> const &processor) {
+        this->processor = processor;
     }
 
     virtual auto toJSON() const -> nlohmann::json {
@@ -107,10 +117,14 @@ private:
             auto arraysWriteMutex = this->arrays.map[dataName].writeMutex();
             std::get<std::deque<PathSpaceTE>>(this->arrays.map[dataName].array).push_back(*data.as<std::unique_ptr<PathSpaceTE>>());
         }
-        else
-            this->arrays.map.insert(std::make_pair(dataName, std::deque<PathSpaceTE>{*data.as<std::unique_ptr<PathSpaceTE>>()}));
+        else {
+            auto array = std::deque<PathSpaceTE>{*data.as<std::unique_ptr<PathSpaceTE>>()};
+            array.at(0).setProcessor(this->processor);
+            this->arrays.map.insert(std::make_pair(dataName, std::move(array)));
+        }
     }
 
     ArraysAegis arrays;
+    std::shared_ptr<TaskProcessor> processor;
 };
 }
