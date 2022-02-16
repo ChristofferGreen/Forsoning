@@ -1,7 +1,6 @@
 #pragma once
 
 #include <shared_mutex>
-#include <condition_variable>
 
 namespace FSNG {
 template<typename T>
@@ -26,6 +25,5 @@ struct ArrayAegis {
 
     T array;
     mutable std::shared_mutex mutex;
-    mutable std::condition_variable_any condition;
 };
 }

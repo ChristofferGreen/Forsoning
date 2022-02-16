@@ -4,7 +4,6 @@
 
 #include <deque>
 #include <shared_mutex>
-#include <condition_variable>
 #include <variant>
 
 namespace FSNG {
@@ -26,6 +25,5 @@ struct ArraysAegis {
                               std::deque<PathSpaceTE>>;
     std::unordered_map<std::string, ArrayAegis<VarT>> map;
     mutable std::shared_mutex mutex;
-    mutable std::condition_variable_any condition;
 };
 }
