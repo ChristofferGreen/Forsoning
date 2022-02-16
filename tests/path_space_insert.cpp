@@ -58,6 +58,7 @@ TEST_CASE("PathSpace") {
             space.insert("/finished", 1);
         }) == true);
         //space.grabBlock("/finished");
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
         nlohmann::json json;
         json["finished"] = {1};
         json["test"] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
