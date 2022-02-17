@@ -7,11 +7,11 @@ using namespace FSNG;
 
 TEST_CASE("PathSpace") {
     PathSpaceTE space = PathSpace{};
-    Path::Range const rootTestPath{"/test"};
-    Path::Range const rootTestPath2{"/test2"};
-    Path::Range const rootTestPath3{"/test3"};
+    Path const rootTestPath{"/test"};
+    Path const rootTestPath2{"/test2"};
+    Path const rootTestPath3{"/test3"};
 
-    Path::Range const rootTestTest2Path{"/test/test2"};
+    Path const rootTestTest2Path{"/test/test2"};
 
     SUBCASE("Insert") {
         CHECK(space.insert(rootTestPath, 5) == true);

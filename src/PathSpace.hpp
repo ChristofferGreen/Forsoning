@@ -24,7 +24,7 @@ struct PathSpace {
     PathSpace() : processor(std::make_shared<TaskProcessor>()) {};
     PathSpace(std::shared_ptr<TaskProcessor> const &processor) : processor(processor) {};
 
-    virtual auto insert(Path::Range const &range, Data const &data) -> bool {
+    virtual auto insert(Path const &range, Data const &data) -> bool {
         if(range.isAtData())
             return this->insert(range.dataName(), data);
         if(auto const spaceName = range.spaceName()) {

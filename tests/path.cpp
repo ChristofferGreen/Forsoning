@@ -6,8 +6,7 @@ using namespace FSNG;
 
 TEST_CASE("Path") {
     Path const path{"/test1/test2/test3"};
-    auto const rangeOpt = path.range();
-    auto range = *rangeOpt;
+    auto range = path;
 
     SUBCASE("Initial state") {
         CHECK(*range.spaceName()=="test1");
@@ -25,24 +24,23 @@ TEST_CASE("Path") {
     }
 
     SUBCASE("Ill formed ranges") {
-        CHECK(not Path{"/"}.range().has_value());
+        CHECK(not Path{"/"}.isValid());
     }
 
     SUBCASE("Only spaces") {
-        CHECK(Path{"/test1/test2"}.range().value().dataName()=="test2");
-        CHECK(Path{"/test1/test2/"}.range().value().dataName()=="");
+        CHECK(Path{"/test1/test2"}.dataName()=="test2");
+        CHECK(Path{"/test1/test2/"}.dataName()=="");
     }
 
     SUBCASE("Data name") {
-        CHECK(path.dataName().has_value());
-        CHECK(path.dataName().value()=="test3");
+        CHECK(path.dataName()=="test3");
 
-        CHECK(Path{"/test1"}.dataName().value()=="test1");
-        CHECK(Path{"/test1/test2/test3"}.dataName().value()=="test3");
+        CHECK(Path{"/test1"}.dataName()=="test1");
+        CHECK(Path{"/test1/test2/test3"}.dataName()=="test3");
     }
 
     SUBCASE("Space name") {
-        CHECK(Path{"/test1/test2"}.range().value().spaceName().value()=="test1");
-        CHECK(Path{"/test1/test2"}.range().value().next().spaceName().value()=="test2");
+        CHECK(Path{"/test1/test2"}.spaceName().value()=="test1");
+        CHECK(Path{"/test1/test2"}.next().spaceName().value()=="test2");
     }
 }
