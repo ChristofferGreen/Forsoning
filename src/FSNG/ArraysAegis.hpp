@@ -11,11 +11,16 @@ struct ArraysAegis {
     ArraysAegis() = default;
     ArraysAegis(ArraysAegis const &other) : map(other.map) {}
 
-    auto readMutex() const {
+    auto count(auto const &str) const -> int{
+        auto const mapReadMutex = this->readMutex();
+        return this->map.count(str);
+    }
+
+    auto readMutex() const -> std::shared_lock<std::shared_mutex> {
         return std::shared_lock<std::shared_mutex>(this->mutex);
     }
 
-    auto writeMutex() const {
+    auto writeMutex() const -> std::lock_guard<std::shared_mutex> {
         return std::lock_guard<std::shared_mutex>(this->mutex);
     }
 

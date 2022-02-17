@@ -28,12 +28,7 @@ struct PathSpace {
         if(range.isAtData())
             return this->insert(range.dataName(), data);
         if(auto const spaceName = range.spaceName()) {
-            int count = 0;
-            {
-                auto const mapReadMutex = this->arrays.readMutex();
-                count = this->arrays.map.count(spaceName.value());
-            }
-            if(count>0) {
+            if(this->arrays.count(spaceName.value())>0) {
                 auto const mapReadMutex = this->arrays.readMutex();
                 auto &array = this->arrays.map.at(spaceName.value());
                 auto arrayWriteMutex = array.writeMutex();
