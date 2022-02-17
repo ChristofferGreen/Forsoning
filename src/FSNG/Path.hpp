@@ -10,6 +10,16 @@ struct Path {
 
     struct Range {
         Range() = default;
+        Range(std::filesystem::path const &path) : path(path) {
+            this->current = this->path.begin();
+            this->end   = this->path.end();
+            this->end--; // now at data component
+            if(*this->end=="/") // we only had '/'
+                this->valid = false;
+            if(*this->current=="/") // Sometimes we get a / in the start, remove it
+                this->current++;
+        }
+        Range(const char* const &str) : Range(std::filesystem::path(str)) {}
         Range(std::filesystem::path::const_iterator const &current, std::filesystem::path::const_iterator const &end) : current(current), end(end) {}
 
         auto next() const {
@@ -32,6 +42,8 @@ struct Path {
             return current==end;
         }
     private:
+        std::filesystem::path path;
+        bool valid = true;
         std::filesystem::path::const_iterator current, end;
     };
     

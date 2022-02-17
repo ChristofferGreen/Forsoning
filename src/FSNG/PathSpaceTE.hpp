@@ -15,7 +15,6 @@ class PathSpaceTE {
 		virtual auto copy_()                                                          const -> std::unique_ptr<concept_t> = 0;
 		virtual auto toJSON_()                                                        const -> nlohmann::json             = 0;
 		virtual auto setProcessor_(std::shared_ptr<TaskProcessor> const &processor)         -> void                       = 0;
-		virtual auto insert_(Path const &path, Data const &data)                            -> bool                       = 0;
 		virtual auto insert_(Path::Range const &range, Data const &data)                    -> bool                       = 0;
         /*virtual auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data)       -> bool                       = 0;
 		virtual auto popFrontData_()                                                                                        -> std::optional<DataType>    = 0;
@@ -36,7 +35,6 @@ public:
 
 	auto toJSON()                                                  const -> nlohmann::json { return this->self->toJSON_(); }
 	auto setProcessor(std::shared_ptr<TaskProcessor> const &processor)   -> void           { return this->self->setProcessor_(processor); }
-	auto insert(Path const &path, Data const &data)                      -> bool           { return this->self->insert_(path, data); }
 	auto insert(Path::Range const &range, Data const &data)              -> bool           { return this->self->insert_(range, data); }
 	/*auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data)       -> bool { return this->self->insert_(path, iters, data); }
 
@@ -81,7 +79,6 @@ private:
 		auto copy_()                                                           const -> std::unique_ptr<concept_t> override {return std::make_unique<model>(*this);}
 		auto toJSON_()                                                         const -> nlohmann::json             override {return this->data.toJSON();}
 		auto setProcessor_(std::shared_ptr<TaskProcessor> const &processor)          -> void                       override {return this->data.setProcessor(processor);}
-		auto insert_(Path const &path, Data const &d)                                -> bool                       override {return this->data.insert(path, d);}
 		auto insert_(Path::Range const &range, Data const &d)                        -> bool                       override {return this->data.insert(range, d);}
 		/*auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &d)      -> bool                           override {return this->data.insert(path, iters, d);}
         auto popFrontData_()                                                                                    -> std::optional<DataType>        override {return this->data.popFrontData();}

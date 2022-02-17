@@ -1,6 +1,8 @@
 #pragma once
 #include "FSNG/ArraysAegis.hpp"
+#include "FSNG/CodicesAegis.hpp"
 #include "FSNG/Coroutine.hpp"
+#include "FSNG/Codex.hpp"
 #include "FSNG/Data.hpp"
 #include "FSNG/Path.hpp"
 #include "FSNG/PathSpaceTE.hpp"
@@ -15,16 +17,12 @@
 #include <unordered_map>
 #include <variant>
 
+#define OLD true
+
 namespace FSNG {
 struct PathSpace {
     PathSpace() : processor(std::make_shared<TaskProcessor>()) {};
     PathSpace(std::shared_ptr<TaskProcessor> const &processor) : processor(processor) {};
-
-    virtual auto insert(Path const &path, Data const &data) -> bool {
-        if(auto range = path.range())
-            return this->insert(range.value(), data);
-        return false;
-    };
 
     virtual auto insert(Path::Range const &range, Data const &data) -> bool {
         if(range.isAtData())
@@ -133,6 +131,7 @@ private:
     }
 
     ArraysAegis arrays;
+    CodicesAegis codices;
     std::shared_ptr<TaskProcessor> processor;
 };
 }
