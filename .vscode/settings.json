@@ -90,6 +90,7 @@
         "forward_list": "cpp",
         "future": "cpp",
         "valarray": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "__functional_base_03": "cpp"
     }
 }

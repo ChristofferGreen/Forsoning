@@ -17,8 +17,6 @@
 #include <unordered_map>
 #include <variant>
 
-#define OLD true
-
 namespace FSNG {
 struct PathSpace {
     PathSpace() : processor(std::make_shared<TaskProcessor>()) {};
@@ -28,22 +26,11 @@ struct PathSpace {
         if(range.isAtData())
             return this->insert(range.dataName(), data);
         if(auto const spaceName = range.spaceName()) {
-            if(this->arrays.count(spaceName.value())>0) {
-                auto const mapReadMutex = this->arrays.readMutex();
-                auto &array = this->arrays.map.at(spaceName.value());
-                auto arrayWriteMutex = array.writeMutex();
-                if(std::holds_alternative<std::deque<PathSpaceTE>>(array.array)) {
-                    if(auto &arrayPS = std::get<std::deque<PathSpaceTE>>(array.array); arrayPS.size()>0) {
-                        return arrayPS.at(0).insert(range.next(), data);
-                    }
-                }
-            } else {
-                auto const mapWriteMutex = this->arrays.writeMutex();
-                this->arrays.map[spaceName.value()] = std::deque<PathSpaceTE>{PathSpaceTE(PathSpace{this->processor})};
-                auto &arrayAegis = this->arrays.map.at(spaceName.value());
-                auto arrayWriteMutex = arrayAegis.writeMutex();
-                auto &array = std::get<std::deque<PathSpaceTE>>(arrayAegis.array).at(0);
-                return array.insert(range.next(), data);
+            { // Create space if it does not exist
+                auto const mapWriteMutex = this->codices.writeMutex();
+                if(this->codices.count(spaceName.value())==0)
+                    this->codices.push_back(spaceName.value(), PathSpaceTE(PathSpace{this->processor}));
+                return this->codices.visitFirst<PathSpaceTE>(spaceName.value(), [&range, &data](auto &space){return space.insert(range.next(), data);});
             }
         }
         return false;
@@ -55,35 +42,18 @@ struct PathSpace {
 
     virtual auto toJSON() const -> nlohmann::json {
         nlohmann::json json;
-        auto const readMutex = this->arrays.readMutex();
-        for(auto const &p : this->arrays.map) {
-            nlohmann::json array;
-            auto arrayReadMutex = this->arrays.map.at(p.first).readMutex();
-            if(std::holds_alternative<std::deque<int>>(this->arrays.map.at(p.first).array))
-                for(auto &v : std::get<std::deque<int>>(p.second.array))
-                    array.push_back(v);
-            else if(std::holds_alternative<std::deque<double>>(this->arrays.map.at(p.first).array))
-                for(auto &v : std::get<std::deque<double>>(p.second.array))
-                    array.push_back(v);
-            else if(std::holds_alternative<std::deque<std::string>>(this->arrays.map.at(p.first).array))
-                for(auto &v : std::get<std::deque<std::string>>(p.second.array))
-                    array.push_back(v);
-            else if(std::holds_alternative<std::deque<PathSpaceTE>>(this->arrays.map.at(p.first).array))
-                for(auto &v : std::get<std::deque<PathSpaceTE>>(p.second.array))
-                    array.push_back(v.toJSON());
-            json[p.first] = std::move(array);
-        }
+        auto const mapReadMutex = this->codices.readMutex();
+        for(auto const &p : this->codices.codices)
+            json[p.first] = p.second.toJSON();
         return json;
     }
 
 private:
     virtual auto insert(std::string const &dataName, Data const &data) -> bool {
-        if(data.is<int>())
-            this->insert<int>(dataName, data);
-        else if(data.is<double>())
-            this->insert<double>(dataName, data);
-        else if(data.is<std::string>())
-            this->insert<std::string>(dataName, data);
+        if(data.is<int>() || data.is<double>() || data.is<std::string>()) {
+            auto const writeMutex = this->codices.writeMutex();
+            this->codices.push_back(dataName, data);
+        }
         else if(data.is<std::unique_ptr<PathSpaceTE>>())
             this->insert(dataName, data.as<std::unique_ptr<PathSpaceTE>>());
         else if(data.is<std::unique_ptr<std::function<Coroutine()>>>())
@@ -93,28 +63,9 @@ private:
         return true;
     }
 
-    template<typename T>
-    auto insert(std::string const &dataName, Data const &data) -> void {
-        auto const writeMutex = this->arrays.writeMutex();
-        if(this->arrays.map.count(dataName)) {
-            auto arraysWriteMutex = this->arrays.map[dataName].writeMutex();
-            std::get<std::deque<T>>(this->arrays.map[dataName].array).push_back(data.as<T>());
-        }
-        else
-            this->arrays.map.insert(std::make_pair(dataName, std::deque<T>{data.as<T>()}));
-    }
-
     auto insert(std::string const &dataName, std::unique_ptr<PathSpaceTE> const &space) -> void {
-        auto const writeMutex = this->arrays.writeMutex();
-        if(this->arrays.map.count(dataName)) {
-            auto arraysWriteMutex = this->arrays.map[dataName].writeMutex();
-            std::get<std::deque<PathSpaceTE>>(this->arrays.map[dataName].array).push_back(*space);
-        }
-        else {
-            auto array = std::deque<PathSpaceTE>{*space};
-            array.at(0).setProcessor(this->processor);
-            this->arrays.map.insert(std::make_pair(dataName, std::move(array)));
-        }
+        auto const writeMutex = this->codices.writeMutex();
+        this->codices.push_back(dataName, *space);
     }
 
     auto insert(std::string const &dataName, std::function<Coroutine()> const &coroutine) -> bool {
@@ -125,7 +76,6 @@ private:
         return false;
     }
 
-    ArraysAegis arrays;
     CodicesAegis codices;
     std::shared_ptr<TaskProcessor> processor;
 };
