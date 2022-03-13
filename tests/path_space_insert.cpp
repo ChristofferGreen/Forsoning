@@ -29,7 +29,21 @@ TEST_CASE("PathSpace") {
 
         json["test"].push_back(2345);
         CHECK(space.toJSON() != json);
-        std::cout << space.toJSON() << std::endl;
+    }
+
+    SUBCASE("Insert Multiple Types") {
+        CHECK(space.insert(rootTestPath, 5) == true);
+        nlohmann::json json;
+        json["test"] = {5};
+        CHECK(space.toJSON() == json);
+
+        CHECK(space.insert(rootTestPath, "hello") == true);
+        json["test"].push_back("hello");
+        CHECK(space.toJSON() == json);
+
+        CHECK(space.insert(rootTestPath, "hello2") == true);
+        json["test"].push_back("hello2");
+        CHECK(space.toJSON() == json);    
     }
 
     SUBCASE("Insert deep") {

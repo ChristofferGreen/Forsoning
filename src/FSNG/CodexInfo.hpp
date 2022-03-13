@@ -20,7 +20,7 @@ struct CodexInfo {
     }
 
     auto dataSizeBytes() const -> int {
-        return this->dataSizeBytesSingleItem()*this->nbrItems_;
+        return this->type == Type::String ? this->dataSizeBytesSingleItem() : this->dataSizeBytesSingleItem()*this->nbrItems_;
     }
 
     auto dataSizeBytesSingleItem() const -> int {
@@ -28,7 +28,7 @@ struct CodexInfo {
             case Type::Int: 
                 return sizeof(int);
             case Type::String:
-                return sizeof(char);
+                return sizeof(char)*this->nbrItems_;
             case Type::Space:
                 return -1; // Has no size.
         };

@@ -55,6 +55,7 @@ struct Codex {
         nlohmann::json json;
         int currentByte = 0;
         int currentSpace = 0;
+        char const * ptr = nullptr;
         for(auto const &info : this->info) {
             for(auto i = 0; i < info.nbrItems(); ++i) {
                 switch(info.type) {
@@ -62,7 +63,8 @@ struct Codex {
                         json.push_back(*reinterpret_cast<int const * const>(&this->codices[currentByte]));
                         break;
                     case CodexInfo::Type::String:
-                        json.push_back(std::string(reinterpret_cast<char const * const>(&this->codices[currentByte]), info.nbrChars()));
+                        ptr = reinterpret_cast<char const * const>(&this->codices[currentByte]);
+                        json.push_back(std::string(ptr, info.nbrChars()));
                         break;
                     case CodexInfo::Type::Space:
                         json.push_back(this->spaces[currentSpace++].toJSON());
@@ -78,7 +80,7 @@ private:
     auto addInfo(CodexInfo::Type const &type, int const nbrItems=1) -> CodexInfo {
         if(this->info.size()==0)
             this->info.emplace_back(type, nbrItems);
-        else if(this->info.rbegin()->type==type)
+        else if(this->info.rbegin()->type==type && type!=CodexInfo::Type::String)
             this->info.rbegin()->nbrItems_++;
         else
             this->info.emplace_back(type, nbrItems);

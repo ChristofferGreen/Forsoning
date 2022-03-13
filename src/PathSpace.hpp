@@ -25,13 +25,11 @@ struct PathSpace {
     virtual auto insert(Path const &range, Data const &data) -> bool {
         if(range.isAtData())
             return this->insert(range.dataName(), data);
-        if(auto const spaceName = range.spaceName()) {
-            { // Create space if it does not exist
-                auto const mapWriteMutex = this->codices.writeMutex();
-                if(this->codices.count(spaceName.value())==0)
-                    this->codices.push_back(spaceName.value(), PathSpaceTE(PathSpace{this->processor}));
-                return this->codices.visitFirst<PathSpaceTE>(spaceName.value(), [&range, &data](auto &space){return space.insert(range.next(), data);});
-            }
+        if(auto const spaceName = range.spaceName()) { // Create space if it does not exist
+            auto const mapWriteMutex = this->codices.writeMutex();
+            if(this->codices.count(spaceName.value())==0)
+                this->codices.push_back(spaceName.value(), PathSpaceTE(PathSpace{this->processor}));
+            return this->codices.visitFirst<PathSpaceTE>(spaceName.value(), [&range, &data](auto &space){return space.insert(range.next(), data);});
         }
         return false;
     }
