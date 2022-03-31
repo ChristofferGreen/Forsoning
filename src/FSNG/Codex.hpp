@@ -55,7 +55,7 @@ struct Codex {
         nlohmann::json json;
         int currentByte = 0;
         int currentSpace = 0;
-        char const * ptr = nullptr;
+        char const *ptr = nullptr;
         for(auto const &info : this->info) {
             for(auto i = 0; i < info.nbrItems(); ++i) {
                 switch(info.type) {

@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 #include <optional>
 #include <string>
 #include <variant>
@@ -14,8 +15,15 @@ struct Data {
     Data(std::string const &s) : data(s) {}
     Data(std::unique_ptr<PathSpaceTE> &&up) : data(std::move(up)) {}
     Data(PathSpaceTE const &pste) : data(std::make_unique<PathSpaceTE>(pste)) {}
-    template<typename T>
-    Data(T const &coro) : data(std::make_unique<std::function<Coroutine()>>(coro)) {}
+    Data(auto const &in) {
+        using InT = typename std::remove_reference<decltype(in)>;
+        if constexpr(std::is_invocable<InT>())
+            data = std::make_unique<std::function<Coroutine()>>(in);
+        else if constexpr(std::is_standard_layout<InT>()) // POD
+            int a = 5;
+        else
+            assert(false && "Error! Type can not be converted to Data!");
+    }
 
     template<typename T>
     auto is() const {

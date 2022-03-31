@@ -5,6 +5,11 @@
 
 using namespace FSNG;
 
+struct POD {
+    int a = 13;
+    float b = 45.34;
+};
+
 TEST_CASE("PathSpace") {
     PathSpaceTE space = PathSpace{};
     Path const rootTestPath{"/test"};
@@ -31,6 +36,10 @@ TEST_CASE("PathSpace") {
         CHECK(space.toJSON() != json);
     }
 
+    SUBCASE("Insert POD") {
+        CHECK(space.insert(rootTestPath, POD()) == true);
+    }
+
     SUBCASE("Insert Multiple Types") {
         CHECK(space.insert(rootTestPath, 5) == true);
         nlohmann::json json;
@@ -44,6 +53,10 @@ TEST_CASE("PathSpace") {
         CHECK(space.insert(rootTestPath, "hello2") == true);
         json["test"].push_back("hello2");
         CHECK(space.toJSON() == json);    
+
+        CHECK(space.insert(rootTestPath, 34) == true);
+        json["test"].push_back(34);
+        CHECK(space.toJSON() == json);
     }
 
     SUBCASE("Insert deep") {
@@ -66,7 +79,7 @@ TEST_CASE("PathSpace") {
     }
 
     SUBCASE("Insert coroutine") {
-        CHECK(space.insert(rootTestPath, [&space]()->Coroutine{
+        CHECK(space.insert(rootTestPath, [&space]() -> Coroutine {
             for(auto i = 0; i < 10; ++i)
                 co_yield i;
             space.insert("/finished", 1);
