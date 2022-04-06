@@ -7,8 +7,17 @@ using namespace FSNG;
 
 struct POD {
     int a = 13;
-    float b = 45.34;
+    float b = 44.0;
 };
+
+void to_json(nlohmann::json& j, const POD& p) {
+    j = nlohmann::json{{"a", p.a}, {"b", p.b}};
+}
+
+void from_json(const nlohmann::json& j, POD& p) {
+    j.at("a").get_to(p.a);
+    j.at("b").get_to(p.b);
+}
 
 TEST_CASE("PathSpace") {
     PathSpaceTE space = PathSpace{};
@@ -38,6 +47,10 @@ TEST_CASE("PathSpace") {
 
     SUBCASE("Insert POD") {
         CHECK(space.insert(rootTestPath, POD()) == true);
+
+        nlohmann::json json;
+        json["test"] = nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", 44.0} }) });
+        CHECK(space.toJSON() == json);
     }
 
     SUBCASE("Insert Multiple Types") {

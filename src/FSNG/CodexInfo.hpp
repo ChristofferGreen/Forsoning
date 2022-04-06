@@ -5,11 +5,12 @@ struct CodexInfo {
     enum struct Type {
         Int = 0,
         String,
+        POD,
         Space
     };
 
     CodexInfo() = default;
-    CodexInfo(Type const &type, int const nbrItems) : type(type), nbrItems_(nbrItems) {};
+    CodexInfo(Type const &type, int const nbrItems, std::type_info const *info) : type(type), nbrItems_(nbrItems), info(info) {};
 
     auto nbrItems() const {
         return this->type == Type::String ? 1 : this->nbrItems_;
@@ -31,10 +32,13 @@ struct CodexInfo {
                 return sizeof(char)*this->nbrItems_;
             case Type::Space:
                 return -1; // Has no size.
-        };
+            case Type::POD:
+                return -1; // Has no size.
+            };
     }
 
     Type type;
     int nbrItems_ = 0;
+    std::type_info const *info = nullptr;
 };
 }

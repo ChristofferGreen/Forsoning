@@ -24,7 +24,7 @@ struct Codex {
 
     auto insert(Data const &data) {
         if(data.is<int>()) {
-            auto const &info = this->addInfo(CodexInfo::Type::Int);
+            this->addInfo(CodexInfo::Type::Int);
             auto const d = data.as<int>();
             std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(&d)),
                       static_cast<std::byte const * const>(static_cast<void const * const>(&d)) + sizeof(int),
@@ -35,6 +35,12 @@ struct Codex {
             auto const dataSizeBytes = info.dataSizeBytes();
             std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(d.c_str())),
                       static_cast<std::byte const * const>(static_cast<void const * const>(d.c_str())) + dataSizeBytes,
+                      std::back_inserter(this->codices));
+        } else if(data.is<InReference>()) {
+            auto const d = data.as<InReference>();
+            this->addInfo(CodexInfo::Type::POD, 1, data.as<InReference>().info);
+            std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(d.data)),
+                      static_cast<std::byte const * const>(static_cast<void const * const>(d.data)) + d.size,
                       std::back_inserter(this->codices));
         }
     }
@@ -66,6 +72,10 @@ struct Codex {
                         ptr = reinterpret_cast<char const * const>(&this->codices[currentByte]);
                         json.push_back(std::string(ptr, info.nbrChars()));
                         break;
+                    case CodexInfo::Type::POD:
+                        if(InReference::converters.count(info.info))
+                            json.push_back(InReference::converters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte])));
+                        break;
                     case CodexInfo::Type::Space:
                         json.push_back(this->spaces[currentSpace++].toJSON());
                         break;
@@ -77,13 +87,13 @@ struct Codex {
     }
 
 private:
-    auto addInfo(CodexInfo::Type const &type, int const nbrItems=1) -> CodexInfo {
+    auto addInfo(CodexInfo::Type const &type, int const nbrItems=1, std::type_info const *ptr=nullptr) -> CodexInfo {
         if(this->info.size()==0)
-            this->info.emplace_back(type, nbrItems);
+            this->info.emplace_back(type, nbrItems, ptr);
         else if(this->info.rbegin()->type==type && type!=CodexInfo::Type::String)
             this->info.rbegin()->nbrItems_++;
         else
-            this->info.emplace_back(type, nbrItems);
+            this->info.emplace_back(type, nbrItems, ptr);
         return *this->info.rbegin();
     }
 
