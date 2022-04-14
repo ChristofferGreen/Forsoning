@@ -73,8 +73,8 @@ struct Codex {
                         json.push_back(std::string(ptr, info.nbrChars()));
                         break;
                     case CodexInfo::Type::POD:
-                        if(InReference::converters.count(info.info))
-                            json.push_back(InReference::converters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte])));
+                        if(InReference::toJSONConverters.count(info.info))
+                            json.push_back(InReference::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte])));
                         break;
                     case CodexInfo::Type::Space:
                         json.push_back(this->spaces[currentSpace++].toJSON());

@@ -14,9 +14,17 @@ void to_json(nlohmann::json& j, const POD& p) {
     j = nlohmann::json{{"a", p.a}, {"b", p.b}};
 }
 
-void from_json(const nlohmann::json& j, POD& p) {
-    j.at("a").get_to(p.a);
-    j.at("b").get_to(p.b);
+struct NonTrivial {
+    int a = 13;
+    std::vector<int> b = {1, 2, 3};
+};
+
+void to_json(nlohmann::json& j, const NonTrivial& p) {
+    j = nlohmann::json{{"a", p.a}, {"b", p.b}};
+}
+
+void to_bytevec(std::vector<std::byte> &vec, NonTrivial const &obj) {
+
 }
 
 TEST_CASE("PathSpace") {
@@ -47,6 +55,14 @@ TEST_CASE("PathSpace") {
 
     SUBCASE("Insert POD") {
         CHECK(space.insert(rootTestPath, POD()) == true);
+
+        nlohmann::json json;
+        json["test"] = nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", 44.0} }) });
+        CHECK(space.toJSON() == json);
+    }
+
+    SUBCASE("Insert NonTrivial Class") {
+        CHECK(space.insert(rootTestPath, NonTrivial()) == true);
 
         nlohmann::json json;
         json["test"] = nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", 44.0} }) });

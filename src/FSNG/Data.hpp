@@ -1,5 +1,6 @@
 #pragma once
 #include <cassert>
+#include <concepts>
 #include <optional>
 #include <string>
 #include <variant>
@@ -9,6 +10,15 @@
 #include "InReference.hpp"
 
 namespace FSNG {
+
+template<typename T>
+concept TriviallyCopyableButNotInvocable = std::is_trivially_copyable<T>::value && !std::is_invocable<T>::value;
+
+template<typename T>
+concept HasByteVectorConversion  = requires(T t, std::vector<std::byte> &vec) {
+    to_bytevec(vec, t);
+};
+
 struct PathSpaceTE;
 struct Coroutine;
 struct Data {
@@ -18,23 +28,38 @@ struct Data {
     Data(std::string const &s) : data(s) {}
     Data(std::unique_ptr<PathSpaceTE> &&up) : data(std::move(up)) {}
     Data(PathSpaceTE const &pste) : data(std::make_unique<PathSpaceTE>(pste)) {}
-    Data(auto const &in) {
+    Data(std::invocable auto const &in) {
+        data = std::make_unique<std::function<Coroutine()>>(in);
+    }
+    Data(TriviallyCopyableButNotInvocable auto const &in) {
         using InT = decltype(in);
-        using InTRR = typename std::remove_reference<InT>;
-        if constexpr(std::is_invocable<InT>())
-            data = std::make_unique<std::function<Coroutine()>>(in);
-        else if constexpr(std::is_standard_layout<InTRR>()) {// POD
-            this->data = InReference{&in, sizeof(InT), &typeid(in)};
-            if(InReference::converters.count(&typeid(in))==0) {
-                InReference::converters[&typeid(in)] = [](std::byte const *data){
-                    nlohmann::json out;
-                    to_json(out, reinterpret_cast<InT>(*data));
-                    return out;
-                };
-            }
+        this->data = InReference{&in, sizeof(InT), &typeid(in)};
+        if(InReference::toJSONConverters.count(&typeid(in))==0) {
+            InReference::toJSONConverters[&typeid(in)] = [](std::byte const *data){
+                nlohmann::json out;
+                to_json(out, reinterpret_cast<InT>(*data));
+                return out;
+            };
         }
-        else
-            assert(false && "Error! Type can not be converted to Data!");
+    }
+    Data(HasByteVectorConversion auto const &in) {
+        using InT = decltype(in);
+        using InTRR = typename std::remove_reference<InT>::type;
+        this->data = InReference{&in, sizeof(InT), &typeid(in)};
+        if(InReference::toJSONConverters.count(&typeid(in))==0) {
+            InReference::toJSONConverters[&typeid(in)] = [](std::byte const *data){
+                nlohmann::json out;
+                to_json(out, reinterpret_cast<InT>(*data));
+                return out;
+            };
+        }
+        if(InReference::toByteArrayconverters.count(&typeid(in))==0) {
+            InReference::toByteArrayconverters[&typeid(in)] = [](std::vector<std::byte> &vec, void *obj){
+                nlohmann::json out;
+                to_bytevec(vec, *static_cast<InTRR*>(obj));
+                return out;
+            };
+        }
     }
 
     template<typename T>

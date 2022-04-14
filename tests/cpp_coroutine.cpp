@@ -144,18 +144,18 @@ TEST_CASE("Coroutine Syntax Test") {
     SUBCASE("Single co_return") {
         auto fut = CoRet::createFuture();
         CHECK(fut.get()==2021);
-   }
+    }
     SUBCASE("co_yield") {
         auto gen = CoYield::getNext();
         for (int i = 0; i<= 10; ++i) {
             gen.next();
             std::cout << gen.getValue() << std::endl;
         }
-   }
-   SUBCASE("Awaitable") {
-       std::cout <<  "Before job" << '\n';
-       auto job = CoAwait::prepareJob();
-       job.start();
-       std::cout <<  "After job" <<  '\n';
-   }
+    }
+    SUBCASE("Awaitable") {
+        std::cout <<  "Before job" << '\n';
+        auto job = CoAwait::prepareJob();
+        job.start();
+        std::cout <<  "After job" <<  '\n';
+    }
 }
