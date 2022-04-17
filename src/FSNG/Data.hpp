@@ -67,13 +67,20 @@ struct Data {
         return std::holds_alternative<T>(this->data);
     }
 
-    auto isPOD() const {
-        return std::holds_alternative<InReference>(this->data);
-    }
-
     template<typename T>
     auto& as() const {
         return std::get<T>(this->data);
+    }
+
+    auto isTriviallyCopyable() const {
+        if(std::holds_alternative<int>(this->data) ||
+           std::holds_alternative<double>(this->data)) {
+               return true;
+        }
+        else if(std::holds_alternative<InReference>(this->data)) {
+            return this->as<InReference>().isTriviallyCopyable;
+        };
+        return false;
     }
 
 private:

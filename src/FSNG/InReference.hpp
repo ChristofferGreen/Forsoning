@@ -10,5 +10,6 @@ struct InReference {
     std::type_info const *info = nullptr;
     inline static std::unordered_map<std::type_info const*, std::function<nlohmann::json(std::byte const*)>> toJSONConverters; 
     inline static std::unordered_map<std::type_info const*, std::function<void(std::vector<std::byte> &vec, void *obj)>> toByteArrayconverters; 
+    bool isTriviallyCopyable = false;
 };
 }

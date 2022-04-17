@@ -24,7 +24,17 @@ void to_json(nlohmann::json& j, const NonTrivial& p) {
 }
 
 void to_bytevec(std::vector<std::byte> &vec, NonTrivial const &obj) {
+    std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(&obj.a)),
+              static_cast<std::byte const * const>(static_cast<void const * const>(&obj.a)) + sizeof(int),
+              std::back_inserter(vec));
+    std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(obj.b.data())),
+              static_cast<std::byte const * const>(static_cast<void const * const>(obj.b.data())) + sizeof(int) * obj.b.size(),
+              std::back_inserter(vec));
+}
 
+NonTrivial from_bytevec(std::vector<std::byte> &vec, int start) {
+    NonTrivial ret;
+    return ret;
 }
 
 TEST_CASE("PathSpace") {
