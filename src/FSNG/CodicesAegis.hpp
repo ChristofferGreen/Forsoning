@@ -23,7 +23,7 @@ struct CodicesAegis {
 
     template<typename T>
     auto visitFirst(auto const &name, auto const &fun) {
-        if(this->codices.count(name)>0) {
+        if(this->codices.contains(name)) {
             return this->codices[name].template visitFirst<T>(fun);
         }
         return false;

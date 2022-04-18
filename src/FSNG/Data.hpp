@@ -33,14 +33,15 @@ struct Data {
     }
     Data(TriviallyCopyableButNotInvocable auto const &in) {
         using InT = decltype(in);
-        this->data = InReference{&in, sizeof(InT), &typeid(in)};
-        if(InReference::toJSONConverters.count(&typeid(in))==0) {
+        this->data = InReference{&in, sizeof(InT), &typeid(in), true};
+        if(!InReference::toJSONConverters.contains(&typeid(in))) {
             InReference::toJSONConverters[&typeid(in)] = [](std::byte const *data){
                 nlohmann::json out;
                 to_json(out, reinterpret_cast<InT>(*data));
                 return out;
             };
         }
+
     }
     Data(HasByteVectorConversion auto const &in) {
         using InT = decltype(in);
@@ -53,7 +54,7 @@ struct Data {
                 return out;
             };
         }
-        if(InReference::toByteArrayconverters.count(&typeid(in))==0) {
+        if(!InReference::toByteArrayconverters.contains(&typeid(in))) {
             InReference::toByteArrayconverters[&typeid(in)] = [](std::vector<std::byte> &vec, void *obj){
                 nlohmann::json out;
                 to_bytevec(vec, *static_cast<InTRR*>(obj));

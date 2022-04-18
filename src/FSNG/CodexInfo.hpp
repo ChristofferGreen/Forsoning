@@ -5,7 +5,8 @@ struct CodexInfo {
     enum struct Type {
         Int = 0,
         String,
-        POD,
+        TriviallyCopyable,
+        NotTriviallyCopyable,
         Space
     };
 
@@ -31,10 +32,11 @@ struct CodexInfo {
             case Type::String:
                 return sizeof(char)*this->nbrItems_;
             case Type::Space:
-                return -1; // Has no size.
-            case Type::POD:
+            case Type::NotTriviallyCopyable:
+            case Type::TriviallyCopyable:
                 return -1; // Has no size.
             };
+            return -1;
     }
 
     Type type;

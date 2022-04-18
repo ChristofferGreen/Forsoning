@@ -38,10 +38,14 @@ struct Codex {
                       std::back_inserter(this->codices));
         } else if(data.is<InReference>()) {
             auto const d = data.as<InReference>();
-            this->addInfo(CodexInfo::Type::POD, 1, data.as<InReference>().info);
-            std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(d.data)),
-                      static_cast<std::byte const * const>(static_cast<void const * const>(d.data)) + d.size,
-                      std::back_inserter(this->codices));
+            if(d.isTriviallyCopyable) {
+                this->addInfo(CodexInfo::Type::TriviallyCopyable, 1, data.as<InReference>().info);
+                std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(d.data)),
+                        static_cast<std::byte const * const>(static_cast<void const * const>(d.data)) + d.size,
+                        std::back_inserter(this->codices));
+            } else {
+                this->addInfo(CodexInfo::Type::NotTriviallyCopyable, 1, data.as<InReference>().info);
+            }
         }
     }
 
@@ -72,8 +76,9 @@ struct Codex {
                         ptr = reinterpret_cast<char const * const>(&this->codices[currentByte]);
                         json.push_back(std::string(ptr, info.nbrChars()));
                         break;
-                    case CodexInfo::Type::POD:
-                        if(InReference::toJSONConverters.count(info.info))
+                    case CodexInfo::Type::NotTriviallyCopyable:
+                    case CodexInfo::Type::TriviallyCopyable:
+                        if(InReference::toJSONConverters.contains(info.info))
                             json.push_back(InReference::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte])));
                         break;
                     case CodexInfo::Type::Space:
