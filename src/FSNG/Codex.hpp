@@ -37,14 +37,18 @@ struct Codex {
                       static_cast<std::byte const * const>(static_cast<void const * const>(d.c_str())) + dataSizeBytes,
                       std::back_inserter(this->codices));
         } else if(data.is<InReference>()) {
-            auto const d = data.as<InReference>();
-            if(d.isTriviallyCopyable) {
-                this->addInfo(CodexInfo::Type::TriviallyCopyable, 1, data.as<InReference>().info);
-                std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(d.data)),
-                        static_cast<std::byte const * const>(static_cast<void const * const>(d.data)) + d.size,
+            auto const dataRef = data.as<InReference>();
+            auto const nbrItems = 1;
+            if(dataRef.isTriviallyCopyable) {
+                this->addInfo(CodexInfo::Type::TriviallyCopyable, nbrItems, dataRef.info);
+                std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(dataRef.data)),
+                        static_cast<std::byte const * const>(static_cast<void const * const>(dataRef.data)) + dataRef.size,
                         std::back_inserter(this->codices));
             } else {
-                this->addInfo(CodexInfo::Type::NotTriviallyCopyable, 1, data.as<InReference>().info);
+                this->addInfo(CodexInfo::Type::NotTriviallyCopyable, nbrItems, dataRef.info);
+                if(dataRef.toByteArrayconverters.contains(dataRef.info)) {
+                    dataRef.toByteArrayconverters[dataRef.info](this->codices, dataRef.data);
+                }
             }
         }
     }

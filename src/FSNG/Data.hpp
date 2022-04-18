@@ -47,7 +47,7 @@ struct Data {
         using InT = decltype(in);
         using InTRR = typename std::remove_reference<InT>::type;
         this->data = InReference{&in, sizeof(InT), &typeid(in)};
-        if(InReference::toJSONConverters.count(&typeid(in))==0) {
+        if(!InReference::toJSONConverters.contains(&typeid(in))) {
             InReference::toJSONConverters[&typeid(in)] = [](std::byte const *data){
                 nlohmann::json out;
                 to_json(out, reinterpret_cast<InT>(*data));
@@ -55,8 +55,9 @@ struct Data {
             };
         }
         if(!InReference::toByteArrayconverters.contains(&typeid(in))) {
-            InReference::toByteArrayconverters[&typeid(in)] = [](std::vector<std::byte> &vec, void *obj){
+            InReference::toByteArrayconverters[&typeid(in)] = [](std::vector<std::byte> &vec, void const *obj){
                 nlohmann::json out;
+                InTRR *oo = static_cast<InTRR*>(obj);
                 to_bytevec(vec, *static_cast<InTRR*>(obj));
                 return out;
             };
