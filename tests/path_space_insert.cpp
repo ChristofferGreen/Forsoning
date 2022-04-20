@@ -16,7 +16,7 @@ void to_json(nlohmann::json& j, const POD& p) {
 
 struct NonTrivial {
     int a = 13;
-    std::vector<int> b = {1, 2, 3};
+    std::vector<int> b;
 };
 
 void to_json(nlohmann::json& j, const NonTrivial& p) {
@@ -27,14 +27,25 @@ void to_bytevec(std::vector<std::byte> &vec, NonTrivial const &obj) {
     std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(&obj.a)),
               static_cast<std::byte const * const>(static_cast<void const * const>(&obj.a)) + sizeof(int),
               std::back_inserter(vec));
+    int const elements = obj.b.size();
+    std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(&elements)),
+              static_cast<std::byte const * const>(static_cast<void const * const>(&elements)) + sizeof(int),
+              std::back_inserter(vec));
     std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(obj.b.data())),
               static_cast<std::byte const * const>(static_cast<void const * const>(obj.b.data())) + sizeof(int) * obj.b.size(),
               std::back_inserter(vec));
 }
 
-NonTrivial from_bytevec(std::vector<std::byte> &vec, int start) {
-    NonTrivial ret;
-    return ret;
+void from_bytevec(std::byte const *vec, NonTrivial &ret) {
+    ret.a = *reinterpret_cast<int const*>(vec);
+    vec += sizeof(int);
+    int const elements = *reinterpret_cast<int const*>(vec);
+    vec += sizeof(int);
+    for(auto i = 0; i < elements; ++i) {
+        auto const val = *reinterpret_cast<int const *>(vec);
+        ret.b.push_back(val);
+        vec += sizeof(int);
+    }
 }
 
 TEST_CASE("PathSpace") {
@@ -72,10 +83,12 @@ TEST_CASE("PathSpace") {
     }
 
     SUBCASE("Insert NonTrivial Class") {
-        CHECK(space.insert(rootTestPath, NonTrivial()) == true);
+        NonTrivial nt;
+        nt.b = {1, 2, 3};
+        CHECK(space.insert(rootTestPath, nt) == true);
 
         nlohmann::json json;
-        json["test"] = nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", 44.0} }) });
+        json["test"] = nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", {1, 2, 3}} }) });
         CHECK(space.toJSON() == json);
     }
 

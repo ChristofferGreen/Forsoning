@@ -15,8 +15,9 @@ template<typename T>
 concept TriviallyCopyableButNotInvocable = std::is_trivially_copyable<T>::value && !std::is_invocable<T>::value;
 
 template<typename T>
-concept HasByteVectorConversion  = requires(T t, std::vector<std::byte> &vec) {
+concept HasByteVectorConversion = requires(typename std::remove_const<T>::type t, std::vector<std::byte> &vec) {
     to_bytevec(vec, t);
+    from_bytevec(vec.data(), t);
 };
 
 struct PathSpaceTE;
@@ -46,20 +47,25 @@ struct Data {
     Data(HasByteVectorConversion auto const &in) {
         using InT = decltype(in);
         using InTRR = typename std::remove_reference<InT>::type;
+        using InTRRRC = typename std::remove_const<InTRR>::type;
         this->data = InReference{&in, sizeof(InT), &typeid(in)};
         if(!InReference::toJSONConverters.contains(&typeid(in))) {
-            InReference::toJSONConverters[&typeid(in)] = [](std::byte const *data){
+            InReference::toJSONConverters[&typeid(in)] = [](std::byte const *data) {
                 nlohmann::json out;
-                to_json(out, reinterpret_cast<InT>(*data));
+                InTRRRC value;
+                from_bytevec(data, value);
+                to_json(out, value);
                 return out;
             };
         }
-        if(!InReference::toByteArrayconverters.contains(&typeid(in))) {
-            InReference::toByteArrayconverters[&typeid(in)] = [](std::vector<std::byte> &vec, void const *obj){
-                nlohmann::json out;
-                InTRR *oo = static_cast<InTRR*>(obj);
+        if(!InReference::toByteArrayConverters.contains(&typeid(in))) {
+            InReference::toByteArrayConverters[&typeid(in)] = [](std::vector<std::byte> &vec, void const *obj) {
                 to_bytevec(vec, *static_cast<InTRR*>(obj));
-                return out;
+            };
+        }
+        if(!InReference::fromByteArrayConverters.contains(&typeid(in))) {
+            InReference::fromByteArrayConverters[&typeid(in)] = [](std::byte const *vec, void *obj) {
+                from_bytevec(vec, *static_cast<typename std::remove_const<InTRR>::type*>(obj));
             };
         }
     }

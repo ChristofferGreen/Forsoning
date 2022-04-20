@@ -46,9 +46,8 @@ struct Codex {
                         std::back_inserter(this->codices));
             } else {
                 this->addInfo(CodexInfo::Type::NotTriviallyCopyable, nbrItems, dataRef.info);
-                if(dataRef.toByteArrayconverters.contains(dataRef.info)) {
-                    dataRef.toByteArrayconverters[dataRef.info](this->codices, dataRef.data);
-                }
+                if(dataRef.toByteArrayConverters.contains(dataRef.info))
+                    dataRef.toByteArrayConverters[dataRef.info](this->codices, dataRef.data);
             }
         }
     }
