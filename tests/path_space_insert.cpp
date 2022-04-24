@@ -48,6 +48,15 @@ void from_bytevec(std::byte const *vec, NonTrivial &ret) {
     }
 }
 
+struct NonTrivialJS {
+    int a = 13;
+    std::vector<int> b;
+};
+
+void to_json(nlohmann::json& j, const NonTrivialJS& p) {
+    j = nlohmann::json{{"a", p.a}, {"b", p.b}};
+}
+
 TEST_CASE("PathSpace") {
     PathSpaceTE space = PathSpace{};
     Path const rootTestPath{"/test"};
@@ -84,6 +93,16 @@ TEST_CASE("PathSpace") {
 
     SUBCASE("Insert NonTrivial Class") {
         NonTrivial nt;
+        nt.b = {1, 2, 3};
+        CHECK(space.insert(rootTestPath, nt) == true);
+
+        nlohmann::json json;
+        json["test"] = nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", {1, 2, 3}} }) });
+        CHECK(space.toJSON() == json);
+    }
+
+    SUBCASE("Insert NonTrivial Class JS") {
+        NonTrivialJS nt;
         nt.b = {1, 2, 3};
         CHECK(space.insert(rootTestPath, nt) == true);
 

@@ -38,16 +38,19 @@ struct Codex {
                       std::back_inserter(this->codices));
         } else if(data.is<InReference>()) {
             auto const dataRef = data.as<InReference>();
-            auto const nbrItems = 1;
+            auto const itemSize = dataRef.size;
             if(dataRef.isTriviallyCopyable) {
-                this->addInfo(CodexInfo::Type::TriviallyCopyable, nbrItems, dataRef.info);
+                this->addInfo(CodexInfo::Type::TriviallyCopyable, itemSize, dataRef.info);
                 std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(dataRef.data)),
-                        static_cast<std::byte const * const>(static_cast<void const * const>(dataRef.data)) + dataRef.size,
-                        std::back_inserter(this->codices));
+                          static_cast<std::byte const * const>(static_cast<void const * const>(dataRef.data)) + dataRef.size,
+                          std::back_inserter(this->codices));
             } else {
-                this->addInfo(CodexInfo::Type::NotTriviallyCopyable, nbrItems, dataRef.info);
+                this->addInfo(CodexInfo::Type::NotTriviallyCopyable, itemSize, dataRef.info);
+                int const preSize = this->codices.size();
                 if(dataRef.toByteArrayConverters.contains(dataRef.info))
                     dataRef.toByteArrayConverters[dataRef.info](this->codices, dataRef.data);
+                int const postSize = this->codices.size();
+                this->info.rbegin()->items.size = postSize-preSize;
             }
         }
     }
@@ -82,7 +85,7 @@ struct Codex {
                     case CodexInfo::Type::NotTriviallyCopyable:
                     case CodexInfo::Type::TriviallyCopyable:
                         if(InReference::toJSONConverters.contains(info.info))
-                            json.push_back(InReference::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte])));
+                            json.push_back(InReference::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
                         break;
                     case CodexInfo::Type::Space:
                         json.push_back(this->spaces[currentSpace++].toJSON());
@@ -99,7 +102,7 @@ private:
         if(this->info.size()==0)
             this->info.emplace_back(type, nbrItems, ptr);
         else if(this->info.rbegin()->type==type && type!=CodexInfo::Type::String)
-            this->info.rbegin()->nbrItems_++;
+            this->info.rbegin()->items.nbr++;
         else
             this->info.emplace_back(type, nbrItems, ptr);
         return *this->info.rbegin();

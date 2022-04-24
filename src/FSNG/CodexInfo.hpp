@@ -11,18 +11,42 @@ struct CodexInfo {
     };
 
     CodexInfo() = default;
-    CodexInfo(Type const &type, int const nbrItems, std::type_info const *info) : type(type), nbrItems_(nbrItems), info(info) {};
+    CodexInfo(Type const &type, int const nbrItems, std::type_info const *info) : type(type), items(nbrItems), info(info) {};
 
     auto nbrItems() const {
-        return this->type == Type::String ? 1 : this->nbrItems_;
+        switch(this->type) {
+            case Type::String:
+            case Type::Space:
+            case Type::NotTriviallyCopyable:
+            case Type::TriviallyCopyable:
+                return 1;
+            case Type::Int: 
+                return this->items.nbr;
+        };
     }
 
     auto nbrChars() const {
-        return this->nbrItems_;
+        switch(this->type) {
+            case Type::String:
+                return this->items.nbr;
+            case Type::Space:
+            case Type::NotTriviallyCopyable:
+            case Type::TriviallyCopyable:
+            case Type::Int: 
+                return -1;
+        };
     }
 
     auto dataSizeBytes() const -> int {
-        return this->type == Type::String ? this->dataSizeBytesSingleItem() : this->dataSizeBytesSingleItem()*this->nbrItems_;
+        switch(this->type) {
+            case Type::String:
+                return this->dataSizeBytesSingleItem();
+            case Type::Space:
+            case Type::NotTriviallyCopyable:
+            case Type::TriviallyCopyable:
+            case Type::Int: 
+                return this->dataSizeBytesSingleItem()*this->items.nbr;
+        };
     }
 
     auto dataSizeBytesSingleItem() const -> int {
@@ -30,17 +54,23 @@ struct CodexInfo {
             case Type::Int: 
                 return sizeof(int);
             case Type::String:
-                return sizeof(char)*this->nbrItems_;
-            case Type::Space:
+                return sizeof(char)*this->items.nbr;
             case Type::NotTriviallyCopyable:
             case Type::TriviallyCopyable:
+                return this->items.size;
+            case Type::Space:
                 return -1; // Has no size.
-            };
-            return -1;
+        };
+        return -1;
     }
 
     Type type;
-    int nbrItems_ = 0;
+    union Items {
+        Items() = default;
+        Items(int i) : nbr(i) {}
+        int nbr;
+        int size;
+    } items;
     std::type_info const *info = nullptr;
 };
 }

@@ -20,6 +20,17 @@ concept HasByteVectorConversion = requires(typename std::remove_const<T>::type t
     from_bytevec(vec.data(), t);
 };
 
+template<typename T>
+concept HasJSONConversion = requires(typename std::remove_const<T>::type t, nlohmann::json &json) {
+    to_json(json, t);
+};
+
+template<typename T>
+concept NotTriviallyCopyable = !std::is_trivially_copyable<T>::value;
+
+template<typename T>
+concept HasJSONConversionNotTriviallyCopyableNoByteVector = HasJSONConversion<T> && NotTriviallyCopyable<T> && !HasByteVectorConversion<T>;
+
 struct PathSpaceTE;
 struct Coroutine;
 struct Data {
@@ -36,7 +47,7 @@ struct Data {
         using InT = decltype(in);
         this->data = InReference{&in, sizeof(InT), &typeid(in), true};
         if(!InReference::toJSONConverters.contains(&typeid(in))) {
-            InReference::toJSONConverters[&typeid(in)] = [](std::byte const *data){
+            InReference::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size){
                 nlohmann::json out;
                 to_json(out, reinterpret_cast<InT>(*data));
                 return out;
@@ -50,7 +61,7 @@ struct Data {
         using InTRRRC = typename std::remove_const<InTRR>::type;
         this->data = InReference{&in, sizeof(InT), &typeid(in)};
         if(!InReference::toJSONConverters.contains(&typeid(in))) {
-            InReference::toJSONConverters[&typeid(in)] = [](std::byte const *data) {
+            InReference::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size) {
                 nlohmann::json out;
                 InTRRRC value;
                 from_bytevec(data, value);
@@ -66,6 +77,26 @@ struct Data {
         if(!InReference::fromByteArrayConverters.contains(&typeid(in))) {
             InReference::fromByteArrayConverters[&typeid(in)] = [](std::byte const *vec, void *obj) {
                 from_bytevec(vec, *static_cast<typename std::remove_const<InTRR>::type*>(obj));
+            };
+        }
+    }
+    Data(HasJSONConversionNotTriviallyCopyableNoByteVector auto const &in) {
+        using InT = decltype(in);
+        using InTRR = typename std::remove_reference<InT>::type;
+        this->data = InReference{&in, sizeof(InT), &typeid(in)};
+        if(!InReference::toJSONConverters.contains(&typeid(in))) {
+            InReference::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size){
+                return nlohmann::json::from_bson(std::vector<std::byte>(data, data+size));
+            };
+        }
+        if(!InReference::toByteArrayConverters.contains(&typeid(in))) {
+            InReference::toByteArrayConverters[&typeid(in)] = [](std::vector<std::byte> &vec, void const *obj) {
+                nlohmann::json out;
+                to_json(out, *static_cast<InTRR*>(obj));
+                std::vector<std::uint8_t> v_bson = nlohmann::json::to_bson(out);
+                std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(v_bson.data())),
+                          static_cast<std::byte const * const>(static_cast<void const * const>(v_bson.data())) + v_bson.size(),
+                          std::back_inserter(vec));
             };
         }
     }
