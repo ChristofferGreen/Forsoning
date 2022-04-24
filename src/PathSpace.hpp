@@ -8,6 +8,7 @@
 #include "FSNG/PathSpaceTE.hpp"
 #include "FSNG/Security.hpp"
 #include "FSNG/TaskProcessor.hpp"
+#include "FSNG/utils.hpp"
 
 #include "nlohmann/json.hpp"
 

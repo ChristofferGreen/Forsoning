@@ -1,19 +1,6 @@
 #pragma once
 #include "CodexInfo.hpp"
-
-/*  Codex Docs - Future improvement for space efficeiency
-
-Vector: Consists of bytes, the codex has a bool field named singleValueType, if true then the entire
-vector consists only of that type and the number of elements can be gotten by vector.size()/sizeof(type).
-If singleValueType is false then vector looks like so:
-|FinalInfoLocation|Info|Data1Type1|Data2Type1|Info|Data3Type2|
-FinalInfoLocation: An integer showing where in the vector the last/most recent info is located.
-Info: Information about the following items, their type, element size and number of elements
-DataXTypeY: Simply data of a certain type, for example int or string
-
-Normally there is an info block whenever the data type changes but strings are an exception and have an
-info block after every string.
-*/
+#include "utils.hpp"
 
 namespace FSNG {
 struct Codex {
@@ -26,24 +13,18 @@ struct Codex {
         if(data.is<int>()) {
             this->addInfo(CodexInfo::Type::Int);
             auto const d = data.as<int>();
-            std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(&d)),
-                      static_cast<std::byte const * const>(static_cast<void const * const>(&d)) + sizeof(int),
-                      std::back_inserter(this->codices));
+            copy_byte_back_insert(&d, sizeof(int), this->codices);
         } else if(data.is<std::string>()) {
             auto const d = data.as<std::string>();
             auto const &info = this->addInfo(CodexInfo::Type::String, d.length());
             auto const dataSizeBytes = info.dataSizeBytes();
-            std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(d.c_str())),
-                      static_cast<std::byte const * const>(static_cast<void const * const>(d.c_str())) + dataSizeBytes,
-                      std::back_inserter(this->codices));
+            copy_byte_back_insert(d.c_str(), dataSizeBytes, this->codices);
         } else if(data.is<InReference>()) {
             auto const dataRef = data.as<InReference>();
             auto const itemSize = dataRef.size;
             if(dataRef.isTriviallyCopyable) {
                 this->addInfo(CodexInfo::Type::TriviallyCopyable, itemSize, dataRef.info);
-                std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(dataRef.data)),
-                          static_cast<std::byte const * const>(static_cast<void const * const>(dataRef.data)) + dataRef.size,
-                          std::back_inserter(this->codices));
+                copy_byte_back_insert(dataRef.data, dataRef.size, this->codices);
             } else {
                 this->addInfo(CodexInfo::Type::NotTriviallyCopyable, itemSize, dataRef.info);
                 int const preSize = this->codices.size();
@@ -57,13 +38,9 @@ struct Codex {
 
     template<typename T>
     auto visitFirst(auto const &fun) {
-        if constexpr(std::is_same<T, PathSpaceTE>::value) {
-            if(this->spaces.size()>0) {
-                return fun(this->spaces[0]);
-            }
-        } else {
-            
-        }
+        if constexpr(std::is_same<T, PathSpaceTE>::value)
+            if(!this->spaces.empty())
+                return fun(this->spaces.front());
         return false;
     }
 

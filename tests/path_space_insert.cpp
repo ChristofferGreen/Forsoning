@@ -24,16 +24,10 @@ void to_json(nlohmann::json& j, const NonTrivial& p) {
 }
 
 void to_bytevec(std::vector<std::byte> &vec, NonTrivial const &obj) {
-    std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(&obj.a)),
-              static_cast<std::byte const * const>(static_cast<void const * const>(&obj.a)) + sizeof(int),
-              std::back_inserter(vec));
+    copy_byte_back_insert(&obj.a, sizeof(int), vec);
     int const elements = obj.b.size();
-    std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(&elements)),
-              static_cast<std::byte const * const>(static_cast<void const * const>(&elements)) + sizeof(int),
-              std::back_inserter(vec));
-    std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(obj.b.data())),
-              static_cast<std::byte const * const>(static_cast<void const * const>(obj.b.data())) + sizeof(int) * obj.b.size(),
-              std::back_inserter(vec));
+    copy_byte_back_insert(&elements, sizeof(int), vec);
+    copy_byte_back_insert(obj.b.data(), sizeof(int)*obj.b.size(), vec);
 }
 
 void from_bytevec(std::byte const *vec, NonTrivial &ret) {

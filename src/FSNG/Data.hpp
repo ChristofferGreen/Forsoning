@@ -8,6 +8,7 @@
 #include <memory>
 
 #include "InReference.hpp"
+#include "utils.hpp"
 
 namespace FSNG {
 
@@ -94,9 +95,7 @@ struct Data {
                 nlohmann::json out;
                 to_json(out, *static_cast<InTRR*>(obj));
                 std::vector<std::uint8_t> v_bson = nlohmann::json::to_bson(out);
-                std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(v_bson.data())),
-                          static_cast<std::byte const * const>(static_cast<void const * const>(v_bson.data())) + v_bson.size(),
-                          std::back_inserter(vec));
+                copy_byte_back_insert(v_bson.data(), v_bson.size(), vec);
             };
         }
     }
