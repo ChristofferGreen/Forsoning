@@ -105,6 +105,13 @@ TEST_CASE("PathSpace") {
         CHECK(space.toJSON() == json);
     }
 
+    SUBCASE("Insert Double") {
+        CHECK(space.insert(rootTestPath, 5.45) == true);
+        nlohmann::json json;
+        json["test"] = {5.45};
+        CHECK(space.toJSON() == json);
+    }
+
     SUBCASE("Insert Multiple Types") {
         CHECK(space.insert(rootTestPath, 5) == true);
         nlohmann::json json;

@@ -4,6 +4,7 @@ namespace FSNG {
 struct CodexInfo {
     enum struct Type {
         Int = 0,
+        Double,
         String,
         TriviallyCopyable,
         NotTriviallyCopyable,
@@ -20,7 +21,8 @@ struct CodexInfo {
             case Type::NotTriviallyCopyable:
             case Type::TriviallyCopyable:
                 return 1;
-            case Type::Int: 
+            case Type::Int:
+            case Type::Double:
                 return this->items.nbr;
         };
     }
@@ -32,7 +34,8 @@ struct CodexInfo {
             case Type::Space:
             case Type::NotTriviallyCopyable:
             case Type::TriviallyCopyable:
-            case Type::Int: 
+            case Type::Int:
+            case Type::Double:
                 return -1;
         };
     }
@@ -44,7 +47,8 @@ struct CodexInfo {
             case Type::Space:
             case Type::NotTriviallyCopyable:
             case Type::TriviallyCopyable:
-            case Type::Int: 
+            case Type::Int:
+            case Type::Double:
                 return this->dataSizeBytesSingleItem()*this->items.nbr;
         };
     }
@@ -53,6 +57,8 @@ struct CodexInfo {
         switch(this->type) {
             case Type::Int: 
                 return sizeof(int);
+            case Type::Double: 
+                return sizeof(double);
             case Type::String:
                 return sizeof(char)*this->items.nbr;
             case Type::NotTriviallyCopyable:

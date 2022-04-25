@@ -14,6 +14,11 @@ struct Codex {
             this->addInfo(CodexInfo::Type::Int);
             auto const d = data.as<int>();
             copy_byte_back_insert(&d, sizeof(int), this->codices);
+        }
+        else if(data.is<double>()) {
+            this->addInfo(CodexInfo::Type::Double);
+            auto const d = data.as<double>();
+            copy_byte_back_insert(&d, sizeof(double), this->codices);
         } else if(data.is<std::string>()) {
             auto const d = data.as<std::string>();
             auto const &info = this->addInfo(CodexInfo::Type::String, d.length());
@@ -54,6 +59,9 @@ struct Codex {
                 switch(info.type) {
                     case CodexInfo::Type::Int:
                         json.push_back(*reinterpret_cast<int const * const>(&this->codices[currentByte]));
+                        break;
+                    case CodexInfo::Type::Double:
+                        json.push_back(*reinterpret_cast<double const * const>(&this->codices[currentByte]));
                         break;
                     case CodexInfo::Type::String:
                         ptr = reinterpret_cast<char const * const>(&this->codices[currentByte]);

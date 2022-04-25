@@ -37,6 +37,7 @@ struct Coroutine;
 struct Data {
     Data() = default;
     Data(int i) : data(i) {}
+    Data(double d) : data(d) {}
     Data(char const *s) : data(std::string(s)) {}
     Data(std::string const &s) : data(s) {}
     Data(std::unique_ptr<PathSpaceTE> &&up) : data(std::move(up)) {}
