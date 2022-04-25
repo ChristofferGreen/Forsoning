@@ -36,13 +36,20 @@ struct PathSpaceTE;
 struct Coroutine;
 struct Data {
     Data() = default;
-    Data(int i) : data(i) {}
-    Data(double d) : data(d) {}
-    Data(char const *s) : data(std::string(s)) {}
-    Data(std::string const &s) : data(s) {}
-    Data(std::unique_ptr<PathSpaceTE> &&up) : data(std::move(up)) {}
-    Data(PathSpaceTE const &pste) : data(std::make_unique<PathSpaceTE>(pste)) {}
-    Data(std::invocable auto const &in) {
+    Data(short                   const  s)    : data(s) {}
+    Data(unsigned short          const  s)    : data(s) {}
+    Data(int                     const  i)    : data(i) {}
+    Data(unsigned int            const  i)    : data(i) {}
+    Data(long                    const  l)    : data(l) {}
+    Data(unsigned long           const  l)    : data(l) {}
+    Data(long long               const  l)    : data(l) {}
+    Data(unsigned long long      const  l)    : data(l) {}
+    Data(double                  const  d)    : data(d) {}
+    Data(char const *            const  s)    : data(std::string(s)) {}
+    Data(std::string             const &s)    : data(s) {}
+    Data(std::unique_ptr<PathSpaceTE> &&up)   : data(std::move(up)) {}
+    Data(PathSpaceTE             const &pste) : data(std::make_unique<PathSpaceTE>(pste)) {}
+    Data(std::invocable auto     const &in) {
         data = std::make_unique<std::function<Coroutine()>>(in);
     }
     Data(TriviallyCopyableButNotInvocable auto const &in) {
@@ -76,11 +83,6 @@ struct Data {
                 to_bytevec(vec, *static_cast<InTRR*>(obj));
             };
         }
-        if(!InReference::fromByteArrayConverters.contains(&typeid(in))) {
-            InReference::fromByteArrayConverters[&typeid(in)] = [](std::byte const *vec, void *obj) {
-                from_bytevec(vec, *static_cast<typename std::remove_const<InTRR>::type*>(obj));
-            };
-        }
     }
     Data(HasJSONConversionNotTriviallyCopyableNoByteVector auto const &in) {
         using InT = decltype(in);
@@ -111,6 +113,20 @@ struct Data {
         return std::get<T>(this->data);
     }
 
+    auto directlyInsertable() const {
+        return this->is<short>() || 
+               this->is<unsigned short>() || 
+               this->is<int>() || 
+               this->is<unsigned int>() || 
+               this->is<long>() || 
+               this->is<unsigned long>() || 
+               this->is<long long>() || 
+               this->is<unsigned long long>() || 
+               this->is<double>() || 
+               this->is<std::string>() || 
+               this->is<InReference>();
+    }
+
     auto isTriviallyCopyable() const {
         if(std::holds_alternative<int>(this->data) ||
            std::holds_alternative<double>(this->data)) {
@@ -123,7 +139,15 @@ struct Data {
     }
 
 private:
-    std::variant<int,
+    std::variant<//std::byte
+                 short,
+                 unsigned short,
+                 int,
+                 unsigned int,
+                 long,
+                 unsigned long,
+                 long long,
+                 unsigned long long,
                  double,
                  std::string,
                  std::unique_ptr<PathSpaceTE>,

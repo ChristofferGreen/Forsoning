@@ -10,10 +10,45 @@ struct Codex {
     }
 
     auto insert(Data const &data) {
-        if(data.is<int>()) {
+        if(data.is<short>()) {
+            this->addInfo(CodexInfo::Type::Short);
+            auto const d = data.as<short>();
+            copy_byte_back_insert(&d, sizeof(short), this->codices);
+        }
+        else if(data.is<unsigned short>()) {
+            this->addInfo(CodexInfo::Type::UnsignedShort);
+            auto const d = data.as<unsigned short>();
+            copy_byte_back_insert(&d, sizeof(unsigned short), this->codices);
+        }
+        else if(data.is<int>()) {
             this->addInfo(CodexInfo::Type::Int);
             auto const d = data.as<int>();
             copy_byte_back_insert(&d, sizeof(int), this->codices);
+        }
+        else if(data.is<unsigned int>()) {
+            this->addInfo(CodexInfo::Type::UnsignedInt);
+            auto const d = data.as<unsigned int>();
+            copy_byte_back_insert(&d, sizeof(unsigned int), this->codices);
+        }
+        else if(data.is<long>()) {
+            this->addInfo(CodexInfo::Type::Long);
+            auto const d = data.as<long>();
+            copy_byte_back_insert(&d, sizeof(long), this->codices);
+        }
+        else if(data.is<unsigned long>()) {
+            this->addInfo(CodexInfo::Type::UnsignedLong);
+            auto const d = data.as<unsigned long>();
+            copy_byte_back_insert(&d, sizeof(unsigned long), this->codices);
+        }
+        else if(data.is<long long>()) {
+            this->addInfo(CodexInfo::Type::LongLong);
+            auto const d = data.as<long long>();
+            copy_byte_back_insert(&d, sizeof(long long), this->codices);
+        }
+        else if(data.is<unsigned long long>()) {
+            this->addInfo(CodexInfo::Type::UnsignedLongLong);
+            auto const d = data.as<unsigned long long>();
+            copy_byte_back_insert(&d, sizeof(unsigned long long), this->codices);
         }
         else if(data.is<double>()) {
             this->addInfo(CodexInfo::Type::Double);
@@ -57,8 +92,29 @@ struct Codex {
         for(auto const &info : this->info) {
             for(auto i = 0; i < info.nbrItems(); ++i) {
                 switch(info.type) {
+                    case CodexInfo::Type::Short:
+                        json.push_back(*reinterpret_cast<short const * const>(&this->codices[currentByte]));
+                        break;
+                    case CodexInfo::Type::UnsignedShort:
+                        json.push_back(*reinterpret_cast<unsigned short const * const>(&this->codices[currentByte]));
+                        break;
                     case CodexInfo::Type::Int:
                         json.push_back(*reinterpret_cast<int const * const>(&this->codices[currentByte]));
+                        break;
+                    case CodexInfo::Type::UnsignedInt:
+                        json.push_back(*reinterpret_cast<unsigned int const * const>(&this->codices[currentByte]));
+                        break;
+                    case CodexInfo::Type::Long:
+                        json.push_back(*reinterpret_cast<long const * const>(&this->codices[currentByte]));
+                        break;
+                    case CodexInfo::Type::UnsignedLong:
+                        json.push_back(*reinterpret_cast<unsigned long const * const>(&this->codices[currentByte]));
+                        break;
+                    case CodexInfo::Type::LongLong:
+                        json.push_back(*reinterpret_cast<long long const * const>(&this->codices[currentByte]));
+                        break;
+                    case CodexInfo::Type::UnsignedLongLong:
+                        json.push_back(*reinterpret_cast<unsigned long long const * const>(&this->codices[currentByte]));
                         break;
                     case CodexInfo::Type::Double:
                         json.push_back(*reinterpret_cast<double const * const>(&this->codices[currentByte]));

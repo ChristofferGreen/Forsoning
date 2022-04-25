@@ -49,7 +49,7 @@ struct PathSpace {
 
 private:
     virtual auto insert(std::string const &dataName, Data const &data) -> bool {
-        if(data.is<int>() || data.is<double>() || data.is<std::string>() || data.is<InReference>()) {
+        if(data.directlyInsertable()) {
             auto const writeMutex = this->codices.writeMutex();
             this->codices.push_back(dataName, data);
         }

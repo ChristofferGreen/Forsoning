@@ -3,7 +3,14 @@
 namespace FSNG {
 struct CodexInfo {
     enum struct Type {
-        Int = 0,
+        Short = 0,
+        UnsignedShort,
+        Int,
+        UnsignedInt,
+        Long,
+        UnsignedLong,
+        LongLong,
+        UnsignedLongLong,
         Double,
         String,
         TriviallyCopyable,
@@ -21,7 +28,14 @@ struct CodexInfo {
             case Type::NotTriviallyCopyable:
             case Type::TriviallyCopyable:
                 return 1;
+            case Type::Short:
+            case Type::UnsignedShort:
             case Type::Int:
+            case Type::UnsignedInt:
+            case Type::Long:
+            case Type::UnsignedLong:
+            case Type::LongLong:
+            case Type::UnsignedLongLong:
             case Type::Double:
                 return this->items.nbr;
         };
@@ -34,7 +48,14 @@ struct CodexInfo {
             case Type::Space:
             case Type::NotTriviallyCopyable:
             case Type::TriviallyCopyable:
+            case Type::Short:
+            case Type::UnsignedShort:
             case Type::Int:
+            case Type::UnsignedInt:
+            case Type::Long:
+            case Type::UnsignedLong:
+            case Type::LongLong:
+            case Type::UnsignedLongLong:
             case Type::Double:
                 return -1;
         };
@@ -47,7 +68,14 @@ struct CodexInfo {
             case Type::Space:
             case Type::NotTriviallyCopyable:
             case Type::TriviallyCopyable:
+            case Type::Short:
+            case Type::UnsignedShort:
             case Type::Int:
+            case Type::UnsignedInt:
+            case Type::Long:
+            case Type::UnsignedLong:
+            case Type::LongLong:
+            case Type::UnsignedLongLong:
             case Type::Double:
                 return this->dataSizeBytesSingleItem()*this->items.nbr;
         };
@@ -55,8 +83,22 @@ struct CodexInfo {
 
     auto dataSizeBytesSingleItem() const -> int {
         switch(this->type) {
-            case Type::Int: 
+            case Type::Short:
+                return sizeof(short);
+            case Type::UnsignedShort:
+                return sizeof(unsigned short);
+            case Type::Int:
                 return sizeof(int);
+            case Type::UnsignedInt:
+                return sizeof(unsigned int);
+            case Type::Long:
+                return sizeof(long);
+            case Type::UnsignedLong:
+                return sizeof(unsigned long);
+            case Type::LongLong:
+                return sizeof(long long);
+            case Type::UnsignedLongLong:
+                return sizeof(unsigned long long);
             case Type::Double: 
                 return sizeof(double);
             case Type::String:

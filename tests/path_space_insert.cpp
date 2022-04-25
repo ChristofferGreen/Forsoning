@@ -105,6 +105,62 @@ TEST_CASE("PathSpace") {
         CHECK(space.toJSON() == json);
     }
 
+    SUBCASE("Insert Short") {
+        CHECK(space.insert(rootTestPath, static_cast<short>(43)) == true);
+        nlohmann::json json;
+        json["test"] = {static_cast<short>(43)};
+        CHECK(space.toJSON() == json);
+    }
+
+    SUBCASE("Insert Unsigned Short") {
+        CHECK(space.insert(rootTestPath, static_cast<unsigned short>(-43)) == true);
+        nlohmann::json json;
+        json["test"] = {static_cast<unsigned short>(-43)};
+        CHECK(space.toJSON() == json);
+    }
+
+    SUBCASE("Insert Int") {
+        CHECK(space.insert(rootTestPath, static_cast<int>(43)) == true);
+        nlohmann::json json;
+        json["test"] = {static_cast<int>(43)};
+        CHECK(space.toJSON() == json);
+    }
+
+    SUBCASE("Insert Unsigned Int") {
+        CHECK(space.insert(rootTestPath, static_cast<unsigned int>(-43)) == true);
+        nlohmann::json json;
+        json["test"] = {static_cast<unsigned int>(-43)};
+        CHECK(space.toJSON() == json);
+    }
+
+    SUBCASE("Insert Long") {
+        CHECK(space.insert(rootTestPath, static_cast<long>(43)) == true);
+        nlohmann::json json;
+        json["test"] = {static_cast<long>(43)};
+        CHECK(space.toJSON() == json);
+    }
+
+    SUBCASE("Insert Unsigned Long") {
+        CHECK(space.insert(rootTestPath, static_cast<unsigned long>(-43)) == true);
+        nlohmann::json json;
+        json["test"] = {static_cast<unsigned long>(-43)};
+        CHECK(space.toJSON() == json);
+    }
+
+    SUBCASE("Insert Long Long") {
+        CHECK(space.insert(rootTestPath, static_cast<long long>(43)) == true);
+        nlohmann::json json;
+        json["test"] = {static_cast<long long>(43)};
+        CHECK(space.toJSON() == json);
+    }
+
+    SUBCASE("Insert Unsigned Long Long") {
+        CHECK(space.insert(rootTestPath, static_cast<unsigned long long>(-43)) == true);
+        nlohmann::json json;
+        json["test"] = {static_cast<unsigned long long>(-43)};
+        CHECK(space.toJSON() == json);
+    }
+
     SUBCASE("Insert Double") {
         CHECK(space.insert(rootTestPath, 5.45) == true);
         nlohmann::json json;
