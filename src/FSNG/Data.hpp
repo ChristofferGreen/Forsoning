@@ -113,18 +113,8 @@ struct Data {
         return std::get<T>(this->data);
     }
 
-    auto directlyInsertable() const {
-        return this->is<short>() || 
-               this->is<unsigned short>() || 
-               this->is<int>() || 
-               this->is<unsigned int>() || 
-               this->is<long>() || 
-               this->is<unsigned long>() || 
-               this->is<long long>() || 
-               this->is<unsigned long long>() || 
-               this->is<double>() || 
-               this->is<std::string>() || 
-               this->is<InReference>();
+    auto isDirectlyInsertable() const {
+        return !this->is<std::unique_ptr<std::function<Coroutine()>>>();
     }
 
     auto isTriviallyCopyable() const {
@@ -139,8 +129,7 @@ struct Data {
     }
 
 private:
-    std::variant<//std::byte
-                 short,
+    std::variant<short,
                  unsigned short,
                  int,
                  unsigned int,
@@ -149,6 +138,7 @@ private:
                  long long,
                  unsigned long long,
                  double,
+                 //std::byte,
                  std::string,
                  std::unique_ptr<PathSpaceTE>,
                  std::unique_ptr<std::function<Coroutine()>>,

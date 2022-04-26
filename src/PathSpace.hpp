@@ -49,24 +49,17 @@ struct PathSpace {
 
 private:
     virtual auto insert(std::string const &dataName, Data const &data) -> bool {
-        if(data.directlyInsertable()) {
+        if(data.isDirectlyInsertable()) {
             auto const writeMutex = this->codices.writeMutex();
             this->codices.push_back(dataName, data);
         }
-        else if(data.is<std::unique_ptr<PathSpaceTE>>())
-            this->insert(dataName, data.as<std::unique_ptr<PathSpaceTE>>());
         else if(data.is<std::unique_ptr<std::function<Coroutine()>>>())
             return this->insert(dataName, *data.as<std::unique_ptr<std::function<Coroutine()>>>());
         else
             return false;
         return true;
     }
-
-    auto insert(std::string const &dataName, std::unique_ptr<PathSpaceTE> const &space) -> void {
-        auto const writeMutex = this->codices.writeMutex();
-        this->codices.push_back(dataName, *space);
-    }
-
+    
     auto insert(std::string const &dataName, std::function<Coroutine()> const &coroutine) -> bool {
         if(this->processor) {
             this->processor->add(this, coroutine, [this, dataName](Data const &data){this->insert(dataName, data);});

@@ -4,61 +4,25 @@
 
 namespace FSNG {
 struct Codex {
-    auto insert(PathSpaceTE const &space) {
-        this->addInfo(CodexInfo::Type::Space);
-        this->spaces.push_back(space);
-    }
-
     auto insert(Data const &data) {
-        if(data.is<short>()) {
-            this->addInfo(CodexInfo::Type::Short);
-            auto const d = data.as<short>();
-            copy_byte_back_insert(&d, sizeof(short), this->codices);
-        }
-        else if(data.is<unsigned short>()) {
-            this->addInfo(CodexInfo::Type::UnsignedShort);
-            auto const d = data.as<unsigned short>();
-            copy_byte_back_insert(&d, sizeof(unsigned short), this->codices);
-        }
-        else if(data.is<int>()) {
-            this->addInfo(CodexInfo::Type::Int);
-            auto const d = data.as<int>();
-            copy_byte_back_insert(&d, sizeof(int), this->codices);
-        }
-        else if(data.is<unsigned int>()) {
-            this->addInfo(CodexInfo::Type::UnsignedInt);
-            auto const d = data.as<unsigned int>();
-            copy_byte_back_insert(&d, sizeof(unsigned int), this->codices);
-        }
-        else if(data.is<long>()) {
-            this->addInfo(CodexInfo::Type::Long);
-            auto const d = data.as<long>();
-            copy_byte_back_insert(&d, sizeof(long), this->codices);
-        }
-        else if(data.is<unsigned long>()) {
-            this->addInfo(CodexInfo::Type::UnsignedLong);
-            auto const d = data.as<unsigned long>();
-            copy_byte_back_insert(&d, sizeof(unsigned long), this->codices);
-        }
-        else if(data.is<long long>()) {
-            this->addInfo(CodexInfo::Type::LongLong);
-            auto const d = data.as<long long>();
-            copy_byte_back_insert(&d, sizeof(long long), this->codices);
-        }
-        else if(data.is<unsigned long long>()) {
-            this->addInfo(CodexInfo::Type::UnsignedLongLong);
-            auto const d = data.as<unsigned long long>();
-            copy_byte_back_insert(&d, sizeof(unsigned long long), this->codices);
-        }
-        else if(data.is<double>()) {
-            this->addInfo(CodexInfo::Type::Double);
-            auto const d = data.as<double>();
-            copy_byte_back_insert(&d, sizeof(double), this->codices);
-        } else if(data.is<std::string>()) {
+        if(data.is<short>())                   this->insertBasic<short>              (CodexInfo::Type::Short,            data);
+        else if(data.is<unsigned short>())     this->insertBasic<unsigned short>     (CodexInfo::Type::UnsignedShort,    data);
+        else if(data.is<int>())                this->insertBasic<int>                (CodexInfo::Type::Int,              data);
+        else if(data.is<unsigned int>())       this->insertBasic<unsigned int>       (CodexInfo::Type::UnsignedInt,      data);
+        else if(data.is<long>())               this->insertBasic<long>               (CodexInfo::Type::Long,             data);
+        else if(data.is<unsigned long>())      this->insertBasic<unsigned long>      (CodexInfo::Type::UnsignedLong,     data);
+        else if(data.is<long long>())          this->insertBasic<long long>          (CodexInfo::Type::LongLong,         data);
+        else if(data.is<unsigned long long>()) this->insertBasic<unsigned long long> (CodexInfo::Type::UnsignedLongLong, data);
+        else if(data.is<double>())             this->insertBasic<double>             (CodexInfo::Type::Double,           data);
+        else if(data.is<std::string>()) {
             auto const d = data.as<std::string>();
             auto const &info = this->addInfo(CodexInfo::Type::String, d.length());
             auto const dataSizeBytes = info.dataSizeBytes();
             copy_byte_back_insert(d.c_str(), dataSizeBytes, this->codices);
+        } else if(data.is<std::unique_ptr<PathSpaceTE>>()) {
+            this->addInfo(CodexInfo::Type::Space);
+            auto const &p = data.as<std::unique_ptr<PathSpaceTE>>();
+            this->spaces.push_back(*p);
         } else if(data.is<InReference>()) {
             auto const dataRef = data.as<InReference>();
             auto const itemSize = dataRef.size;
@@ -139,6 +103,13 @@ struct Codex {
     }
 
 private:
+    template<typename T>
+    auto insertBasic(auto const &type, auto const &data) -> void {
+        this->addInfo(type);
+        auto const d = data.template as<T>();
+        copy_byte_back_insert(&d, sizeof(T), this->codices);
+    }
+
     auto addInfo(CodexInfo::Type const &type, int const nbrItems=1, std::type_info const *ptr=nullptr) -> CodexInfo {
         if(this->info.size()==0)
             this->info.emplace_back(type, nbrItems, ptr);

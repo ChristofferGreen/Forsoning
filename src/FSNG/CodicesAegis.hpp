@@ -13,10 +13,6 @@ struct CodicesAegis {
         return this->codices.count(str);
     }
 
-    auto push_back(auto const &name, PathSpaceTE const &space) {
-        this->codices[name].insert(space);
-    }
-
     auto push_back(auto const &name, Data const &data) {
         this->codices[name].insert(data);
     }
