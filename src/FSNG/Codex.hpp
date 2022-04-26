@@ -56,33 +56,15 @@ struct Codex {
         for(auto const &info : this->info) {
             for(auto i = 0; i < info.nbrItems(); ++i) {
                 switch(info.type) {
-                    case CodexInfo::Type::Short:
-                        json.push_back(*reinterpret_cast<short const * const>(&this->codices[currentByte]));
-                        break;
-                    case CodexInfo::Type::UnsignedShort:
-                        json.push_back(*reinterpret_cast<unsigned short const * const>(&this->codices[currentByte]));
-                        break;
-                    case CodexInfo::Type::Int:
-                        json.push_back(*reinterpret_cast<int const * const>(&this->codices[currentByte]));
-                        break;
-                    case CodexInfo::Type::UnsignedInt:
-                        json.push_back(*reinterpret_cast<unsigned int const * const>(&this->codices[currentByte]));
-                        break;
-                    case CodexInfo::Type::Long:
-                        json.push_back(*reinterpret_cast<long const * const>(&this->codices[currentByte]));
-                        break;
-                    case CodexInfo::Type::UnsignedLong:
-                        json.push_back(*reinterpret_cast<unsigned long const * const>(&this->codices[currentByte]));
-                        break;
-                    case CodexInfo::Type::LongLong:
-                        json.push_back(*reinterpret_cast<long long const * const>(&this->codices[currentByte]));
-                        break;
-                    case CodexInfo::Type::UnsignedLongLong:
-                        json.push_back(*reinterpret_cast<unsigned long long const * const>(&this->codices[currentByte]));
-                        break;
-                    case CodexInfo::Type::Double:
-                        json.push_back(*reinterpret_cast<double const * const>(&this->codices[currentByte]));
-                        break;
+                    case CodexInfo::Type::Short:            this->jsonPushBack<short              const * const>(json, currentByte); break;
+                    case CodexInfo::Type::UnsignedShort:    this->jsonPushBack<unsigned short     const * const>(json, currentByte); break;
+                    case CodexInfo::Type::Int:              this->jsonPushBack<int                const * const>(json, currentByte); break;
+                    case CodexInfo::Type::UnsignedInt:      this->jsonPushBack<unsigned int       const * const>(json, currentByte); break;
+                    case CodexInfo::Type::Long:             this->jsonPushBack<long               const * const>(json, currentByte); break;
+                    case CodexInfo::Type::UnsignedLong:     this->jsonPushBack<unsigned long      const * const>(json, currentByte); break;
+                    case CodexInfo::Type::LongLong:         this->jsonPushBack<long long          const * const>(json, currentByte); break;
+                    case CodexInfo::Type::UnsignedLongLong: this->jsonPushBack<unsigned long long const * const>(json, currentByte); break;
+                    case CodexInfo::Type::Double:           this->jsonPushBack<double             const * const>(json, currentByte); break;
                     case CodexInfo::Type::String:
                         ptr = reinterpret_cast<char const * const>(&this->codices[currentByte]);
                         json.push_back(std::string(ptr, info.nbrChars()));
@@ -103,6 +85,11 @@ struct Codex {
     }
 
 private:
+    template<typename T>
+    auto jsonPushBack(auto &json, auto const &currentByte) const -> void {
+        json.push_back(*reinterpret_cast<T>(&this->codices[currentByte]));
+    }
+
     template<typename T>
     auto insertBasic(auto const &type, auto const &data) -> void {
         this->addInfo(type);
