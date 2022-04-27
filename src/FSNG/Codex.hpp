@@ -55,6 +55,9 @@ struct Codex {
         char const *ptr = nullptr;
         for(auto const &info : this->info) {
             for(auto i = 0; i < info.nbrItems(); ++i) {
+                auto a = info.info;
+                auto b = &typeid(InReferenceTriviallyCopyable);
+                auto c = &typeid(InReferenceNonTriviallyCopyable);
                 if     (*info.info==typeid(short))              this->jsonPushBack<short              const * const>(json, currentByte);
                 else if(*info.info==typeid(unsigned short))     this->jsonPushBack<unsigned short     const * const>(json, currentByte);
                 else if(*info.info==typeid(int))                this->jsonPushBack<int                const * const>(json, currentByte);
@@ -64,28 +67,9 @@ struct Codex {
                 else if(*info.info==typeid(long long))          this->jsonPushBack<long long          const * const>(json, currentByte);
                 else if(*info.info==typeid(unsigned long long)) this->jsonPushBack<unsigned long long const * const>(json, currentByte);
                 else if(*info.info==typeid(double))             this->jsonPushBack<double             const * const>(json, currentByte);
-                else if(*info.info==typeid(std::string)) {
-                    ptr = reinterpret_cast<char const * const>(&this->codices[currentByte]);
-                    json.push_back(std::string(ptr, info.nbrChars()));
-                }
-                else if(*info.info==typeid(InReferenceTriviallyCopyable)) {
-                    //if(InReference::toJSONConverters.contains(info.info))
-                      //  json.push_back(InReference::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
-                }
-                switch(info.type) {
-                    case CodexInfo::Type::NotTriviallyCopyable:
-                        if(Converters::toJSONConverters.contains(info.info))
-                            json.push_back(Converters::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
-                        break;
-                    case CodexInfo::Type::TriviallyCopyable:
-                        if(Converters::toJSONConverters.contains(info.info))
-                            json.push_back(Converters::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
-                        break;
-                    case CodexInfo::Type::Space:
-                        json.push_back(this->spaces[currentSpace++].toJSON());
-                        break;
-                    default: break;
-                };
+                else if(*info.info==typeid(std::string))                  json.push_back(std::string(reinterpret_cast<char const * const>(&this->codices[currentByte]), info.nbrChars()));
+                else if(*info.info==typeid(PathSpaceTE))                  json.push_back(this->spaces[currentSpace++].toJSON());
+                else if(Converters::toJSONConverters.contains(info.info)) json.push_back(Converters::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
                 currentByte += info.dataSizeBytesSingleItem();
             }
         }
