@@ -55,9 +55,6 @@ struct Codex {
         char const *ptr = nullptr;
         for(auto const &info : this->info) {
             for(auto i = 0; i < info.nbrItems(); ++i) {
-                auto a = info.info;
-                auto b = &typeid(InReferenceTriviallyCopyable);
-                auto c = &typeid(InReferenceNonTriviallyCopyable);
                 if     (*info.info==typeid(short))              this->jsonPushBack<short              const * const>(json, currentByte);
                 else if(*info.info==typeid(unsigned short))     this->jsonPushBack<unsigned short     const * const>(json, currentByte);
                 else if(*info.info==typeid(int))                this->jsonPushBack<int                const * const>(json, currentByte);
