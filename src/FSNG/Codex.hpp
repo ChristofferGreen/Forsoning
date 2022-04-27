@@ -33,8 +33,8 @@ struct Codex {
             auto const itemSize = dataRef.size;
             this->addInfo(CodexInfo::Type::NotTriviallyCopyable, itemSize, dataRef.info);
             int const preSize = this->codices.size();
-            if(dataRef.toByteArrayConverters.contains(dataRef.info))
-                dataRef.toByteArrayConverters[dataRef.info](this->codices, dataRef.data);
+            if(Converters::toByteArrayConverters.contains(dataRef.info))
+                Converters::toByteArrayConverters[dataRef.info](this->codices, dataRef.data);
             int const postSize = this->codices.size();
             this->info.rbegin()->items.size = postSize-preSize;
         }
@@ -74,12 +74,12 @@ struct Codex {
                 }
                 switch(info.type) {
                     case CodexInfo::Type::NotTriviallyCopyable:
-                        if(InReferenceNonTriviallyCopyable::toJSONConverters.contains(info.info))
-                            json.push_back(InReferenceNonTriviallyCopyable::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
+                        if(Converters::toJSONConverters.contains(info.info))
+                            json.push_back(Converters::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
                         break;
                     case CodexInfo::Type::TriviallyCopyable:
-                        if(InReferenceTriviallyCopyable::toJSONConverters.contains(info.info))
-                            json.push_back(InReferenceTriviallyCopyable::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
+                        if(Converters::toJSONConverters.contains(info.info))
+                            json.push_back(Converters::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
                         break;
                     case CodexInfo::Type::Space:
                         json.push_back(this->spaces[currentSpace++].toJSON());

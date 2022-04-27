@@ -9,6 +9,7 @@
 
 #include "InReferenceTriviallyCopyable.hpp"
 #include "InReferenceNonTriviallyCopyable.hpp"
+#include "Converters.hpp"
 #include "utils.hpp"
 
 namespace FSNG {
@@ -56,8 +57,8 @@ struct Data {
     Data(TriviallyCopyableButNotInvocable auto const &in) {
         using InT = decltype(in);
         this->data = InReferenceTriviallyCopyable{&in, sizeof(InT), &typeid(in)};
-        if(!InReferenceTriviallyCopyable::toJSONConverters.contains(&typeid(in))) {
-            InReferenceTriviallyCopyable::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size){
+        if(!Converters::toJSONConverters.contains(&typeid(in))) {
+            Converters::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size){
                 nlohmann::json out;
                 to_json(out, reinterpret_cast<InT>(*data));
                 return out;
@@ -70,8 +71,8 @@ struct Data {
         using InTRR = typename std::remove_reference<InT>::type;
         using InTRRRC = typename std::remove_const<InTRR>::type;
         this->data = InReferenceNonTriviallyCopyable{&in, sizeof(InT), &typeid(in)};
-        if(!InReferenceNonTriviallyCopyable::toJSONConverters.contains(&typeid(in))) {
-            InReferenceNonTriviallyCopyable::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size) {
+        if(!Converters::toJSONConverters.contains(&typeid(in))) {
+            Converters::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size) {
                 nlohmann::json out;
                 InTRRRC value;
                 from_bytevec(data, value);
@@ -79,8 +80,8 @@ struct Data {
                 return out;
             };
         }
-        if(!InReferenceNonTriviallyCopyable::toByteArrayConverters.contains(&typeid(in))) {
-            InReferenceNonTriviallyCopyable::toByteArrayConverters[&typeid(in)] = [](std::vector<std::byte> &vec, void const *obj) {
+        if(!Converters::toByteArrayConverters.contains(&typeid(in))) {
+            Converters::toByteArrayConverters[&typeid(in)] = [](std::vector<std::byte> &vec, void const *obj) {
                 to_bytevec(vec, *static_cast<InTRR*>(obj));
             };
         }
@@ -89,13 +90,13 @@ struct Data {
         using InT = decltype(in);
         using InTRR = typename std::remove_reference<InT>::type;
         this->data = InReferenceNonTriviallyCopyable{&in, sizeof(InT), &typeid(in)};
-        if(!InReferenceNonTriviallyCopyable::toJSONConverters.contains(&typeid(in))) {
-            InReferenceNonTriviallyCopyable::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size){
+        if(!Converters::toJSONConverters.contains(&typeid(in))) {
+            Converters::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size){
                 return nlohmann::json::from_bson(std::vector<std::byte>(data, data+size));
             };
         }
-        if(!InReferenceNonTriviallyCopyable::toByteArrayConverters.contains(&typeid(in))) {
-            InReferenceNonTriviallyCopyable::toByteArrayConverters[&typeid(in)] = [](std::vector<std::byte> &vec, void const *obj) {
+        if(!Converters::toByteArrayConverters.contains(&typeid(in))) {
+            Converters::toByteArrayConverters[&typeid(in)] = [](std::vector<std::byte> &vec, void const *obj) {
                 nlohmann::json out;
                 to_json(out, *static_cast<InTRR*>(obj));
                 std::vector<std::uint8_t> v_bson = nlohmann::json::to_bson(out);
