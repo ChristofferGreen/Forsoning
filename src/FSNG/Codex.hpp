@@ -16,27 +16,27 @@ struct Codex {
         else if(data.is<double>())             this->insertBasic<double>             (CodexInfo::Type::Double,           data);
         else if(data.is<std::string>()) {
             auto const d = data.as<std::string>();
-            auto const &info = this->addInfo(CodexInfo::Type::String, d.length());
+            auto const &info = this->addInfo(CodexInfo::Type::String, d.length(), &typeid(std::string));
             auto const dataSizeBytes = info.dataSizeBytes();
             copy_byte_back_insert(d.c_str(), dataSizeBytes, this->codices);
         } else if(data.is<std::unique_ptr<PathSpaceTE>>()) {
-            this->addInfo(CodexInfo::Type::Space);
+            this->addInfo(CodexInfo::Type::Space, 1, &typeid(PathSpaceTE));
             auto const &p = data.as<std::unique_ptr<PathSpaceTE>>();
             this->spaces.push_back(*p);
-        } else if(data.is<InReference>()) {
-            auto const dataRef = data.as<InReference>();
+        } else if(data.is<InReferenceTriviallyCopyable>()) {
+            auto const dataRef = data.as<InReferenceTriviallyCopyable>();
             auto const itemSize = dataRef.size;
-            if(dataRef.isTriviallyCopyable) {
-                this->addInfo(CodexInfo::Type::TriviallyCopyable, itemSize, dataRef.info);
-                copy_byte_back_insert(dataRef.data, dataRef.size, this->codices);
-            } else {
-                this->addInfo(CodexInfo::Type::NotTriviallyCopyable, itemSize, dataRef.info);
-                int const preSize = this->codices.size();
-                if(dataRef.toByteArrayConverters.contains(dataRef.info))
-                    dataRef.toByteArrayConverters[dataRef.info](this->codices, dataRef.data);
-                int const postSize = this->codices.size();
-                this->info.rbegin()->items.size = postSize-preSize;
-            }
+            this->addInfo(CodexInfo::Type::TriviallyCopyable, itemSize, dataRef.info);
+            copy_byte_back_insert(dataRef.data, dataRef.size, this->codices);
+        } else if(data.is<InReferenceNonTriviallyCopyable>()) {
+            auto const dataRef = data.as<InReferenceNonTriviallyCopyable>();
+            auto const itemSize = dataRef.size;
+            this->addInfo(CodexInfo::Type::NotTriviallyCopyable, itemSize, dataRef.info);
+            int const preSize = this->codices.size();
+            if(dataRef.toByteArrayConverters.contains(dataRef.info))
+                dataRef.toByteArrayConverters[dataRef.info](this->codices, dataRef.data);
+            int const postSize = this->codices.size();
+            this->info.rbegin()->items.size = postSize-preSize;
         }
     }
 
@@ -55,28 +55,36 @@ struct Codex {
         char const *ptr = nullptr;
         for(auto const &info : this->info) {
             for(auto i = 0; i < info.nbrItems(); ++i) {
+                if     (*info.info==typeid(short))              this->jsonPushBack<short              const * const>(json, currentByte);
+                else if(*info.info==typeid(unsigned short))     this->jsonPushBack<unsigned short     const * const>(json, currentByte);
+                else if(*info.info==typeid(int))                this->jsonPushBack<int                const * const>(json, currentByte);
+                else if(*info.info==typeid(unsigned int))       this->jsonPushBack<unsigned int       const * const>(json, currentByte);
+                else if(*info.info==typeid(long))               this->jsonPushBack<long               const * const>(json, currentByte);
+                else if(*info.info==typeid(unsigned long))      this->jsonPushBack<unsigned long      const * const>(json, currentByte);
+                else if(*info.info==typeid(long long))          this->jsonPushBack<long long          const * const>(json, currentByte);
+                else if(*info.info==typeid(unsigned long long)) this->jsonPushBack<unsigned long long const * const>(json, currentByte);
+                else if(*info.info==typeid(double))             this->jsonPushBack<double             const * const>(json, currentByte);
+                else if(*info.info==typeid(std::string)) {
+                    ptr = reinterpret_cast<char const * const>(&this->codices[currentByte]);
+                    json.push_back(std::string(ptr, info.nbrChars()));
+                }
+                else if(*info.info==typeid(InReferenceTriviallyCopyable)) {
+                    //if(InReference::toJSONConverters.contains(info.info))
+                      //  json.push_back(InReference::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
+                }
                 switch(info.type) {
-                    case CodexInfo::Type::Short:            this->jsonPushBack<short              const * const>(json, currentByte); break;
-                    case CodexInfo::Type::UnsignedShort:    this->jsonPushBack<unsigned short     const * const>(json, currentByte); break;
-                    case CodexInfo::Type::Int:              this->jsonPushBack<int                const * const>(json, currentByte); break;
-                    case CodexInfo::Type::UnsignedInt:      this->jsonPushBack<unsigned int       const * const>(json, currentByte); break;
-                    case CodexInfo::Type::Long:             this->jsonPushBack<long               const * const>(json, currentByte); break;
-                    case CodexInfo::Type::UnsignedLong:     this->jsonPushBack<unsigned long      const * const>(json, currentByte); break;
-                    case CodexInfo::Type::LongLong:         this->jsonPushBack<long long          const * const>(json, currentByte); break;
-                    case CodexInfo::Type::UnsignedLongLong: this->jsonPushBack<unsigned long long const * const>(json, currentByte); break;
-                    case CodexInfo::Type::Double:           this->jsonPushBack<double             const * const>(json, currentByte); break;
-                    case CodexInfo::Type::String:
-                        ptr = reinterpret_cast<char const * const>(&this->codices[currentByte]);
-                        json.push_back(std::string(ptr, info.nbrChars()));
-                        break;
                     case CodexInfo::Type::NotTriviallyCopyable:
+                        if(InReferenceNonTriviallyCopyable::toJSONConverters.contains(info.info))
+                            json.push_back(InReferenceNonTriviallyCopyable::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
+                        break;
                     case CodexInfo::Type::TriviallyCopyable:
-                        if(InReference::toJSONConverters.contains(info.info))
-                            json.push_back(InReference::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
+                        if(InReferenceTriviallyCopyable::toJSONConverters.contains(info.info))
+                            json.push_back(InReferenceTriviallyCopyable::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
                         break;
                     case CodexInfo::Type::Space:
                         json.push_back(this->spaces[currentSpace++].toJSON());
                         break;
+                    default: break;
                 };
                 currentByte += info.dataSizeBytesSingleItem();
             }
@@ -92,12 +100,12 @@ private:
 
     template<typename T>
     auto insertBasic(auto const &type, auto const &data) -> void {
-        this->addInfo(type);
+        this->addInfo(type, 1, &typeid(T));
         auto const d = data.template as<T>();
         copy_byte_back_insert(&d, sizeof(T), this->codices);
     }
 
-    auto addInfo(CodexInfo::Type const &type, int const nbrItems=1, std::type_info const *ptr=nullptr) -> CodexInfo {
+    auto addInfo(CodexInfo::Type const &type, int const nbrItems, std::type_info const *ptr) -> CodexInfo {
         if(this->info.size()==0)
             this->info.emplace_back(type, nbrItems, ptr);
         else if(this->info.rbegin()->type==type && type!=CodexInfo::Type::String)
