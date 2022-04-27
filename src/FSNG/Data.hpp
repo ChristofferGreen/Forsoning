@@ -9,7 +9,6 @@
 
 #include "InReferenceTriviallyCopyable.hpp"
 #include "InReferenceNonTriviallyCopyable.hpp"
-#include "Converters.hpp"
 #include "utils.hpp"
 
 namespace FSNG {
