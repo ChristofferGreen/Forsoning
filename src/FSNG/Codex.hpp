@@ -5,28 +5,28 @@
 namespace FSNG {
 struct Codex {
     auto insert(Data const &data) {
-        if(data.is<short>())                   this->insertBasic<short>              (CodexInfo::Type::Short,            data);
-        else if(data.is<unsigned short>())     this->insertBasic<unsigned short>     (CodexInfo::Type::UnsignedShort,    data);
-        else if(data.is<int>())                this->insertBasic<int>                (CodexInfo::Type::Int,              data);
-        else if(data.is<unsigned int>())       this->insertBasic<unsigned int>       (CodexInfo::Type::UnsignedInt,      data);
-        else if(data.is<long>())               this->insertBasic<long>               (CodexInfo::Type::Long,             data);
-        else if(data.is<unsigned long>())      this->insertBasic<unsigned long>      (CodexInfo::Type::UnsignedLong,     data);
-        else if(data.is<long long>())          this->insertBasic<long long>          (CodexInfo::Type::LongLong,         data);
-        else if(data.is<unsigned long long>()) this->insertBasic<unsigned long long> (CodexInfo::Type::UnsignedLongLong, data);
-        else if(data.is<double>())             this->insertBasic<double>             (CodexInfo::Type::Double,           data);
+        if(data.is<short>())                   this->insertBasic<short>              (data);
+        else if(data.is<unsigned short>())     this->insertBasic<unsigned short>     (data);
+        else if(data.is<int>())                this->insertBasic<int>                (data);
+        else if(data.is<unsigned int>())       this->insertBasic<unsigned int>       (data);
+        else if(data.is<long>())               this->insertBasic<long>               (data);
+        else if(data.is<unsigned long>())      this->insertBasic<unsigned long>      (data);
+        else if(data.is<long long>())          this->insertBasic<long long>          (data);
+        else if(data.is<unsigned long long>()) this->insertBasic<unsigned long long> (data);
+        else if(data.is<double>())             this->insertBasic<double>             (data);
         else if(data.is<std::string>()) {
             auto const d = data.as<std::string>();
-            auto const &info = this->addInfo(CodexInfo::Type::String, d.length(), &typeid(std::string));
+            auto const &info = this->addInfo(d.length(), &typeid(std::string));
             auto const dataSizeBytes = info.dataSizeBytes();
             copy_byte_back_insert(d.c_str(), dataSizeBytes, this->codices);
         } else if(data.is<std::unique_ptr<PathSpaceTE>>()) {
-            this->addInfo(CodexInfo::Type::Space, 1, &typeid(PathSpaceTE));
+            this->addInfo(1, &typeid(PathSpaceTE));
             auto const &p = data.as<std::unique_ptr<PathSpaceTE>>();
             this->spaces.push_back(*p);
         } else if(data.is<InReference>()) {
             auto const dataRef = data.as<InReference>();
             auto const itemSize = dataRef.size;
-            this->addInfo(CodexInfo::Type::TriviallyCopyable, itemSize, dataRef.info);
+            this->addInfo(itemSize, dataRef.info);
             if(Converters::toByteArrayConverters.contains(dataRef.info)) {
                 int const preSize = this->codices.size();
                 Converters::toByteArrayConverters[dataRef.info](this->codices, dataRef.data);
@@ -78,19 +78,19 @@ private:
     }
 
     template<typename T>
-    auto insertBasic(auto const &type, auto const &data) -> void {
-        this->addInfo(type, 1, &typeid(T));
+    auto insertBasic(auto const &data) -> void {
+        this->addInfo(1, &typeid(T));
         auto const d = data.template as<T>();
         copy_byte_back_insert(&d, sizeof(T), this->codices);
     }
 
-    auto addInfo(CodexInfo::Type const &type, int const nbrItems, std::type_info const *ptr) -> CodexInfo {
+    auto addInfo(int const nbrItems, std::type_info const *ptr) -> CodexInfo {
         if(this->info.size()==0)
-            this->info.emplace_back(type, nbrItems, ptr);
-        else if(this->info.rbegin()->type==type && type!=CodexInfo::Type::String)
+            this->info.emplace_back(nbrItems, ptr);
+        else if(*this->info.rbegin()->info==*ptr && *ptr!=typeid(std::string))
             this->info.rbegin()->items.nbr++;
         else
-            this->info.emplace_back(type, nbrItems, ptr);
+            this->info.emplace_back(nbrItems, ptr);
         return *this->info.rbegin();
     }
 
