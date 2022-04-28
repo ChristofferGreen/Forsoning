@@ -7,8 +7,7 @@
 #include <vector>
 #include <memory>
 
-#include "InReferenceTriviallyCopyable.hpp"
-#include "InReferenceNonTriviallyCopyable.hpp"
+#include "InReference.hpp"
 #include "utils.hpp"
 
 namespace FSNG {
@@ -55,7 +54,7 @@ struct Data {
     }
     Data(TriviallyCopyableButNotInvocable auto const &in) {
         using InT = decltype(in);
-        this->data = InReferenceTriviallyCopyable{&in, sizeof(InT), &typeid(in)};
+        this->data = InReference{&in, sizeof(InT), &typeid(in)};
         if(!Converters::toJSONConverters.contains(&typeid(in))) {
             Converters::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size){
                 nlohmann::json out;
@@ -69,7 +68,7 @@ struct Data {
         using InT = decltype(in);
         using InTRR = typename std::remove_reference<InT>::type;
         using InTRRRC = typename std::remove_const<InTRR>::type;
-        this->data = InReferenceNonTriviallyCopyable{&in, sizeof(InT), &typeid(in)};
+        this->data = InReference{&in, sizeof(InT), &typeid(in)};
         if(!Converters::toJSONConverters.contains(&typeid(in))) {
             Converters::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size) {
                 nlohmann::json out;
@@ -88,7 +87,7 @@ struct Data {
     Data(HasJSONConversionNotTriviallyCopyableNoByteVector auto const &in) {
         using InT = decltype(in);
         using InTRR = typename std::remove_reference<InT>::type;
-        this->data = InReferenceNonTriviallyCopyable{&in, sizeof(InT), &typeid(in)};
+        this->data = InReference{&in, sizeof(InT), &typeid(in)};
         if(!Converters::toJSONConverters.contains(&typeid(in))) {
             Converters::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size){
                 return nlohmann::json::from_bson(std::vector<std::byte>(data, data+size));
@@ -123,7 +122,7 @@ struct Data {
            std::holds_alternative<double>(this->data)) {
                return true;
         }
-        return std::holds_alternative<InReferenceTriviallyCopyable>(this->data);
+        return std::holds_alternative<InReference>(this->data);
     }
 
 private:
@@ -139,7 +138,6 @@ private:
                  std::string,
                  std::unique_ptr<PathSpaceTE>,
                  std::unique_ptr<std::function<Coroutine()>>,
-                 InReferenceTriviallyCopyable,
-                 InReferenceNonTriviallyCopyable> data;
+                 InReference> data;
 };
 }

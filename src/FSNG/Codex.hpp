@@ -23,20 +23,18 @@ struct Codex {
             this->addInfo(CodexInfo::Type::Space, 1, &typeid(PathSpaceTE));
             auto const &p = data.as<std::unique_ptr<PathSpaceTE>>();
             this->spaces.push_back(*p);
-        } else if(data.is<InReferenceTriviallyCopyable>()) {
-            auto const dataRef = data.as<InReferenceTriviallyCopyable>();
+        } else if(data.is<InReference>()) {
+            auto const dataRef = data.as<InReference>();
             auto const itemSize = dataRef.size;
             this->addInfo(CodexInfo::Type::TriviallyCopyable, itemSize, dataRef.info);
-            copy_byte_back_insert(dataRef.data, dataRef.size, this->codices);
-        } else if(data.is<InReferenceNonTriviallyCopyable>()) {
-            auto const dataRef = data.as<InReferenceNonTriviallyCopyable>();
-            auto const itemSize = dataRef.size;
-            this->addInfo(CodexInfo::Type::NotTriviallyCopyable, itemSize, dataRef.info);
-            int const preSize = this->codices.size();
-            if(Converters::toByteArrayConverters.contains(dataRef.info))
+            if(Converters::toByteArrayConverters.contains(dataRef.info)) {
+                int const preSize = this->codices.size();
                 Converters::toByteArrayConverters[dataRef.info](this->codices, dataRef.data);
-            int const postSize = this->codices.size();
-            this->info.rbegin()->items.size = postSize-preSize;
+                int const postSize = this->codices.size();
+                this->info.rbegin()->items.size = postSize-preSize;
+            } else {
+                copy_byte_back_insert(dataRef.data, dataRef.size, this->codices);
+            }
         }
     }
 
