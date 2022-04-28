@@ -27,11 +27,13 @@ struct PathSpace {
         if(range.isAtData())
             return this->insert(range.dataName(), data);
         if(auto const spaceName = range.spaceName()) { // Create space if it does not exist
-            this->codices.writeCodices([this, &spaceName](auto &codices){
+            bool ret;
+            this->codices.write([this, &spaceName, &ret, &range, &data](auto &codices){
                 if(codices.count(spaceName.value())==0)
                     codices[spaceName.value()].insert(PathSpaceTE(PathSpace{this->processor}));
+                ret = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &data](auto &space){return space.insert(range.next(), data);});
             });
-            return this->codices.visitFirst<PathSpaceTE>(spaceName.value(), [&range, &data](auto &space){return space.insert(range.next(), data);});
+            return ret;
         }
         return false;
     }
@@ -42,7 +44,7 @@ struct PathSpace {
 
     virtual auto toJSON() const -> nlohmann::json {
         nlohmann::json json;
-        this->codices.readCodices([&json](auto const &codices){
+        this->codices.read([&json](auto const &codices){
             for(auto const &p : codices)
                 json[p.first] = p.second.toJSON();
         });
@@ -52,7 +54,7 @@ struct PathSpace {
 private:
     virtual auto insert(std::string const &dataName, Data const &data) -> bool {
         if(data.isDirectlyInsertable()) {
-            this->codices.writeCodices([&dataName, &data](auto &codices){
+            this->codices.write([&dataName, &data](auto &codices){
                 codices[dataName].insert(data);
             });
         }
