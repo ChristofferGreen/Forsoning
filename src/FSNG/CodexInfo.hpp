@@ -22,7 +22,11 @@ struct CodexInfo {
     }
 
     auto dataSizeBytesSingleItem() const -> int {
-        if     (*this->info==typeid(short))                        return sizeof(short);
+        if     (*this->info==typeid(bool))                         return sizeof(bool);
+        else if(*this->info==typeid(signed char))                  return sizeof(signed char);
+        else if(*this->info==typeid(unsigned char))                return sizeof(unsigned char);
+        else if(*this->info==typeid(wchar_t))                      return sizeof(wchar_t);
+        else if(*this->info==typeid(short))                        return sizeof(short);
         else if(*this->info==typeid(unsigned short))               return sizeof(unsigned short);
         else if(*this->info==typeid(int))                          return sizeof(int);
         else if(*this->info==typeid(unsigned int))                 return sizeof(unsigned int);
@@ -31,6 +35,7 @@ struct CodexInfo {
         else if(*this->info==typeid(long long))                    return sizeof(long long);
         else if(*this->info==typeid(unsigned long long))           return sizeof(unsigned long long);
         else if(*this->info==typeid(double))                       return sizeof(double);
+        else if(*this->info==typeid(long double))                  return sizeof(long double);
         else if(*this->info==typeid(std::string))                  return sizeof(char)*this->items.nbr;
         else if(*this->info==typeid(PathSpaceTE))                  return -1;
         else if(Converters::toJSONConverters.contains(this->info)) return this->items.size;

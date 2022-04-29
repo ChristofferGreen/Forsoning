@@ -105,6 +105,36 @@ TEST_CASE("PathSpace") {
         CHECK(space.toJSON() == json);
     }
 
+    SUBCASE("Insert Bool") {
+        CHECK(space.insert(rootTestPath, static_cast<bool>(true)) == true);
+        CHECK(space.insert(rootTestPath, static_cast<bool>(false)) == true);
+        CHECK(space.insert(rootTestPath, static_cast<bool>(true)) == true);
+        nlohmann::json json;
+        json["test"] = {static_cast<bool>(true), static_cast<bool>(false), static_cast<bool>(true)};
+        CHECK(space.toJSON() == json);
+    }
+
+    SUBCASE("Insert Signed Char") {
+        CHECK(space.insert(rootTestPath, static_cast<signed char>('C')) == true);
+        nlohmann::json json;
+        json["test"] = {static_cast<signed char>('C')};
+        CHECK(space.toJSON() == json);
+    }
+
+    SUBCASE("Insert Unsigned Char") {
+        CHECK(space.insert(rootTestPath, static_cast<unsigned char>('C')) == true);
+        nlohmann::json json;
+        json["test"] = {static_cast<unsigned char>('C')};
+        CHECK(space.toJSON() == json);
+    }
+
+    SUBCASE("Insert wchar_t") {
+        CHECK(space.insert(rootTestPath, static_cast<wchar_t>('C')) == true);
+        nlohmann::json json;
+        json["test"] = {static_cast<wchar_t>('C')};
+        CHECK(space.toJSON() == json);
+    }
+
     SUBCASE("Insert Short") {
         CHECK(space.insert(rootTestPath, static_cast<short>(43)) == true);
         nlohmann::json json;
@@ -165,6 +195,13 @@ TEST_CASE("PathSpace") {
         CHECK(space.insert(rootTestPath, 5.45) == true);
         nlohmann::json json;
         json["test"] = {5.45};
+        CHECK(space.toJSON() == json);
+    }
+
+    SUBCASE("Insert Long Double") {
+        CHECK(space.insert(rootTestPath, static_cast<long double>(5.45)) == true);
+        nlohmann::json json;
+        json["test"] = {static_cast<long double>(5.45)};
         CHECK(space.toJSON() == json);
     }
 

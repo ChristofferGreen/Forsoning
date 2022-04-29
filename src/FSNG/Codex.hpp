@@ -2,10 +2,19 @@
 #include "CodexInfo.hpp"
 #include "utils.hpp"
 
+/* Potential future implementation
+    Multi Type:  |Header 1byte|PointerToLastInfoBlock sizeof(CodexInfo*)|InfoBlock sizeof(CodexInfo)|Data
+    Single type: |Data|Data|Data
+*/
+
 namespace FSNG {
 struct Codex {
     auto insert(Data const &data) {
-        if(data.is<short>())                   this->insertBasic<short>              (data);
+        if(data.is<bool>())                    this->insertBasic<bool>               (data);
+        else if(data.is<signed char>())        this->insertBasic<signed char>        (data);
+        else if(data.is<unsigned char>())      this->insertBasic<unsigned char>      (data);
+        else if(data.is<wchar_t>())            this->insertBasic<wchar_t>            (data);
+        else if(data.is<short>())              this->insertBasic<short>              (data);
         else if(data.is<unsigned short>())     this->insertBasic<unsigned short>     (data);
         else if(data.is<int>())                this->insertBasic<int>                (data);
         else if(data.is<unsigned int>())       this->insertBasic<unsigned int>       (data);
@@ -14,6 +23,7 @@ struct Codex {
         else if(data.is<long long>())          this->insertBasic<long long>          (data);
         else if(data.is<unsigned long long>()) this->insertBasic<unsigned long long> (data);
         else if(data.is<double>())             this->insertBasic<double>             (data);
+        else if(data.is<long double>())        this->insertBasic<long double>             (data);
         else if(data.is<std::string>()) {
             auto const d = data.as<std::string>();
             auto const &info = this->addInfo(d.length(), &typeid(std::string));
@@ -31,7 +41,7 @@ struct Codex {
                 int const preSize = this->codices.size();
                 Converters::toByteArrayConverters[dataRef.info](this->codices, dataRef.data);
                 int const postSize = this->codices.size();
-                this->info.rbegin()->items.size = postSize-preSize;
+                this->lastInfo().items.size = postSize-preSize;
             } else {
                 copy_byte_back_insert(dataRef.data, dataRef.size, this->codices);
             }
@@ -53,7 +63,11 @@ struct Codex {
         char const *ptr = nullptr;
         for(auto const &info : this->info) {
             for(auto i = 0; i < info.nbrItems(); ++i) {
-                if     (*info.info==typeid(short))              this->jsonPushBack<short              const * const>(json, currentByte);
+                if     (*info.info==typeid(bool))               this->jsonPushBack<bool               const * const>(json, currentByte);
+                else if(*info.info==typeid(signed char))        this->jsonPushBack<signed char        const * const>(json, currentByte);
+                else if(*info.info==typeid(unsigned char))      this->jsonPushBack<unsigned char      const * const>(json, currentByte);
+                else if(*info.info==typeid(wchar_t))            this->jsonPushBack<wchar_t            const * const>(json, currentByte);
+                else if(*info.info==typeid(short))              this->jsonPushBack<short              const * const>(json, currentByte);
                 else if(*info.info==typeid(unsigned short))     this->jsonPushBack<unsigned short     const * const>(json, currentByte);
                 else if(*info.info==typeid(int))                this->jsonPushBack<int                const * const>(json, currentByte);
                 else if(*info.info==typeid(unsigned int))       this->jsonPushBack<unsigned int       const * const>(json, currentByte);
@@ -62,6 +76,7 @@ struct Codex {
                 else if(*info.info==typeid(long long))          this->jsonPushBack<long long          const * const>(json, currentByte);
                 else if(*info.info==typeid(unsigned long long)) this->jsonPushBack<unsigned long long const * const>(json, currentByte);
                 else if(*info.info==typeid(double))             this->jsonPushBack<double             const * const>(json, currentByte);
+                else if(*info.info==typeid(long double))        this->jsonPushBack<long double        const * const>(json, currentByte);
                 else if(*info.info==typeid(std::string))                  json.push_back(std::string(reinterpret_cast<char const * const>(&this->codices[currentByte]), info.nbrChars()));
                 else if(*info.info==typeid(PathSpaceTE))                  json.push_back(this->spaces[currentSpace++].toJSON());
                 else if(Converters::toJSONConverters.contains(info.info)) json.push_back(Converters::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
@@ -91,10 +106,15 @@ private:
             this->info.rbegin()->items.nbr++;
         else
             this->info.emplace_back(nbrItems, ptr);
+
         return *this->info.rbegin();
     }
 
-    bool singleValueType = true;
+    CodexInfo& lastInfo() {
+        return *this->info.rbegin();
+    }
+
+    uint32_t currentByte = 0;
     std::vector<std::byte> codices;
     std::vector<CodexInfo> info;
     std::vector<PathSpaceTE> spaces;

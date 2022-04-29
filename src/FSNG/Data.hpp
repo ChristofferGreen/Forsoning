@@ -36,6 +36,10 @@ struct PathSpaceTE;
 struct Coroutine;
 struct Data {
     Data() = default;
+    Data(bool                    const  b)    : data(b) {}
+    Data(signed char             const  c)    : data(c) {}
+    Data(unsigned char           const  c)    : data(c) {}
+    Data(wchar_t                 const  c)    : data(c) {}
     Data(short                   const  s)    : data(s) {}
     Data(unsigned short          const  s)    : data(s) {}
     Data(int                     const  i)    : data(i) {}
@@ -45,6 +49,7 @@ struct Data {
     Data(long long               const  l)    : data(l) {}
     Data(unsigned long long      const  l)    : data(l) {}
     Data(double                  const  d)    : data(d) {}
+    Data(long double             const  d)    : data(d) {}
     Data(char const *            const  s)    : data(std::string(s)) {}
     Data(std::string             const &s)    : data(s) {}
     Data(std::unique_ptr<PathSpaceTE> &&up)   : data(std::move(up)) {}
@@ -126,7 +131,11 @@ struct Data {
     }
 
 private:
-    std::variant<short,
+    std::variant<bool,
+                 signed char,
+                 unsigned char,
+                 wchar_t,
+                 short,
                  unsigned short,
                  int,
                  unsigned int,
@@ -135,6 +144,7 @@ private:
                  long long,
                  unsigned long long,
                  double,
+                 long double,
                  std::string,
                  std::unique_ptr<PathSpaceTE>,
                  std::unique_ptr<std::function<Coroutine()>>,

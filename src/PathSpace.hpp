@@ -72,8 +72,8 @@ private:
         }
         return false;
     }
-
-    CodicesAegis codices;
-    std::shared_ptr<TaskProcessor> processor;
+    private:
+        CodicesAegis codices;
+        std::shared_ptr<TaskProcessor> processor;
 };
 }
