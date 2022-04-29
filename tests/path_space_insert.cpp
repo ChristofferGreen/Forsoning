@@ -51,7 +51,7 @@ void to_json(nlohmann::json& j, const NonTrivialJS& p) {
     j = nlohmann::json{{"a", p.a}, {"b", p.b}};
 }
 
-TEST_CASE("PathSpace") {
+TEST_CASE("PathSpace Insert") {
     PathSpaceTE space = PathSpace{};
     Path const rootTestPath{"/test"};
     Path const rootTestPath2{"/test2"};

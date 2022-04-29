@@ -23,6 +23,10 @@ struct PathSpace {
     PathSpace() : processor(std::make_shared<TaskProcessor>()) {};
     PathSpace(std::shared_ptr<TaskProcessor> const &processor) : processor(processor) {};
 
+    template<typename T>
+    auto grab(Path const &range) -> bool {
+    }
+
     virtual auto insert(Path const &range, Data const &data) -> bool {
         if(range.isAtData())
             return this->insert(range.dataName(), data);
