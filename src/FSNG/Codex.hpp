@@ -9,6 +9,14 @@
 
 namespace FSNG {
 struct Codex {
+    auto grab(std::type_info const *info) -> std::optional<Data> {
+        if(this->info.empty())
+            return std::nullopt;
+        if(this->info.rbegin()->info!=info)
+            return std::nullopt;
+        return std::nullopt;
+    }
+ 
     auto insert(Data const &data) {
         if(data.is<bool>())                    this->insertBasic<bool>               (data);
         else if(data.is<signed char>())        this->insertBasic<signed char>        (data);

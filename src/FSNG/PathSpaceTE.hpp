@@ -16,7 +16,7 @@ class PathSpaceTE {
 		virtual auto toJSON_()                                                        const -> nlohmann::json             = 0;
 		virtual auto setProcessor_(std::shared_ptr<TaskProcessor> const &processor)         -> void                       = 0;
 		virtual auto insert_(Path const &range, Data const &data)                           -> bool                       = 0;
-		virtual auto grab_(Path const &range)                                               -> std::optional<Data>        = 0;
+		virtual auto grab_(Path const &range, std::type_info const *info)                   -> std::optional<Data>        = 0;
         /*virtual auto popFrontData_()                                                                                        -> std::optional<DataType>    = 0;
 		virtual auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters)                               -> std::optional<PathSpaceTE> = 0;
 		virtual auto grabBlock_(std::filesystem::path const &path)                                                          -> std::optional<PathSpaceTE> = 0;
@@ -36,7 +36,11 @@ public:
 	auto setProcessor(std::shared_ptr<TaskProcessor> const &processor)   -> void             { return this->self->setProcessor_(processor); }
 	auto insert(Path const &range, Data const &data)                     -> bool             { return this->self->insert_(range, data); }
     template<typename T>
-	auto grab(std::filesystem::path const &path)                         -> std::optional<T> { return {}; }
+	auto grab(Path const &range)                                         -> std::optional<T> { 
+		if(auto data = this->self->grab_(range, &typeid(T)))
+			return data.value().as<T>();
+		return std::nullopt;
+	}
 	/*auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data)       -> bool { return this->self->insert_(path, iters, data); }
 
     template<typename T>
@@ -81,7 +85,7 @@ private:
 		auto toJSON_()                                                         const -> nlohmann::json             override {return this->data.toJSON();}
 		auto setProcessor_(std::shared_ptr<TaskProcessor> const &processor)          -> void                       override {return this->data.setProcessor(processor);}
 		auto insert_(Path const &range, Data const &d)                               -> bool                       override {return this->data.insert(range, d);}
-		auto grab_(Path const &range)                                                -> std::optional<Data>        override {return {};}
+		auto grab_(Path const &range, std::type_info const *info)                    -> std::optional<Data>        override {return this->data.grab(range, info);}
 		/*auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &d)      -> bool                           override {return this->data.insert(path, iters, d);}
         auto popFrontData_()                                                                                    -> std::optional<DataType>        override {return this->data.popFrontData();}
 		auto grab_(std::filesystem::path const &path)                                                           -> std::optional<PathSpaceTE>     override {return this->data.grab(path);}

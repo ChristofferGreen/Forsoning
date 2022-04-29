@@ -67,7 +67,6 @@ struct Data {
                 return out;
             };
         }
-
     }
     Data(HasByteVectorConversion auto const &in) {
         using InT = decltype(in);
