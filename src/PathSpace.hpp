@@ -23,10 +23,10 @@ struct PathSpace {
     PathSpace() : processor(std::make_shared<TaskProcessor>()) {};
     PathSpace(std::shared_ptr<TaskProcessor> const &processor) : processor(processor) {};
 
-    auto grab(Path const &range, std::type_info const *info) -> std::optional<Data> {
+    auto grab(Path const &range, std::type_info const *info, void *data, bool isFundamentalType) -> bool {
         if(range.isAtData())
-            return this->grab(range.dataName(), info);
-        return std::nullopt;
+            return this->grab(range.dataName(), info, data, isFundamentalType);
+        return false;
     }
 
     virtual auto insert(Path const &range, Data const &data) -> bool {
@@ -58,13 +58,13 @@ struct PathSpace {
     }
 
 private:
-    virtual auto grab(std::string const &dataName, std::type_info const *info) -> std::optional<Data> {
-        std::optional<Data> data;
-        this->codices.write([&dataName, &data, info](auto &codices){
+    virtual auto grab(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> bool {
+        bool ret = false;
+        this->codices.write([&dataName, data, info, &ret, isFundamentalType](auto &codices){
             if(codices.contains(dataName))
-                data = codices.at(dataName).grab(info);
+                ret = codices.at(dataName).grab(info, data, isFundamentalType);
         });
-        return data;
+        return ret;
     }
 
     virtual auto insert(std::string const &dataName, Data const &data) -> bool {

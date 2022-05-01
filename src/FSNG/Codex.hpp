@@ -9,12 +9,18 @@
 
 namespace FSNG {
 struct Codex {
-    auto grab(std::type_info const *info) -> std::optional<Data> {
+    auto grab(std::type_info const *info, void *data, bool const isFundamentalType) -> bool {
         if(this->info.empty())
-            return std::nullopt;
+            return false;
         if(this->info.rbegin()->info!=info)
-            return std::nullopt;
-        return std::nullopt;
+            return false;
+        if(isFundamentalType) {
+            copy_byte_raw(this->codices.data(), this->info.rbegin()->dataSizeBytesSingleItem(), static_cast<std::byte*>(data));
+            return true;
+        }
+        if(Converters::fromJSONConverters.contains(info))
+            return Converters::fromJSONConverters.at(info)(this->codices.data(), static_cast<void*>(this->codices.data()), static_cast<std::byte*>(data));
+        return false;
     }
  
     auto insert(Data const &data) {
