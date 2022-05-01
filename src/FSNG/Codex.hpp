@@ -15,7 +15,8 @@ struct Codex {
         if(this->info.rbegin()->info!=info)
             return false;
         if(isFundamentalType) {
-            copy_byte_raw(this->codices.data(), this->info.rbegin()->dataSizeBytesSingleItem(), static_cast<std::byte*>(data));
+            copy_byte_raw(this->codices.data()+this->currentByte, this->info.rbegin()->dataSizeBytesSingleItem(), static_cast<std::byte*>(data));
+            this->currentByte += this->info.rbegin()->dataSizeBytesSingleItem();
             return true;
         }
         if(Converters::fromJSONConverters.contains(info))

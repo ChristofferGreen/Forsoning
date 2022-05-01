@@ -13,6 +13,6 @@ TEST_CASE("PathSpace Grab") {
         auto const val = space.grab<int>("/test");
         CHECK(val.value() == 5);
         auto const val2 = space.grab<int>("/test");
-        CHECK(val.value() == 6);
+        CHECK(val2.value() == 6);
     }
 }
