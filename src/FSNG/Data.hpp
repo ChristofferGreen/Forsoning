@@ -50,7 +50,7 @@ struct Data {
     Data(unsigned long long      const  l)    : data(l) {}
     Data(double                  const  d)    : data(d) {}
     Data(long double             const  d)    : data(d) {}
-    Data(char const *            const  s)    : data(std::string(s)) {}
+    Data(char const *            const  s)    : data(s) {}
     Data(std::string             const &s)    : data(s) {}
     Data(std::unique_ptr<PathSpaceTE> &&up)   : data(std::move(up)) {}
     Data(PathSpaceTE             const &pste) : data(std::make_unique<PathSpaceTE>(pste)) {}
@@ -121,14 +121,6 @@ struct Data {
         return !this->is<std::unique_ptr<std::function<Coroutine()>>>();
     }
 
-    auto isTriviallyCopyable() const {
-        if(std::holds_alternative<int>(this->data) ||
-           std::holds_alternative<double>(this->data)) {
-               return true;
-        }
-        return std::holds_alternative<InReference>(this->data);
-    }
-
 private:
     std::variant<bool,
                  signed char,
@@ -144,6 +136,7 @@ private:
                  unsigned long long,
                  double,
                  long double,
+                 char const *,
                  std::string,
                  std::unique_ptr<PathSpaceTE>,
                  std::unique_ptr<std::function<Coroutine()>>,

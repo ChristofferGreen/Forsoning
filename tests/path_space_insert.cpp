@@ -72,8 +72,10 @@ TEST_CASE("PathSpace Insert") {
 
     SUBCASE("Insert Char*") {
         CHECK(space.insert(rootTestPath, "Test String") == true);
+        CHECK(space.insert(rootTestPath, "Test String2") == true);
+        CHECK(space.insert(rootTestPath, "Test String3") == true);
         nlohmann::json json;
-        json["test"] = {"Test String"};
+        json["test"] = {"Test String", "Test String2", "Test String3"};
         CHECK(space.toJSON() == json);
     }
 

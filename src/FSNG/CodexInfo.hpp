@@ -7,6 +7,7 @@ struct CodexInfo {
 
     auto nbrItems() const -> uint32_t {
         if(*this->info==typeid(std::string) ||
+           *this->info==typeid(char const*) ||
            *this->info==typeid(PathSpaceTE) ||
            Converters::toJSONConverters.contains(this->info))
            return 1;
@@ -14,11 +15,13 @@ struct CodexInfo {
     }
 
     auto nbrChars() const -> uint32_t {
-        return *this->info==typeid(std::string) ? this->items.nbr : 0;
+        return (*this->info==typeid(std::string) ||
+                *this->info==typeid(char const*)) ? this->items.nbr : 0;
     }
 
     auto dataSizeBytes() const -> int {
-        return *this->info==typeid(std::string) ? this->dataSizeBytesSingleItem() : this->dataSizeBytesSingleItem()*this->items.nbr;
+        return (*this->info==typeid(std::string) || 
+                *this->info==typeid(char const*)) ? this->dataSizeBytesSingleItem() : this->dataSizeBytesSingleItem()*this->items.nbr;
     }
 
     auto dataSizeBytesSingleItem() const -> int {
@@ -36,6 +39,7 @@ struct CodexInfo {
         else if(*this->info==typeid(unsigned long long))           return sizeof(unsigned long long);
         else if(*this->info==typeid(double))                       return sizeof(double);
         else if(*this->info==typeid(long double))                  return sizeof(long double);
+        else if(*this->info==typeid(char const*))                  return sizeof(char)*this->items.nbr;
         else if(*this->info==typeid(std::string))                  return sizeof(char)*this->items.nbr;
         else if(*this->info==typeid(PathSpaceTE))                  return -1;
         else if(Converters::toJSONConverters.contains(this->info)) return this->items.size;

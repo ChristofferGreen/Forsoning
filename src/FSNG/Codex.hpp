@@ -2,6 +2,8 @@
 #include "CodexInfo.hpp"
 #include "utils.hpp"
 
+#include <string.h>
+
 /* Potential future implementation
     Multi Type:  |Header 1byte|PointerToLastInfoBlock sizeof(CodexInfo*)|InfoBlock sizeof(CodexInfo)|Data
     Single type: |Data|Data|Data
@@ -39,6 +41,11 @@ struct Codex {
         else if(data.is<unsigned long long>()) this->insertBasic<unsigned long long> (data);
         else if(data.is<double>())             this->insertBasic<double>             (data);
         else if(data.is<long double>())        this->insertBasic<long double>             (data);
+        else if(data.is<char const *>()) {
+            auto const length = strlen(data.as<char const*>());
+            auto const &info = this->addInfo(length, &typeid(char const*));
+            copy_byte_back_insert(data.as<char const*>(), length, this->codices);
+        }
         else if(data.is<std::string>()) {
             auto const d = data.as<std::string>();
             auto const &info = this->addInfo(d.length(), &typeid(std::string));
@@ -92,6 +99,8 @@ struct Codex {
                 else if(*info.info==typeid(unsigned long long)) this->jsonPushBack<unsigned long long const * const>(json, currentByte);
                 else if(*info.info==typeid(double))             this->jsonPushBack<double             const * const>(json, currentByte);
                 else if(*info.info==typeid(long double))        this->jsonPushBack<long double        const * const>(json, currentByte);
+                else if(*info.info==typeid(char const*))                  
+                    json.push_back(std::string(reinterpret_cast<char const * const>(&this->codices[currentByte]), info.nbrChars()));
                 else if(*info.info==typeid(std::string))                  json.push_back(std::string(reinterpret_cast<char const * const>(&this->codices[currentByte]), info.nbrChars()));
                 else if(*info.info==typeid(PathSpaceTE))                  json.push_back(this->spaces[currentSpace++].toJSON());
                 else if(Converters::toJSONConverters.contains(info.info)) json.push_back(Converters::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
@@ -117,7 +126,7 @@ private:
     auto addInfo(int const nbrItems, std::type_info const *ptr) -> CodexInfo {
         if(this->info.size()==0)
             this->info.emplace_back(nbrItems, ptr);
-        else if(*this->info.rbegin()->info==*ptr && *ptr!=typeid(std::string))
+        else if(*this->info.rbegin()->info==*ptr && (*ptr!=typeid(std::string) && *ptr!=typeid(char const*)))
             this->info.rbegin()->items.nbr++;
         else
             this->info.emplace_back(nbrItems, ptr);
