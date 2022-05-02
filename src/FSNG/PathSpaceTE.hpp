@@ -17,7 +17,7 @@ class PathSpaceTE {
 		virtual auto toJSON_()                                                                                const -> nlohmann::json             = 0;
 		virtual auto setProcessor_(std::shared_ptr<TaskProcessor> const &processor)                                 -> void                       = 0;
 		virtual auto insert_(Path const &range, Data const &data)                                                   -> bool                       = 0;
-		virtual auto grab_(Path const &range, std::type_info const *info, void *data, bool isFundamentalType)       -> bool                       = 0;
+		virtual auto grab_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)     -> bool                       = 0;
         /*virtual auto popFrontData_()                                                                                        -> std::optional<DataType>    = 0;
 		virtual auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters)                               -> std::optional<PathSpaceTE> = 0;
 		virtual auto grabBlock_(std::filesystem::path const &path)                                                          -> std::optional<PathSpaceTE> = 0;
@@ -39,7 +39,7 @@ public:
     template<typename T>
 	auto grab(Path const &range)                                         -> std::optional<T> {
 		T data;
-		if(this->self->grab_(range, &typeid(T), reinterpret_cast<void*>(&data), is_fundamental_type<T>()))
+		if(this->self->grab_(range, &typeid(T), reinterpret_cast<void*>(&data), std::is_trivially_copyable<T>()))
 			return data;
 		return std::nullopt;
 	}
@@ -87,7 +87,7 @@ private:
 		auto toJSON_()                                                                               const -> nlohmann::json             override {return this->data.toJSON();}
 		auto setProcessor_(std::shared_ptr<TaskProcessor> const &processor)                                -> void                       override {return this->data.setProcessor(processor);}
 		auto insert_(Path const &range, Data const &d)                                                     -> bool                       override {return this->data.insert(range, d);}
-		auto grab_(Path const &range, std::type_info const *info, void *data, bool isFundamentalType)      -> bool                       override {return this->data.grab(range, info, data, isFundamentalType);}
+		auto grab_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)    -> bool                       override {return this->data.grab(range, info, data, isTriviallyCopyable);}
 		/*auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &d)      -> bool                           override {return this->data.insert(path, iters, d);}
         auto popFrontData_()                                                                                    -> std::optional<DataType>        override {return this->data.popFrontData();}
 		auto grab_(std::filesystem::path const &path)                                                           -> std::optional<PathSpaceTE>     override {return this->data.grab(path);}

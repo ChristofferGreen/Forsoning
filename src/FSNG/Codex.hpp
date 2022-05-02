@@ -9,12 +9,12 @@
 
 namespace FSNG {
 struct Codex {
-    auto grab(std::type_info const *info, void *data, bool const isFundamentalType) -> bool {
+    auto grab(std::type_info const *info, void *data, bool const isTriviallyCopyable) -> bool {
         if(this->info.empty())
             return false;
         if(this->info.rbegin()->info!=info)
             return false;
-        if(isFundamentalType) {
+        if(isTriviallyCopyable) {
             copy_byte_raw(this->codices.data()+this->currentByte, this->info.rbegin()->dataSizeBytesSingleItem(), static_cast<std::byte*>(data));
             this->currentByte += this->info.rbegin()->dataSizeBytesSingleItem();
             return true;

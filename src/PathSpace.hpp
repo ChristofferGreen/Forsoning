@@ -23,9 +23,9 @@ struct PathSpace {
     PathSpace() : processor(std::make_shared<TaskProcessor>()) {};
     PathSpace(std::shared_ptr<TaskProcessor> const &processor) : processor(processor) {};
 
-    auto grab(Path const &range, std::type_info const *info, void *data, bool isFundamentalType) -> bool {
+    auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         if(range.isAtData())
-            return this->grab(range.dataName(), info, data, isFundamentalType);
+            return this->grab(range.dataName(), info, data, isTriviallyCopyable);
         return false;
     }
 
