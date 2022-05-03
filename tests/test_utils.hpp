@@ -6,6 +6,7 @@
 using namespace FSNG;
 
 struct POD {
+    bool operator==(POD const&) const = default;
     int a = 13;
     float b = 44.0;
 };
