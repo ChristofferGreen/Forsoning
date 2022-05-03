@@ -20,6 +20,10 @@ struct Codex {
             copy_byte_raw(this->codices.data()+this->currentByte, this->info.rbegin()->dataSizeBytesSingleItem(), static_cast<std::byte*>(data));
             this->currentByte += this->info.rbegin()->dataSizeBytesSingleItem();
             return true;
+        } else if(*info==typeid(std::string)) {
+            std::string &str = *static_cast<std::string*>(data);
+            str = std::string(reinterpret_cast<char*>(this->codices.data()+this->currentByte), this->info.rbegin()->nbrChars());
+            return true;
         }
         if(Converters::fromJSONConverters.contains(info))
             return Converters::fromJSONConverters.at(info)(this->codices.data(), static_cast<void*>(this->codices.data()), static_cast<std::byte*>(data));
@@ -43,7 +47,7 @@ struct Codex {
         else if(data.is<long double>())        this->insertBasic<long double>             (data);
         else if(data.is<char const *>()) {
             auto const length = strlen(data.as<char const*>());
-            auto const &info = this->addInfo(length, &typeid(char const*));
+            auto const &info = this->addInfo(length, &typeid(std::string));
             copy_byte_back_insert(data.as<char const*>(), length, this->codices);
         }
         else if(data.is<std::string>()) {

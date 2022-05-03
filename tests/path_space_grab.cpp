@@ -22,16 +22,18 @@ TEST_CASE("PathSpace Grab") {
         CHECK(val2.value() == 6);
     }
 
-    /*SUBCASE("Grab") {
-        //CHECK(space.insert(rootTestPath, 5) == true);
-        //CHECK(space.grab<int>(rootTestPath) == 5);
+    SUBCASE("Grab") {
+        CHECK(space.insert(rootTestPath, 5) == true);
+        CHECK(space.grab<int>(rootTestPath) == 5);
 
         CHECK(space.insert(rootTestPath2, "hello") == true);
-        CHECK(space.grab<std::string>(rootTestPath2) == "hello");
+        auto val = space.grab<std::string>(rootTestPath2);
+        CHECK(val.has_value());
+        CHECK(std::string(val.value()) == "hello");
 
         CHECK(space.insert(rootTestPath, 234) == true);
         CHECK(space.grab<int>(rootTestPath) == 234);
-    }*/
+    }
 
     /*SUBCASE("Insert POD") {
         CHECK(space.insert(rootTestPath, POD()) == true);
