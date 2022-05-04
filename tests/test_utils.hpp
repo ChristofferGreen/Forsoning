@@ -16,12 +16,18 @@ inline void to_json(nlohmann::json& j, const POD& p) {
 }
 
 struct NonTrivial {
+    bool operator==(NonTrivial const&) const = default;
     int a = 13;
     std::vector<int> b;
 };
 
 inline void to_json(nlohmann::json& j, const NonTrivial& p) {
     j = nlohmann::json{{"a", p.a}, {"b", p.b}};
+}
+
+inline void from_json(nlohmann::json const &j, NonTrivial& p) {
+    j.at("a").get_to(p.a);
+    j.at("b").get_to(p.b);
 }
 
 inline void to_bytevec(std::vector<std::byte> &vec, NonTrivial const &obj) {
@@ -50,4 +56,9 @@ struct NonTrivialJS {
 
 inline void to_json(nlohmann::json& j, const NonTrivialJS& p) {
     j = nlohmann::json{{"a", p.a}, {"b", p.b}};
+}
+
+inline void from_json(nlohmann::json const &j, NonTrivialJS& p) {
+    j.at("a").get_to(p.a);
+    j.at("b").get_to(p.b);
 }

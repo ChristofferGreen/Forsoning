@@ -25,8 +25,10 @@ struct Codex {
             str = std::string(reinterpret_cast<char*>(this->codices.data()+this->currentByte), this->info.rbegin()->nbrChars());
             return true;
         }
+        if(Converters::fromByteArrayConverters.contains(info))
+            return Converters::fromByteArrayConverters.at(info)(this->codices.data(), data);
         if(Converters::fromJSONConverters.contains(info))
-            return Converters::fromJSONConverters.at(info)(this->codices.data(), static_cast<void*>(this->codices.data()), static_cast<std::byte*>(data));
+            return Converters::fromJSONConverters.at(info)(this->codices.data(), this->info.rbegin()->dataSizeBytes(), data);
         return false;
     }
  

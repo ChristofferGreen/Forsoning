@@ -87,14 +87,36 @@ struct Data {
                 to_bytevec(vec, *static_cast<InTRR*>(obj));
             };
         }
+        if(!Converters::fromByteArrayConverters.contains(&typeid(in))) {
+            Converters::fromByteArrayConverters[&typeid(in)] = [](std::byte const *fromBytes, void *toObj) {
+                try {
+                    from_bytevec(fromBytes, *static_cast<InTRRRC*>(toObj));
+                } catch(std::exception const &e) {
+                    return false;
+                }
+                return true;
+            };
+        }
     }
     Data(HasJSONConversionNotTriviallyCopyableNoByteVector auto const &in) {
         using InT = decltype(in);
         using InTRR = typename std::remove_reference<InT>::type;
+        using InTRRRC = typename std::remove_const<InTRR>::type;
         this->data = InReference{&in, sizeof(InT), &typeid(in)};
         if(!Converters::toJSONConverters.contains(&typeid(in))) {
-            Converters::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size){
+            Converters::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size) {
                 return nlohmann::json::from_bson(std::vector<std::byte>(data, data+size));
+            };
+        }
+        if(!Converters::fromJSONConverters.contains(&typeid(in))) {
+            Converters::fromJSONConverters[&typeid(in)] = [](std::byte const *fromBytes, int const size, void *toObject) {
+                try {
+                    auto json = nlohmann::json::from_bson(std::vector<std::byte>(fromBytes, fromBytes+size));
+                    *static_cast<InTRRRC*>(toObject) = json.get<InTRRRC>();
+                } catch(std::exception const &e) {
+                    return false;
+                }
+                return true;
             };
         }
         if(!Converters::toByteArrayConverters.contains(&typeid(in))) {
