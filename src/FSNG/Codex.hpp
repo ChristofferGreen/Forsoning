@@ -14,22 +14,24 @@ struct Codex {
     auto grab(std::type_info const *info, void *data, bool const isTriviallyCopyable) -> bool {
         if(this->info.empty())
             return false;
-        if(this->info.rbegin()->info!=info)
+        if(this->info.begin()->info!=info)
             return false;
+        bool ret = false;
         if(isTriviallyCopyable) {
             copy_byte_raw(this->codices.data()+this->currentByte, this->info.rbegin()->dataSizeBytesSingleItem(), static_cast<std::byte*>(data));
-            this->currentByte += this->info.rbegin()->dataSizeBytesSingleItem();
-            return true;
+            ret = true;
         } else if(*info==typeid(std::string)) {
             std::string &str = *static_cast<std::string*>(data);
             str = std::string(reinterpret_cast<char*>(this->codices.data()+this->currentByte), this->info.rbegin()->nbrChars());
-            return true;
+            ret = true;
         }
         if(Converters::fromByteArrayConverters.contains(info))
-            return Converters::fromByteArrayConverters.at(info)(this->codices.data()+this->currentByte, data);
+            ret = Converters::fromByteArrayConverters.at(info)(this->codices.data()+this->currentByte, data);
         if(Converters::fromJSONConverters.contains(info))
-            return Converters::fromJSONConverters.at(info)(this->codices.data()+this->currentByte, this->info.rbegin()->dataSizeBytesSingleItem(), data);
-        return false;
+            ret = Converters::fromJSONConverters.at(info)(this->codices.data()+this->currentByte, this->info.rbegin()->dataSizeBytesSingleItem(), data);
+        this->currentByte += this->info.begin()->dataSizeBytesSingleItem();
+        this->popInfo();
+        return ret;
     }
  
     auto insert(Data const &data) {
@@ -117,6 +119,11 @@ struct Codex {
     }
 
 private:
+    auto popInfo() -> void {
+        //if(this->info.begin()->items.nbr>1)
+          //  this->info.begin()->items.nbr--;
+    }
+
     template<typename T>
     auto jsonPushBack(auto &json, auto const &currentByte) const -> void {
         json.push_back(*reinterpret_cast<T>(&this->codices[currentByte]));

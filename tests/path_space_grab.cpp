@@ -5,6 +5,15 @@
 
 using namespace FSNG;
 
+auto check_grab(auto &space, auto const &path, auto const &testValue) {
+    using InT = decltype(testValue);
+    using InTRR = typename std::remove_reference<InT>::type;
+    using InTRRRC = typename std::remove_const<InTRR>::type;
+    auto const val = space.template grab<InTRRRC>(path);
+    CHECK(val.has_value());
+    CHECK(val.value()==testValue);
+}
+
 TEST_CASE("PathSpace Grab") {
     PathSpaceTE space = PathSpace{};
     Path const rootTestPath{"/test"};
@@ -35,7 +44,7 @@ TEST_CASE("PathSpace Grab") {
         CHECK(space.grab<int>(rootTestPath) == 234);
     }
 
-    SUBCASE("Insert POD") {
+    SUBCASE("Grab POD") {
         POD const pod1;
         CHECK(space.insert(rootTestPath, pod1) == true);
         auto const pod2 = space.grab<POD>(rootTestPath);
@@ -43,7 +52,7 @@ TEST_CASE("PathSpace Grab") {
         CHECK(pod1 == pod2.value());
     }
 
-    SUBCASE("Insert NonTrivial Class") {
+    SUBCASE("Grab NonTrivial Class") {
         NonTrivial nt;
         nt.b = {1, 2, 3};
         CHECK(space.insert(rootTestPath, nt) == true);
@@ -53,7 +62,7 @@ TEST_CASE("PathSpace Grab") {
         CHECK(nt == nt2.value());
     }
 
-    SUBCASE("Insert NonTrivial Class JS") {
+    SUBCASE("Grab NonTrivial Class JS") {
         NonTrivialJS nt;
         nt.b = {1, 2, 3};
         CHECK(space.insert(rootTestPath, nt) == true);
@@ -62,133 +71,131 @@ TEST_CASE("PathSpace Grab") {
         CHECK(nt == val.value());
     }
 
-    /*SUBCASE("Insert Bool") {
+    SUBCASE("Grab Bool") {
         CHECK(space.insert(rootTestPath, static_cast<bool>(true)) == true);
         CHECK(space.insert(rootTestPath, static_cast<bool>(false)) == true);
         CHECK(space.insert(rootTestPath, static_cast<bool>(true)) == true);
-        nlohmann::json json;
-        json["test"] = {static_cast<bool>(true), static_cast<bool>(false), static_cast<bool>(true)};
-        CHECK(space.toJSON() == json);
+        auto const v1 = space.grab<bool>(rootTestPath);
+        auto const v2 = space.grab<bool>(rootTestPath);
+        auto const v3 = space.grab<bool>(rootTestPath);
+        CHECK(v1.has_value());
+        CHECK(v2.has_value());
+        CHECK(v3.has_value());
+        CHECK(v1.value()==true);
+        CHECK(v2.value()==false);
+        CHECK(v3.value()==true);
     }
 
-    SUBCASE("Insert Signed Char") {
+    SUBCASE("Grab Signed Char") {
         CHECK(space.insert(rootTestPath, static_cast<signed char>('C')) == true);
-        nlohmann::json json;
-        json["test"] = {static_cast<signed char>('C')};
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<signed char>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(val.value()=='C');
     }
 
-    SUBCASE("Insert Unsigned Char") {
+    SUBCASE("Grab Unsigned Char") {
         CHECK(space.insert(rootTestPath, static_cast<unsigned char>('C')) == true);
-        nlohmann::json json;
-        json["test"] = {static_cast<unsigned char>('C')};
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<unsigned char>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(val.value()=='C');
     }
 
-    SUBCASE("Insert wchar_t") {
+    SUBCASE("Grab wchar_t") {
         CHECK(space.insert(rootTestPath, static_cast<wchar_t>('C')) == true);
-        nlohmann::json json;
-        json["test"] = {static_cast<wchar_t>('C')};
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<wchar_t>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(val.value()=='C');
     }
 
-    SUBCASE("Insert Short") {
+    SUBCASE("Grab Short") {
         CHECK(space.insert(rootTestPath, static_cast<short>(43)) == true);
-        nlohmann::json json;
-        json["test"] = {static_cast<short>(43)};
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<short>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(val.value()==43);
     }
 
-    SUBCASE("Insert Unsigned Short") {
+    SUBCASE("Grab Unsigned Short") {
         CHECK(space.insert(rootTestPath, static_cast<unsigned short>(-43)) == true);
-        nlohmann::json json;
-        json["test"] = {static_cast<unsigned short>(-43)};
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<unsigned short>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(val.value()==static_cast<unsigned short>(-43));
     }
 
-    SUBCASE("Insert Int") {
+    SUBCASE("Grab Int") {
         CHECK(space.insert(rootTestPath, static_cast<int>(43)) == true);
-        nlohmann::json json;
-        json["test"] = {static_cast<int>(43)};
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<int>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(val.value()==static_cast<int>(43));
     }
 
-    SUBCASE("Insert Unsigned Int") {
+    SUBCASE("Grab Unsigned Int") {
         CHECK(space.insert(rootTestPath, static_cast<unsigned int>(-43)) == true);
-        nlohmann::json json;
-        json["test"] = {static_cast<unsigned int>(-43)};
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<unsigned int>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(val.value()==static_cast<unsigned int>(-43));
     }
 
-    SUBCASE("Insert Long") {
+    SUBCASE("Grab Long") {
         CHECK(space.insert(rootTestPath, static_cast<long>(43)) == true);
-        nlohmann::json json;
-        json["test"] = {static_cast<long>(43)};
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<long>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(val.value()==static_cast<long>(43));
     }
 
-    SUBCASE("Insert Unsigned Long") {
+    SUBCASE("Grab Unsigned Long") {
         CHECK(space.insert(rootTestPath, static_cast<unsigned long>(-43)) == true);
-        nlohmann::json json;
-        json["test"] = {static_cast<unsigned long>(-43)};
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<unsigned long>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(val.value()==static_cast<unsigned long>(-43));
     }
 
-    SUBCASE("Insert Long Long") {
+    SUBCASE("Grab Long Long") {
         CHECK(space.insert(rootTestPath, static_cast<long long>(43)) == true);
-        nlohmann::json json;
-        json["test"] = {static_cast<long long>(43)};
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<long long>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(val.value()==static_cast<long long>(43));
     }
 
-    SUBCASE("Insert Unsigned Long Long") {
+    SUBCASE("Grab Unsigned Long Long") {
         CHECK(space.insert(rootTestPath, static_cast<unsigned long long>(-43)) == true);
-        nlohmann::json json;
-        json["test"] = {static_cast<unsigned long long>(-43)};
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<unsigned long long>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(val.value()==static_cast<unsigned long long>(-43));
     }
 
-    SUBCASE("Insert Double") {
-        CHECK(space.insert(rootTestPath, 5.45) == true);
-        nlohmann::json json;
-        json["test"] = {5.45};
-        CHECK(space.toJSON() == json);
+    SUBCASE("Grab Double") {
+        CHECK(space.insert(rootTestPath, static_cast<double>(5.45)) == true);
+        auto const val = space.grab<double>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(val.value()==static_cast<double>(5.45));
     }
 
-    SUBCASE("Insert Long Double") {
+    SUBCASE("Grab Long Double") {
         CHECK(space.insert(rootTestPath, static_cast<long double>(5.45)) == true);
-        nlohmann::json json;
-        json["test"] = {static_cast<long double>(5.45)};
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<long double>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(val.value()==static_cast<long double>(5.45));
     }
 
-    SUBCASE("Insert Multiple Types") {
+    SUBCASE("Grab Multiple Types") {
         CHECK(space.insert(rootTestPath, 5) == true);
-        nlohmann::json json;
-        json["test"] = {5};
-        CHECK(space.toJSON() == json);
-
         CHECK(space.insert(rootTestPath, "hello") == true);
-        json["test"].push_back("hello");
-        CHECK(space.toJSON() == json);
-
         CHECK(space.insert(rootTestPath, "hello2") == true);
-        json["test"].push_back("hello2");
-        CHECK(space.toJSON() == json);    
-
         CHECK(space.insert(rootTestPath, 34) == true);
-        json["test"].push_back(34);
-        CHECK(space.toJSON() == json);
+        check_grab(space, rootTestPath, static_cast<int>(5));
+        check_grab(space, rootTestPath, static_cast<std::string>("hello"));
+        check_grab(space, rootTestPath, static_cast<std::string>("hello2"));
+        check_grab(space, rootTestPath, static_cast<int>(34));
     }
 
-    SUBCASE("Insert deep") {
+    /*SUBCASE("Grab deep") {
         CHECK(space.insert(rootTestTest2Path, 5) == true);
         nlohmann::json json;
         json["test"] = nlohmann::json::array({ nlohmann::json::object({ {"test2", {5}} }) });
         CHECK(space.toJSON() == json);
     }
 
-    SUBCASE("Insert space") {
+    SUBCASE("Grab space") {
         PathSpaceTE space2 = PathSpace{};
         CHECK(space.insert("/space", space2) == true);
         nlohmann::json json;
@@ -200,7 +207,7 @@ TEST_CASE("PathSpace Grab") {
         CHECK(space.toJSON() == json);
     }
 
-    SUBCASE("Insert coroutine") {
+    SUBCASE("Grab coroutine") {
         CHECK(space.insert(rootTestPath, [&space]() -> Coroutine {
             for(auto i = 0; i < 10; ++i)
                 co_yield i;
