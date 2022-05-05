@@ -26,9 +26,9 @@ struct Codex {
             return true;
         }
         if(Converters::fromByteArrayConverters.contains(info))
-            return Converters::fromByteArrayConverters.at(info)(this->codices.data(), data);
+            return Converters::fromByteArrayConverters.at(info)(this->codices.data()+this->currentByte, data);
         if(Converters::fromJSONConverters.contains(info))
-            return Converters::fromJSONConverters.at(info)(this->codices.data(), this->info.rbegin()->dataSizeBytes(), data);
+            return Converters::fromJSONConverters.at(info)(this->codices.data()+this->currentByte, this->info.rbegin()->dataSizeBytesSingleItem(), data);
         return false;
     }
  

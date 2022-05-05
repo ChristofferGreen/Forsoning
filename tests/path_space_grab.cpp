@@ -53,17 +53,16 @@ TEST_CASE("PathSpace Grab") {
         CHECK(nt == nt2.value());
     }
 
-    /*SUBCASE("Insert NonTrivial Class JS") {
+    SUBCASE("Insert NonTrivial Class JS") {
         NonTrivialJS nt;
         nt.b = {1, 2, 3};
         CHECK(space.insert(rootTestPath, nt) == true);
-
-        nlohmann::json json;
-        json["test"] = nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", {1, 2, 3}} }) });
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<NonTrivialJS>(rootTestPath);
+        CHECK(val.has_value());
+        CHECK(nt == val.value());
     }
 
-    SUBCASE("Insert Bool") {
+    /*SUBCASE("Insert Bool") {
         CHECK(space.insert(rootTestPath, static_cast<bool>(true)) == true);
         CHECK(space.insert(rootTestPath, static_cast<bool>(false)) == true);
         CHECK(space.insert(rootTestPath, static_cast<bool>(true)) == true);

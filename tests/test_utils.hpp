@@ -50,6 +50,7 @@ inline void from_bytevec(std::byte const *vec, NonTrivial &ret) {
 }
 
 struct NonTrivialJS {
+    bool operator==(NonTrivialJS const&) const = default;
     int a = 13;
     std::vector<int> b;
 };
