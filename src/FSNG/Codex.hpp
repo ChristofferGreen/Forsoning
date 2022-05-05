@@ -18,17 +18,17 @@ struct Codex {
             return false;
         bool ret = false;
         if(isTriviallyCopyable) {
-            copy_byte_raw(this->codices.data()+this->currentByte, this->info.rbegin()->dataSizeBytesSingleItem(), static_cast<std::byte*>(data));
+            copy_byte_raw(this->codices.data()+this->currentByte, this->info.begin()->dataSizeBytesSingleItem(), static_cast<std::byte*>(data));
             ret = true;
         } else if(*info==typeid(std::string)) {
             std::string &str = *static_cast<std::string*>(data);
-            str = std::string(reinterpret_cast<char*>(this->codices.data()+this->currentByte), this->info.rbegin()->nbrChars());
+            str = std::string(reinterpret_cast<char*>(this->codices.data()+this->currentByte), this->info.begin()->nbrChars());
             ret = true;
         }
         if(Converters::fromByteArrayConverters.contains(info))
             ret = Converters::fromByteArrayConverters.at(info)(this->codices.data()+this->currentByte, data);
         if(Converters::fromJSONConverters.contains(info))
-            ret = Converters::fromJSONConverters.at(info)(this->codices.data()+this->currentByte, this->info.rbegin()->dataSizeBytesSingleItem(), data);
+            ret = Converters::fromJSONConverters.at(info)(this->codices.data()+this->currentByte, this->info.begin()->dataSizeBytesSingleItem(), data);
         this->currentByte += this->info.begin()->dataSizeBytesSingleItem();
         this->popInfo();
         return ret;
@@ -120,8 +120,12 @@ struct Codex {
 
 private:
     auto popInfo() -> void {
-        //if(this->info.begin()->items.nbr>1)
-          //  this->info.begin()->items.nbr--;
+        if(this->info.begin()->nbrItems()>1) {
+            this->info.begin()->items.nbr--;
+            return;
+        }
+        assert(this->info.begin()->nbrItems()!=0);
+        this->info.erase(this->info.begin());
     }
 
     template<typename T>
