@@ -33,13 +33,16 @@ public:
 	auto operator=(PathSpaceTE const &rhs) -> PathSpaceTE& {return *this = PathSpaceTE(rhs);}
 	auto operator=(PathSpaceTE&&) noexcept -> PathSpaceTE& = default;
 
-	auto toJSON()                                                  const -> nlohmann::json   { return this->self->toJSON_(); }
-	auto setProcessor(std::shared_ptr<TaskProcessor> const &processor)   -> void             { return this->self->setProcessor_(processor); }
-	auto insert(Path const &range, Data const &data)                     -> bool             { return this->self->insert_(range, data); }
-    template<typename T>
+	auto toJSON()                                                                            const -> nlohmann::json      { return this->self->toJSON_(); }
+	auto setProcessor(std::shared_ptr<TaskProcessor> const &processor)                             -> void                { return this->self->setProcessor_(processor); }
+	auto insert(Path const &range, Data const &data)                                               -> bool                { return this->self->insert_(range, data); }
+    auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                {
+		return this->self->grab_(range, info, data, isTriviallyCopyable);
+	}
+	template<typename T>
 	auto grab(Path const &range)                                         -> std::optional<T> {
 		T data;
-		if(this->self->grab_(range, &typeid(T), reinterpret_cast<void*>(&data), std::is_trivially_copyable<T>()))
+		if(this->grab(range, &typeid(T), reinterpret_cast<void*>(&data), std::is_trivially_copyable<T>()))
 			return data;
 		return std::nullopt;
 	}

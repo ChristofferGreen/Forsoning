@@ -188,14 +188,14 @@ TEST_CASE("PathSpace Grab") {
         check_grab(space, rootTestPath, static_cast<int>(34));
     }
 
-    /*SUBCASE("Grab deep") {
+    SUBCASE("Grab deep") {
         CHECK(space.insert(rootTestTest2Path, 5) == true);
-        nlohmann::json json;
-        json["test"] = nlohmann::json::array({ nlohmann::json::object({ {"test2", {5}} }) });
-        CHECK(space.toJSON() == json);
+        auto const val = space.grab<int>(rootTestTest2Path);
+        CHECK(val.has_value());
+        CHECK(val.value()==static_cast<int>(5));
     }
 
-    SUBCASE("Grab space") {
+    /*SUBCASE("Grab space") {
         PathSpaceTE space2 = PathSpace{};
         CHECK(space.insert("/space", space2) == true);
         nlohmann::json json;

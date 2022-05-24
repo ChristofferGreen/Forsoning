@@ -162,6 +162,7 @@ private:
                  std::string,
                  std::unique_ptr<PathSpaceTE>,
                  std::unique_ptr<std::function<Coroutine()>>,
-                 InReference> data;
+                 InReference,
+                 std::vector<std::byte>> data;
 };
 }

@@ -20,12 +20,19 @@
 
 namespace FSNG {
 struct PathSpace {
-    PathSpace() : processor(std::make_shared<TaskProcessor>()) {};
+    PathSpace()                                                : processor(std::make_shared<TaskProcessor>()) {};
     PathSpace(std::shared_ptr<TaskProcessor> const &processor) : processor(processor) {};
-
+    
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         if(range.isAtData())
             return this->grab(range.dataName(), info, data, isTriviallyCopyable);
+        if(auto const spaceName = range.spaceName()) {
+            bool ret = false;
+            this->codices.write([&ret, &spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
+                ret = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){return space.grab(range.next(), info, data, isTriviallyCopyable);});;
+            });
+            return ret;
+        }
         return false;
     }
 
@@ -33,7 +40,7 @@ struct PathSpace {
         if(range.isAtData())
             return this->insert(range.dataName(), data);
         if(auto const spaceName = range.spaceName()) { // Create space if it does not exist
-            bool ret;
+            bool ret = false;
             this->codices.write([this, &spaceName, &ret, &range, &data](auto &codices){
                 if(codices.count(spaceName.value())==0)
                     codices[spaceName.value()].insert(PathSpaceTE(PathSpace{this->processor}));
