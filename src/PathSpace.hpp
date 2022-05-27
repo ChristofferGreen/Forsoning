@@ -28,8 +28,21 @@ struct PathSpace {
             return this->grab(range.dataName(), info, data, isTriviallyCopyable);
         if(auto const spaceName = range.spaceName()) {
             bool ret = false;
-            this->codices.write([&ret, &spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
+            this->codices.write(spaceName.value(), [&ret, &spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
                 ret = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){return space.grab(range.next(), info, data, isTriviallyCopyable);});;
+            });
+            return ret;
+        }
+        return false;
+    }
+
+    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+        if(range.isAtData())
+            return this->grabBlock(range.dataName(), info, data, isTriviallyCopyable);
+        if(auto const spaceName = range.spaceName()) {
+            bool ret = false;
+            this->codices.writeWaitForExistance(spaceName.value(), [&ret, &spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
+                ret = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){return space.grabBlock(range.next(), info, data, isTriviallyCopyable);});;
             });
             return ret;
         }
@@ -41,7 +54,7 @@ struct PathSpace {
             return this->insert(range.dataName(), data);
         if(auto const spaceName = range.spaceName()) { // Create space if it does not exist
             bool ret = false;
-            this->codices.write([this, &spaceName, &ret, &range, &data](auto &codices){
+            this->codices.write(spaceName.value(), [this, &spaceName, &ret, &range, &data](auto &codices){
                 if(codices.count(spaceName.value())==0)
                     codices[spaceName.value()].insert(PathSpaceTE(PathSpace{this->processor}));
                 ret = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &data](auto &space){return space.insert(range.next(), data);});
@@ -67,7 +80,16 @@ struct PathSpace {
 private:
     virtual auto grab(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> bool {
         bool ret = false;
-        this->codices.write([&dataName, data, info, &ret, isFundamentalType](auto &codices){
+        this->codices.write(dataName, [&dataName, data, info, &ret, isFundamentalType](auto &codices){
+            if(codices.contains(dataName))
+                ret = codices.at(dataName).grab(info, data, isFundamentalType);
+        });
+        return ret;
+    }
+
+    virtual auto grabBlock(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> bool {
+        bool ret = false;
+        this->codices.writeWaitForExistance(dataName, [&dataName, data, info, &ret, isFundamentalType](auto &codices){
             if(codices.contains(dataName))
                 ret = codices.at(dataName).grab(info, data, isFundamentalType);
         });
@@ -76,7 +98,7 @@ private:
 
     virtual auto insert(std::string const &dataName, Data const &data) -> bool {
         if(data.isDirectlyInsertable()) {
-            this->codices.write([&dataName, &data](auto &codices){
+            this->codices.write(dataName, [&dataName, &data](auto &codices){
                 codices[dataName].insert(data);
             });
         }
