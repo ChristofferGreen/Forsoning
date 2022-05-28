@@ -12,6 +12,7 @@ namespace FSNG {
 class PathSpaceTE {
 	struct concept_t {
 		virtual ~concept_t() = default;
+		virtual auto operator==(const concept_t &rhs) const -> bool = 0;
 		
 		virtual auto copy_()                                                                                  const  -> std::unique_ptr<concept_t> = 0;
 		virtual auto toJSON_()                                                                                const  -> nlohmann::json             = 0;
@@ -31,8 +32,15 @@ public:
 	PathSpaceTE(PathSpaceTE const &rhs)          : self(rhs.self->copy_())                        {}
 	PathSpaceTE(std::unique_ptr<concept_t> self) : self(std::move(self))                          {}
 
-	auto operator=(PathSpaceTE const &rhs) -> PathSpaceTE& {return *this = PathSpaceTE(rhs);}
-	auto operator=(PathSpaceTE&&) noexcept -> PathSpaceTE& = default;
+	auto operator= (PathSpaceTE const &rhs)       -> PathSpaceTE& {return *this = PathSpaceTE(rhs);}
+	auto operator= (PathSpaceTE&&) noexcept       -> PathSpaceTE& = default;
+	auto operator==(const PathSpaceTE &rhs) const -> bool         {
+		if(!this->self && !rhs.self)
+			return true;
+		if(!this->self || !rhs.self)
+			return false;
+		return *this->self == *rhs.self;
+	};
 
 	auto toJSON()                                                                            const -> nlohmann::json      { return this->self->toJSON_(); }
 	auto setProcessor(std::shared_ptr<TaskProcessor> const &processor)                             -> void                { return this->self->setProcessor_(processor); }
@@ -96,6 +104,7 @@ private:
 	template<typename T> 
 	struct model final : concept_t {
 		model(T x) : data(std::move(x)) {}
+		auto operator==(const concept_t &rhs) const -> bool override { return this->data==reinterpret_cast<model<T> const&>(rhs).data; }
 
 		auto copy_()                                                                                 const   -> std::unique_ptr<concept_t> override {return std::make_unique<model>(*this);}
 		auto toJSON_()                                                                               const   -> nlohmann::json             override {return this->data.toJSON();}

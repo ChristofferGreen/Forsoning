@@ -9,6 +9,10 @@ namespace FSNG {
 struct CodicesAegis {
     CodicesAegis() = default;
     CodicesAegis(CodicesAegis const &other) : codices(other.codices) {}
+    auto operator==(CodicesAegis const &rhs) const -> bool {
+        auto const mapReadMutex = std::shared_lock<std::shared_mutex>(this->mutex);
+        return this->codices==rhs.codices; 
+    }
 
     auto write(std::string const &name, auto const &fun) -> void {
         auto const mapWriteMutex = std::lock_guard<std::shared_mutex>(this->mutex);
@@ -25,7 +29,7 @@ struct CodicesAegis {
     auto writeWaitForExistance(std::string const &name, auto const &fun) -> void {
         auto const mapWriteMutex = std::lock_guard<std::shared_mutex>(this->mutex);
         while(!this->codices.contains(name))
-            this->waiters[name].wait(this->mutex);
+            this->waiters[name].wait(this->mutex); // How do we remove a waiter?
         fun(this->codices);
     }
     

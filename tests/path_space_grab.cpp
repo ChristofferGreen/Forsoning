@@ -195,19 +195,18 @@ TEST_CASE("PathSpace Grab") {
         CHECK(val.value()==static_cast<int>(5));
     }
 
-    /*SUBCASE("Grab space") {
-        PathSpaceTE space2 = PathSpace{};
-        CHECK(space.insert("/space", space2) == true);
-        nlohmann::json json;
-        json["space"] = nlohmann::json::array({nlohmann::json()});
-        CHECK(space.toJSON() == json);
+    SUBCASE("Grab space") {
+        CHECK(space.insert("/space", PathSpaceTE{PathSpace{}}) == true);
+        auto const valOpt = space.grab<PathSpaceTE>("/space");
+        CHECK(valOpt.has_value());
+        CHECK(valOpt.value() == PathSpaceTE{PathSpace{}});
 
-        CHECK(space.insert("/space/val", 34) == true);
+        /*CHECK(space.insert("/space/val", 34) == true);
         json["space"][0]["val"] = {34};
-        CHECK(space.toJSON() == json);
+        CHECK(space.toJSON() == json);*/
     }
 
-    SUBCASE("Grab coroutine") {
+    /*SUBCASE("Grab coroutine") {
         CHECK(space.insert(rootTestPath, [&space]() -> Coroutine {
             for(auto i = 0; i < 10; ++i)
                 co_yield i;

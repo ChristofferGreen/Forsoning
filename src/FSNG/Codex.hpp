@@ -11,6 +11,13 @@
 
 namespace FSNG {
 struct Codex {
+    auto operator==(Codex const &rhs) const -> bool { 
+        return (this->currentByte==rhs.currentByte) && 
+               (this->codices==rhs.codices) &&
+               (this->info==rhs.info) &&
+               (this->spaces==rhs.spaces); 
+    }
+
     auto grab(std::type_info const *info, void *data, bool const isTriviallyCopyable) -> bool {
         if(this->info.empty())
             return false;

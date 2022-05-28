@@ -1,6 +1,7 @@
 add_executable(ForsoningTest
   main.cpp
   path.cpp
+  path_space.cpp
   path_space_insert.cpp
   path_space_grab.cpp
   path_space_grab_block.cpp

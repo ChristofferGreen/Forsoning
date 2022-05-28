@@ -22,6 +22,8 @@ namespace FSNG {
 struct PathSpace {
     PathSpace()                                                : processor(std::make_shared<TaskProcessor>()) {};
     PathSpace(std::shared_ptr<TaskProcessor> const &processor) : processor(processor) {};
+
+    auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
     
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         if(range.isAtData())

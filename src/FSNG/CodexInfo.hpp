@@ -4,6 +4,7 @@ namespace FSNG {
 struct CodexInfo {
     CodexInfo() = default;
     CodexInfo(int const nbrItems, std::type_info const *info) : items(nbrItems), info(info) {};
+    auto operator==(CodexInfo const &rhs) const -> bool { return (this->items.nbr&&rhs.items.nbr) && (this->info==rhs.info); }
 
     auto nbrItems() const -> uint32_t {
         if(*this->info==typeid(std::string) ||
