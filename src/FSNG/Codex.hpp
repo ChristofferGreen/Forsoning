@@ -2,6 +2,7 @@
 #include "CodexInfo.hpp"
 #include "utils.hpp"
 
+#include <algorithm>
 #include <string.h>
 
 /* Potential future implementation
@@ -12,8 +13,7 @@
 namespace FSNG {
 struct Codex {
     auto operator==(Codex const &rhs) const -> bool { 
-        return (this->currentByte==rhs.currentByte) && 
-               (this->codices==rhs.codices) &&
+        return (std::equal(this->codices.begin()+this->currentByte, this->codices.end(), rhs.codices.begin()+rhs.currentByte)) &&
                (this->info==rhs.info) &&
                (this->spaces==rhs.spaces); 
     }

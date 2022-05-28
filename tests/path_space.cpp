@@ -34,7 +34,7 @@ TEST_CASE("PathSpace") {
         space.insert("/test", 2);
         CHECK(space.grab<int>("/test").value()==1);
         PathSpaceTE space2 = PathSpace{};
-        space.insert("/test", 2);
+        space2.insert("/test", 2);
         CHECK(space==space2);
     }
 
