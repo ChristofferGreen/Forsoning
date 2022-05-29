@@ -31,10 +31,15 @@ struct Codex {
             std::string &str = *static_cast<std::string*>(data);
             str = std::string(reinterpret_cast<char*>(this->codices.data()+this->currentByte), this->info.begin()->nbrChars());
             ret = true;
-        }
-        if(Converters::fromByteArrayConverters.contains(info))
+        } else if(*info==typeid(PathSpaceTE)) {
+            if(this->spaces.size()==0)
+                return false;
+            *reinterpret_cast<PathSpaceTE*>(data) = this->spaces.front();
+            this->spaces.erase(this->spaces.begin());
+            ret = true;
+        } else if(Converters::fromByteArrayConverters.contains(info))
             ret = Converters::fromByteArrayConverters.at(info)(this->codices.data()+this->currentByte, data);
-        if(Converters::fromJSONConverters.contains(info))
+        else if(Converters::fromJSONConverters.contains(info))
             ret = Converters::fromJSONConverters.at(info)(this->codices.data()+this->currentByte, this->info.begin()->dataSizeBytesSingleItem(), data);
         this->currentByte += this->info.begin()->dataSizeBytesSingleItem();
         this->popInfo();
