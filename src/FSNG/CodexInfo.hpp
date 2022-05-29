@@ -42,7 +42,7 @@ struct CodexInfo {
         else if(*this->info==typeid(long double))                  return sizeof(long double);
         else if(*this->info==typeid(char const*))                  return sizeof(char)*this->items.nbr;
         else if(*this->info==typeid(std::string))                  return sizeof(char)*this->items.nbr;
-        else if(*this->info==typeid(PathSpaceTE))                  return -1;
+        else if(*this->info==typeid(PathSpaceTE))                  return 0;
         else if(Converters::toJSONConverters.contains(this->info)) return this->items.size;
         return -1;
     }
