@@ -3,6 +3,8 @@
 #include "FSNG/Data.hpp"
 
 #include <functional>
+#include <random>
+#include <string>
 
 namespace FSNG {
 namespace Converters {
@@ -38,6 +40,23 @@ return typeid(T)==typeid(bool)               ||
        typeid(T)==typeid(unsigned long long) ||
        typeid(T)==typeid(double)             ||
        typeid(T)==typeid(long double);
+}
+
+inline auto random_string(std::string::size_type length = 32) -> std::string {
+    static auto& chrs = "0123456789"
+        "abcdefghijklmnopqrstuvwxyz"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+    thread_local static std::mt19937 rg{std::random_device{}()};
+    thread_local static std::uniform_int_distribution<std::string::size_type> pick(0, sizeof(chrs) - 2);
+
+    std::string s;
+    s.reserve(length);
+
+    while(length--)
+        s += chrs[pick(rg)];
+
+    return s;
 }
 
 }

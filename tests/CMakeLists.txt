@@ -1,14 +1,16 @@
 add_executable(ForsoningTest
   main.cpp
+  cpp_concepts.cpp
+  cpp_coroutine.cpp
+  cpp_json.cpp
+  cpp_asio.cpp
+  cpp_random_string.cpp
+  forge.cpp
   path.cpp
   path_space.cpp
   path_space_insert.cpp
   path_space_grab.cpp
   path_space_grab_block.cpp
-  cpp_concepts.cpp
-  cpp_coroutine.cpp
-  cpp_json.cpp
-  cpp_asio.cpp
 )
 
 target_include_directories(ForsoningTest 

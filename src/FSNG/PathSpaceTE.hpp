@@ -56,12 +56,12 @@ public:
 		return std::nullopt;
 	}
     auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                {
-		return this->self->grab_(range, info, data, isTriviallyCopyable);
+		return this->self->grabBlock_(range, info, data, isTriviallyCopyable);
 	}
 	template<typename T>
 	auto grabBlock(Path const &range)                                         -> std::optional<T> {
 		T data;
-		if(this->grab(range, &typeid(T), reinterpret_cast<void*>(&data), std::is_trivially_copyable<T>()))
+		if(this->grabBlock(range, &typeid(T), reinterpret_cast<void*>(&data), std::is_trivially_copyable<T>()))
 			return data;
 		return std::nullopt;
 	}

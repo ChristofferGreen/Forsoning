@@ -91,10 +91,14 @@ private:
 
     virtual auto grabBlock(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> bool {
         bool ret = false;
-        this->codices.writeWaitForExistance(dataName, [&dataName, data, info, &ret, isFundamentalType](auto &codices){
-            if(codices.contains(dataName))
-                ret = codices.at(dataName).grab(info, data, isFundamentalType);
-        });
+        if(*info==typeid(Coroutine)) {
+           // if(this->processor)
+        } else {
+            this->codices.writeWaitForExistance(dataName, [&dataName, data, info, &ret, isFundamentalType](auto &codices){
+                if(codices.contains(dataName))
+                    ret = codices.at(dataName).grab(info, data, isFundamentalType);
+            });
+        }
         return ret;
     }
 

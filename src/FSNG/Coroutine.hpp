@@ -8,6 +8,7 @@ struct Coroutine {
     struct promise_type;
     using handle_type = std::experimental::coroutine_handle<promise_type>;
 
+    Coroutine() = default;
     Coroutine(handle_type h) : coro(h) {}
     Coroutine(const Coroutine&) = delete;
     Coroutine& operator= (const Coroutine&) = delete;

@@ -195,28 +195,47 @@ TEST_CASE("PathSpace Grab") {
         CHECK(val.value()==static_cast<int>(5));
     }
 
-    SUBCASE("Grab space") {
+    SUBCASE("Grab Empty Space") {
         CHECK(space.insert("/space", PathSpaceTE{PathSpace{}}) == true);
         auto const valOpt = space.grab<PathSpaceTE>("/space");
         CHECK(valOpt.has_value());
         CHECK(valOpt.value() == PathSpaceTE{PathSpace{}});
-
-        /*CHECK(space.insert("/space/val", 34) == true);
-        json["space"][0]["val"] = {34};
-        CHECK(space.toJSON() == json);*/
     }
 
-    /*SUBCASE("Grab coroutine") {
-        CHECK(space.insert(rootTestPath, [&space]() -> Coroutine {
-            for(auto i = 0; i < 10; ++i)
+    SUBCASE("Grab Space") {
+        CHECK(space.insert("/space/val", 123) == true);
+        auto const valOpt = space.grab<PathSpaceTE>("/space");
+        CHECK(valOpt.has_value());
+        auto val = valOpt.value();
+        CHECK(val.grab<int>("/val") == 123);
+    }
+
+    SUBCASE("Grab Mixed Space/Builtin") {
+        CHECK(space.insert("/space/val", 123) == true);
+        CHECK(space.insert("/val", 321) == true);
+        auto const valOpt = space.grab<PathSpaceTE>("/space");
+        CHECK(valOpt.has_value());
+        auto val = valOpt.value();
+        CHECK(val.grab<int>("/val").value_or(0) == 123);
+        CHECK(space.grab<int>("/val").value_or(0) == 321);
+    }
+
+    SUBCASE("Grab Coroutine Result") {
+        CHECK(space.insert("/coro", [&space]() -> Coroutine {
+            for(auto i = 0; i < 1000; ++i)
                 co_yield i;
             space.insert("/finished", 1);
         }) == true);
-        //space.grabBlock("/finished");
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        nlohmann::json json;
-        json["finished"] = {1};
-        json["test"] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
-        CHECK(space.toJSON() == json);
+        CHECK(space.grabBlock<int>("/finished").value_or(0)==1);
+        for(auto i = 0; i < 1000; ++i)
+            CHECK(space.grab<int>("/coro").value_or(0)==i);
+    }
+
+    /*SUBCASE("Grab Coroutine") {
+        CHECK(space.insert("/coro", [&space]() -> Coroutine {
+            space.grabBlock<int>("/exit_coro");
+            co_yield 1;
+        }) == true);
+        auto coroOpt = space.grabBlock<Coroutine>("/coro");
     }*/
 }

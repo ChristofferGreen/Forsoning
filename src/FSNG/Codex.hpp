@@ -1,5 +1,6 @@
 #pragma once
 #include "CodexInfo.hpp"
+#include "FSNG/Forge.hpp"
 #include "utils.hpp"
 
 #include <algorithm>
@@ -71,6 +72,8 @@ struct Codex {
             auto const &info = this->addInfo(d.length(), &typeid(std::string));
             auto const dataSizeBytes = info.dataSizeBytes();
             copy_byte_back_insert(d.c_str(), dataSizeBytes, this->codices);
+        } else if(data.is<std::unique_ptr<std::function<Coroutine()>>>()) {
+            //this->forge.add(id, path, *data.as<std::unique_ptr<std::function<Coroutine()>>>(), [](Data const &data){});
         } else if(data.is<std::unique_ptr<PathSpaceTE>>()) {
             this->addInfo(1, &typeid(PathSpaceTE));
             auto const &p = data.as<std::unique_ptr<PathSpaceTE>>();
@@ -171,5 +174,6 @@ private:
     std::vector<std::byte> codices;
     std::vector<CodexInfo> info;
     std::vector<PathSpaceTE> spaces;
+    inline static Forge forge;
 };
 }
