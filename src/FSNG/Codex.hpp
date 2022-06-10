@@ -1,6 +1,6 @@
 #pragma once
 #include "CodexInfo.hpp"
-#include "FSNG/Forge.hpp"
+#include "FSNG/Forge/Forge.hpp"
 #include "utils.hpp"
 
 #include <algorithm>

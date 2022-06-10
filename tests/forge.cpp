@@ -5,10 +5,10 @@
 using namespace FSNG;
 
 TEST_CASE("Forge") {
-    PathSpaceTE space = PathSpace{};
-    Forge forge;
-
-    SUBCASE("Add") {
-        
+    SUBCASE("TaskQueue") {
+        Eschelon queue;
+        queue.add([]()->Coroutine{co_yield 0;}, [](Data const &data){});
+        auto const task = queue.popWait();
+        CHECK(task.ticket==0);
     }
 }

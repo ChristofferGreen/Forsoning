@@ -94,5 +94,8 @@
         "__functional_base_03": "cpp",
         "random": "cpp",
         "span": "cpp"
+    },
+    "search.exclude": {
+        "**/ext/": true
     }
 }
