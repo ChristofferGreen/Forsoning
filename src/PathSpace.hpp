@@ -9,6 +9,7 @@
 #include "FSNG/Security.hpp"
 #include "FSNG/Forge/TaskProcessor.hpp"
 #include "FSNG/Forge/Eschelon.hpp"
+#include "FSNG/Forge/Hearth.hpp"
 #include "FSNG/utils.hpp"
 
 #include "nlohmann/json.hpp"
