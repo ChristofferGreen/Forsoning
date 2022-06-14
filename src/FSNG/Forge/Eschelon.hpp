@@ -10,20 +10,30 @@ struct Eschelon {
         return ticket;
     }
 
-    auto popWait() -> Task {
+    auto popWait() -> std::optional<Task> {
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
-        while(this->alive && this->tasks.size()==0)
+        while(this->isAlive && this->tasks.size()==0) {
+            this->waiters++;
             this->condition.wait(writeLock);
-        if(!this->alive)
-            return Task{};
+            this->waiters--;
+        }
+        if(!this->isAlive)
+            return std::nullopt;
         auto const task = *this->tasks.begin();
         this->tasks.erase(this->tasks.begin());
         return task.second;
     }
+
+    auto shutdown() -> void {
+        this->isAlive = false;
+        this->condition.notify_all();
+        while(this->waiters>0) {}
+    }
     
 private:
     std::map<Ticket, Task> tasks;
-    bool alive = true;
+    bool isAlive = true;
+    std::atomic<int> waiters = 0;
     Ticket currentTicket = 0;
     mutable std::shared_mutex mutex;
     mutable std::condition_variable_any condition;

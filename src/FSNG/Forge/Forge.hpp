@@ -6,16 +6,14 @@
 
 namespace FSNG {
 struct Forge {
-    Forge() : hearth(&Forge::executor, this) {
-
-    }
+    Forge() : hearth(&Forge::executor, this) {}
 
     ~Forge() {
         this->alive = false;
+        this->eschelon.shutdown();
     }
 
     auto add(std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data)> const &inserter) -> Ticket {
-
         return {};
     }
 
@@ -24,19 +22,18 @@ struct Forge {
     }
 
     auto executor() -> void {
-         std::cout << "blah" << std::endl;
         while(this->alive) {
-            std::cout << "hello" << std::endl;
-            auto task = this->Eschelon.popWait();
-            auto coroutine = task.fun();
-            while(coroutine.next())
-                task.inserter(coroutine.getValue());
+            if(auto task = this->eschelon.popWait()) {
+                auto coroutine = task.value().fun();
+                while(coroutine.next())
+                    task.value().inserter(coroutine.getValue());
+            }
         }
     }
 
 private:
     Hearth hearth;
-    Eschelon Eschelon;
+    Eschelon eschelon;
     std::atomic<bool> alive = true;
 };
 }

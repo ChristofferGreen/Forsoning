@@ -9,6 +9,7 @@ TEST_CASE("Forge") {
         Eschelon queue;
         queue.add([]()->Coroutine{co_yield 0;}, [](Data const &data){});
         auto const task = queue.popWait();
-        CHECK(task.ticket==0);
+        CHECK(task.has_value()==true);
+        CHECK(task.value().ticket==0);
     }
 }
