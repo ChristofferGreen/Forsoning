@@ -2,6 +2,7 @@
 #include "FSNG/Forge/Hearth.hpp"
 #include "FSNG/Forge/Eschelon.hpp"
 
+#include <iostream>
 
 namespace FSNG {
 struct Forge {
@@ -23,17 +24,19 @@ struct Forge {
     }
 
     auto executor() -> void {
+         std::cout << "blah" << std::endl;
         while(this->alive) {
-            auto task = this->eschelon.popWait();
-            /*auto coroutine = task.fun();
+            std::cout << "hello" << std::endl;
+            auto task = this->Eschelon.popWait();
+            auto coroutine = task.fun();
             while(coroutine.next())
-                task.inserter(coroutine.getValue());*/
+                task.inserter(coroutine.getValue());
         }
     }
 
 private:
     Hearth hearth;
-    Eschelon eschelon;
+    Eschelon Eschelon;
     std::atomic<bool> alive = true;
 };
 }

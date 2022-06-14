@@ -14,11 +14,11 @@ struct Eschelon {
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
         while(this->alive && this->tasks.size()==0)
             this->condition.wait(writeLock);
-        /*if(!this->alive)
-            return Task();
+        if(!this->alive)
+            return Task{};
         auto const task = *this->tasks.begin();
         this->tasks.erase(this->tasks.begin());
-        return task.second;*/
+        return task.second;
     }
     
 private:

@@ -236,6 +236,6 @@ TEST_CASE("PathSpace Grab") {
             space.grabBlock<int>("/exit_coro");
             co_yield 1;
         }) == true);
-        auto coroOpt = space.grabBlock<Coroutine>("/coro");
+        auto coroOpt = space.grabBlock<experimental/coroutine>("/coro");
     }*/
 }
