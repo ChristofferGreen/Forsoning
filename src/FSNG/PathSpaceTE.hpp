@@ -3,7 +3,6 @@
 
 #include "FSNG/Coroutine.hpp"
 #include "FSNG/Path.hpp"
-#include "FSNG/Forge/TaskProcessor.hpp"
 #include "FSNG/utils.hpp"
 
 #include "nlohmann/json.hpp"
@@ -16,7 +15,6 @@ class PathSpaceTE {
 		
 		virtual auto copy_()                                                                                  const  -> std::unique_ptr<concept_t> = 0;
 		virtual auto toJSON_()                                                                                const  -> nlohmann::json             = 0;
-		virtual auto setProcessor_(std::shared_ptr<TaskProcessor> const &processor)                                  -> void                       = 0;
 		virtual auto insert_(Path const &range, Data const &data)                                                    -> bool                       = 0;
 		virtual auto grab_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       = 0;
 		virtual auto grabBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
@@ -43,7 +41,6 @@ public:
 	};
 
 	auto toJSON()                                                                            const -> nlohmann::json      { return this->self->toJSON_(); }
-	auto setProcessor(std::shared_ptr<TaskProcessor> const &processor)                             -> void                { return this->self->setProcessor_(processor); }
 	auto insert(Path const &range, Data const &data)                                               -> bool                { return this->self->insert_(range, data); }
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                {
 		return this->self->grab_(range, info, data, isTriviallyCopyable);
@@ -108,7 +105,6 @@ private:
 
 		auto copy_()                                                                                 const   -> std::unique_ptr<concept_t> override {return std::make_unique<model>(*this);}
 		auto toJSON_()                                                                               const   -> nlohmann::json             override {return this->data.toJSON();}
-		auto setProcessor_(std::shared_ptr<TaskProcessor> const &processor)                                  -> void                       override {return this->data.setProcessor(processor);}
 		auto insert_(Path const &range, Data const &d)                                                       -> bool                       override {return this->data.insert(range, d);}
 		auto grab_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       override {return this->data.grab(range, info, data, isTriviallyCopyable);}
 		auto grabBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       override {return this->data.grabBlock(range, info, data, isTriviallyCopyable);}

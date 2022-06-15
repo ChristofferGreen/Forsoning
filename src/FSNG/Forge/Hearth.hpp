@@ -1,5 +1,9 @@
 #pragma once
+#include "FSNG/Forge/Ticket.hpp"
+
 #include <set>
+#include <condition_variable>
+#include <thread>
 
 namespace FSNG {
 struct Hearth {

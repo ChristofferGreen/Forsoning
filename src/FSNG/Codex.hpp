@@ -47,7 +47,7 @@ struct Codex {
         return ret;
     }
  
-    auto insert(Data const &data) {
+    auto insert(Data const &data) -> void {
         if(data.is<bool>())                    this->insertBasic<bool>               (data);
         else if(data.is<signed char>())        this->insertBasic<signed char>        (data);
         else if(data.is<unsigned char>())      this->insertBasic<unsigned char>      (data);
@@ -73,7 +73,9 @@ struct Codex {
             auto const dataSizeBytes = info.dataSizeBytes();
             copy_byte_back_insert(d.c_str(), dataSizeBytes, this->codices);
         } else if(data.is<std::unique_ptr<std::function<Coroutine()>>>()) {
-            //this->forge.add(id, path, *data.as<std::unique_ptr<std::function<Coroutine()>>>(), [](Data const &data){});
+            this->forge.add(*data.as<std::unique_ptr<std::function<Coroutine()>>>(), [this](Data const &data){
+                this->insert(data);
+            });
         } else if(data.is<std::unique_ptr<PathSpaceTE>>()) {
             this->addInfo(1, &typeid(PathSpaceTE));
             auto const &p = data.as<std::unique_ptr<PathSpaceTE>>();

@@ -139,10 +139,6 @@ struct Data {
         return std::get<T>(this->data);
     }
 
-    auto isDirectlyInsertable() const {
-        return !this->is<std::unique_ptr<std::function<Coroutine()>>>();
-    }
-
 private:
     std::variant<bool,
                  signed char,

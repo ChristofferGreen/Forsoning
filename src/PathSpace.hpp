@@ -7,7 +7,6 @@
 #include "FSNG/Path.hpp"
 #include "FSNG/PathSpaceTE.hpp"
 #include "FSNG/Security.hpp"
-#include "FSNG/Forge/TaskProcessor.hpp"
 #include "FSNG/Forge/Eschelon.hpp"
 #include "FSNG/Forge/Hearth.hpp"
 #include "FSNG/utils.hpp"
@@ -22,8 +21,7 @@
 
 namespace FSNG {
 struct PathSpace {
-    PathSpace()                                                : processor(std::make_shared<TaskProcessor>()) {};
-    PathSpace(std::shared_ptr<TaskProcessor> const &processor) : processor(processor) {};
+    PathSpace() = default;
 
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
     
@@ -60,16 +58,12 @@ struct PathSpace {
             bool ret = false;
             this->codices.write(spaceName.value(), [this, &spaceName, &ret, &range, &data](auto &codices){
                 if(codices.count(spaceName.value())==0)
-                    codices[spaceName.value()].insert(PathSpaceTE(PathSpace{this->processor}));
+                    codices[spaceName.value()].insert(PathSpaceTE(PathSpace{}));
                 ret = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &data](auto &space){return space.insert(range.next(), data);});
             });
             return ret;
         }
         return false;
-    }
-
-    auto setProcessor(std::shared_ptr<TaskProcessor> const &processor) {
-        this->processor = processor;
     }
 
     virtual auto toJSON() const -> nlohmann::json {
@@ -105,27 +99,13 @@ private:
     }
 
     virtual auto insert(std::string const &dataName, Data const &data) -> bool {
-        if(data.isDirectlyInsertable()) {
-            this->codices.write(dataName, [&dataName, &data](auto &codices){
-                codices[dataName].insert(data);
-            });
-        }
-        else if(data.is<std::unique_ptr<std::function<Coroutine()>>>())
-            return this->insert(dataName, *data.as<std::unique_ptr<std::function<Coroutine()>>>());
-        else
-            return false;
+        this->codices.write(dataName, [&dataName, &data](auto &codices){
+            codices[dataName].insert(data);
+        });
         return true;
     }
-    
-    auto insert(std::string const &dataName, std::function<Coroutine()> const &coroutine) -> bool {
-        if(this->processor) {
-            this->processor->add(this, coroutine, [this, dataName](Data const &data){this->insert(dataName, data);});
-            return true;
-        }
-        return false;
-    }
+
     private:
         CodicesAegis codices;
-        std::shared_ptr<TaskProcessor> processor;
 };
 }
