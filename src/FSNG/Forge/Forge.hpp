@@ -9,24 +9,32 @@ struct Forge {
     Forge() : hearth(&Forge::executor, this) {}
 
     ~Forge() {
-        this->alive = false;
+        this->isAlive = false;
         this->eschelon.shutdown();
     }
 
-    auto add(std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data)> const &inserter) -> Ticket {
-        return {};
+    auto add(std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data)> const &inserter=[](Data const &data){}) -> Ticket {
+        return this->eschelon.add(coroutineFun, inserter);
     }
 
     auto remove(Ticket const &ticket) -> void {
-
+        if(!this->eschelon.remove(ticket))
+            this->hearth.remove(ticket);
     }
 
-    auto executor() -> void {
-        while(this->alive) {
+    auto wait(Ticket const &ticket) -> void {
+        this->eschelon.wait(ticket);
+        this->hearth.wait(ticket);
+    }
+
+    auto executor(int const id) -> void {
+        while(this->isAlive) {
             if(auto task = this->eschelon.popWait()) {
+                this->hearth.starting(task.value().ticket);
                 auto coroutine = task.value().fun();
                 while(coroutine.next())
                     task.value().inserter(coroutine.getValue());
+                this->hearth.finished(task.value().ticket);
             }
         }
     }
@@ -34,6 +42,6 @@ struct Forge {
 private:
     Hearth hearth;
     Eschelon eschelon;
-    std::atomic<bool> alive = true;
+    std::atomic<bool> isAlive = true;
 };
 }

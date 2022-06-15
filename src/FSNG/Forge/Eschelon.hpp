@@ -10,6 +10,11 @@ struct Eschelon {
         return ticket;
     }
 
+    auto remove(Ticket const &ticket) -> bool {
+        auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
+        return this->tasks.erase(ticket)>0;
+    }
+
     auto popWait() -> std::optional<Task> {
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
         while(this->isAlive && this->tasks.size()==0) {
@@ -21,7 +26,14 @@ struct Eschelon {
             return std::nullopt;
         auto const task = *this->tasks.begin();
         this->tasks.erase(this->tasks.begin());
+        this->condition.notify_all();
         return task.second;
+    }
+
+    auto wait(Ticket const &ticket) -> void {
+        auto readLock = std::shared_lock(this->mutex);
+        while(this->tasks.contains(ticket))
+            this->condition.wait(readLock);
     }
 
     auto shutdown() -> void {
@@ -29,12 +41,11 @@ struct Eschelon {
         this->condition.notify_all();
         while(this->waiters>0) {}
     }
-    
 private:
     std::map<Ticket, Task> tasks;
     bool isAlive = true;
     std::atomic<int> waiters = 0;
-    Ticket currentTicket = 0;
+    Ticket currentTicket = FirstTicket;
     mutable std::shared_mutex mutex;
     mutable std::condition_variable_any condition;
 };
