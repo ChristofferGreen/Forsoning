@@ -17,7 +17,7 @@ class PathSpaceTE {
 		virtual auto toJSON_()                                                                                const  -> nlohmann::json             = 0;
 		virtual auto insert_(Path const &range, Data const &data)                                                    -> bool                       = 0;
 		virtual auto grab_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       = 0;
-		virtual auto grabBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
+		virtual auto grabBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> void                       = 0;
         /*virtual auto popFrontData_()                                                                                        -> std::optional<DataType>    = 0;
 		virtual auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters)                               -> std::optional<PathSpaceTE> = 0;
 		virtual auto grabBlock_(std::filesystem::path const &path)                                                          -> std::optional<PathSpaceTE> = 0;
@@ -52,15 +52,14 @@ public:
 			return data;
 		return std::nullopt;
 	}
-    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                {
-		return this->self->grabBlock_(range, info, data, isTriviallyCopyable);
+    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> void                {
+		this->self->grabBlock_(range, info, data, isTriviallyCopyable);
 	}
 	template<typename T>
-	auto grabBlock(Path const &range)                                         -> std::optional<T> {
+	auto grabBlock(Path const &range)                                         -> T {
 		T data;
-		if(this->grabBlock(range, &typeid(T), reinterpret_cast<void*>(&data), std::is_trivially_copyable<T>()))
-			return data;
-		return std::nullopt;
+		this->grabBlock(range, &typeid(T), reinterpret_cast<void*>(&data), std::is_trivially_copyable<T>());
+		return data;
 	}
 	/*auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data)       -> bool { return this->self->insert_(path, iters, data); }
 
@@ -107,7 +106,7 @@ private:
 		auto toJSON_()                                                                               const   -> nlohmann::json             override {return this->data.toJSON();}
 		auto insert_(Path const &range, Data const &d)                                                       -> bool                       override {return this->data.insert(range, d);}
 		auto grab_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       override {return this->data.grab(range, info, data, isTriviallyCopyable);}
-		auto grabBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       override {return this->data.grabBlock(range, info, data, isTriviallyCopyable);}
+		auto grabBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> void                       override {return this->data.grabBlock(range, info, data, isTriviallyCopyable);}
 		/*auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &d)      -> bool                           override {return this->data.insert(path, iters, d);}
         auto popFrontData_()                                                                                    -> std::optional<DataType>        override {return this->data.popFrontData();}
 		auto grab_(std::filesystem::path const &path)                                                           -> std::optional<PathSpaceTE>     override {return this->data.grab(path);}

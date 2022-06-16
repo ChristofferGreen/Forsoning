@@ -31,6 +31,17 @@ TEST_CASE("PathSpace Grab") {
         CHECK(val2.value() == 6);
     }
 
+    SUBCASE("Grab Empty") {
+        CHECK(space.insert("/test", 5) == true);
+        CHECK(space.insert("/test", 6) == true);
+        auto const val = space.grab<int>("/test");
+        CHECK(val.value() == 5);
+        auto const val2 = space.grab<int>("/test");
+        CHECK(val2.value() == 6);
+        auto const val3 = space.grab<int>("/test");
+        CHECK(!val3.has_value());
+    }
+
     SUBCASE("Grab") {
         CHECK(space.insert(rootTestPath, 5) == true);
         CHECK(space.grab<int>(rootTestPath) == 5);
@@ -225,8 +236,9 @@ TEST_CASE("PathSpace Grab") {
             for(auto i = 0; i < 1000; ++i)
                 co_yield i;
             space.insert("/finished", 1);
+            co_return 1000;
         }) == true);
-        CHECK(space.grabBlock<int>("/finished").value_or(0)==1);
+        CHECK(space.grabBlock<int>("/finished")==1);
         for(auto i = 0; i < 1000; ++i)
             CHECK(space.grab<int>("/coro").value_or(0)==i);
     }

@@ -32,8 +32,10 @@ struct Forge {
             if(auto task = this->eschelon.popWait()) {
                 this->hearth.starting(task.value().ticket);
                 auto coroutine = task.value().fun();
-                while(coroutine.next())
+                while(!coroutine.done()) {
+                    coroutine.next();
                     task.value().inserter(coroutine.getValue());
+                }
                 this->hearth.finished(task.value().ticket);
             }
         }

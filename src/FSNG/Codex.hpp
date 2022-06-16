@@ -135,6 +135,10 @@ struct Codex {
         return json;
     }
 
+    auto empty() -> bool {
+        return this->info.size()==0;
+    }
+    
 private:
     auto popInfo() -> void {
         if(this->info.begin()->nbrItems()>1) {

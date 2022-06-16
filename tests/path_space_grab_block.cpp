@@ -11,7 +11,7 @@ auto check_grab_block(auto &space, auto const &path, auto const &testValue) {
     using InTRRRC = typename std::remove_const<InTRR>::type;
     auto const val = space.template grab<InTRRRC>(path);
     CHECK(val.has_value());
-    CHECK(val.value()==testValue);
+    CHECK(val==testValue);
 }
 
 TEST_CASE("PathSpace Grab Block") {
@@ -26,9 +26,9 @@ TEST_CASE("PathSpace Grab Block") {
         CHECK(space.insert("/test", 5) == true);
         CHECK(space.insert("/test", 6) == true);
         auto const val = space.grabBlock<int>("/test");
-        CHECK(val.value() == 5);
+        CHECK(val == 5);
         auto const val2 = space.grabBlock<int>("/test");
-        CHECK(val2.value() == 6);
+        CHECK(val2 == 6);
     }
 
     SUBCASE("Grab Block") {
@@ -37,8 +37,8 @@ TEST_CASE("PathSpace Grab Block") {
 
         CHECK(space.insert(rootTestPath2, "hello") == true);
         auto val = space.grabBlock<std::string>(rootTestPath2);
-        CHECK(val.has_value());
-        CHECK(std::string(val.value()) == "hello");
+
+        CHECK(std::string(val) == "hello");
 
         CHECK(space.insert(rootTestPath, 234) == true);
         CHECK(space.grabBlock<int>(rootTestPath) == 234);
@@ -48,8 +48,7 @@ TEST_CASE("PathSpace Grab Block") {
         POD const pod1;
         CHECK(space.insert(rootTestPath, pod1) == true);
         auto const pod2 = space.grabBlock<POD>(rootTestPath);
-        CHECK(pod2.has_value());
-        CHECK(pod1 == pod2.value());
+        CHECK(pod1 == pod2);
     }
 
     SUBCASE("Grab Block NonTrivial Class") {
@@ -58,8 +57,7 @@ TEST_CASE("PathSpace Grab Block") {
         CHECK(space.insert(rootTestPath, nt) == true);
 
         auto const nt2 = space.grabBlock<NonTrivial>(rootTestPath);
-        CHECK(nt2.has_value());
-        CHECK(nt == nt2.value());
+        CHECK(nt == nt2);
     }
 
     SUBCASE("Grab Block NonTrivial Class JS") {
@@ -67,8 +65,8 @@ TEST_CASE("PathSpace Grab Block") {
         nt.b = {1, 2, 3};
         CHECK(space.insert(rootTestPath, nt) == true);
         auto const val = space.grabBlock<NonTrivialJS>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(nt == val.value());
+
+        CHECK(nt == val);
     }
 
     SUBCASE("Grab Block Bool") {
@@ -78,103 +76,100 @@ TEST_CASE("PathSpace Grab Block") {
         auto const v1 = space.grabBlock<bool>(rootTestPath);
         auto const v2 = space.grabBlock<bool>(rootTestPath);
         auto const v3 = space.grabBlock<bool>(rootTestPath);
-        CHECK(v1.has_value());
-        CHECK(v2.has_value());
-        CHECK(v3.has_value());
-        CHECK(v1.value()==true);
-        CHECK(v2.value()==false);
-        CHECK(v3.value()==true);
+        CHECK(v1==true);
+        CHECK(v2==false);
+        CHECK(v3==true);
     }
 
     SUBCASE("Grab Block Signed Char") {
         CHECK(space.insert(rootTestPath, static_cast<signed char>('C')) == true);
         auto const val = space.grabBlock<signed char>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()=='C');
+
+        CHECK(val=='C');
     }
 
     SUBCASE("Grab Block Unsigned Char") {
         CHECK(space.insert(rootTestPath, static_cast<unsigned char>('C')) == true);
         auto const val = space.grabBlock<unsigned char>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()=='C');
+
+        CHECK(val=='C');
     }
 
     SUBCASE("Grab Block wchar_t") {
         CHECK(space.insert(rootTestPath, static_cast<wchar_t>('C')) == true);
         auto const val = space.grabBlock<wchar_t>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()=='C');
+
+        CHECK(val=='C');
     }
 
     SUBCASE("Grab Block Short") {
         CHECK(space.insert(rootTestPath, static_cast<short>(43)) == true);
         auto const val = space.grabBlock<short>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==43);
+
+        CHECK(val==43);
     }
 
     SUBCASE("Grab Block Unsigned Short") {
         CHECK(space.insert(rootTestPath, static_cast<unsigned short>(-43)) == true);
         auto const val = space.grabBlock<unsigned short>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<unsigned short>(-43));
+
+        CHECK(val==static_cast<unsigned short>(-43));
     }
 
     SUBCASE("Grab Block Int") {
         CHECK(space.insert(rootTestPath, static_cast<int>(43)) == true);
         auto const val = space.grabBlock<int>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<int>(43));
+
+        CHECK(val==static_cast<int>(43));
     }
 
     SUBCASE("Grab Block Unsigned Int") {
         CHECK(space.insert(rootTestPath, static_cast<unsigned int>(-43)) == true);
         auto const val = space.grabBlock<unsigned int>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<unsigned int>(-43));
+
+        CHECK(val==static_cast<unsigned int>(-43));
     }
 
     SUBCASE("Grab Block Long") {
         CHECK(space.insert(rootTestPath, static_cast<long>(43)) == true);
         auto const val = space.grabBlock<long>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<long>(43));
+
+        CHECK(val==static_cast<long>(43));
     }
 
     SUBCASE("Grab Block Unsigned Long") {
         CHECK(space.insert(rootTestPath, static_cast<unsigned long>(-43)) == true);
         auto const val = space.grabBlock<unsigned long>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<unsigned long>(-43));
+
+        CHECK(val==static_cast<unsigned long>(-43));
     }
 
     SUBCASE("Grab Block Long Long") {
         CHECK(space.insert(rootTestPath, static_cast<long long>(43)) == true);
         auto const val = space.grabBlock<long long>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<long long>(43));
+
+        CHECK(val==static_cast<long long>(43));
     }
 
     SUBCASE("Grab Block Unsigned Long Long") {
         CHECK(space.insert(rootTestPath, static_cast<unsigned long long>(-43)) == true);
         auto const val = space.grabBlock<unsigned long long>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<unsigned long long>(-43));
+
+        CHECK(val==static_cast<unsigned long long>(-43));
     }
 
     SUBCASE("Grab Block Double") {
         CHECK(space.insert(rootTestPath, static_cast<double>(5.45)) == true);
         auto const val = space.grabBlock<double>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<double>(5.45));
+
+        CHECK(val==static_cast<double>(5.45));
     }
 
     SUBCASE("Grab Block Long Double") {
         CHECK(space.insert(rootTestPath, static_cast<long double>(5.45)) == true);
         auto const val = space.grabBlock<long double>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<long double>(5.45));
+
+        CHECK(val==static_cast<long double>(5.45));
     }
 
     SUBCASE("Grab Block Multiple Types") {
@@ -191,8 +186,8 @@ TEST_CASE("PathSpace Grab Block") {
     SUBCASE("Grab Block deep") {
         CHECK(space.insert(rootTestTest2Path, 5) == true);
         auto const val = space.grabBlock<int>(rootTestTest2Path);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<int>(5));
+
+        CHECK(val==static_cast<int>(5));
     }
 
     /*SUBCASE("Grab Block space") {

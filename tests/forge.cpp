@@ -7,7 +7,7 @@ using namespace FSNG;
 TEST_CASE("Forge") {
     SUBCASE("Eschelon") {
         Eschelon queue;
-        queue.add([]()->Coroutine{co_yield 0;}, [](Data const &data){});
+        queue.add([]()->Coroutine{co_return 0;}, [](Data const &data){});
         auto const task = queue.popWait();
         CHECK(task.has_value()==true);
         CHECK(task.value().ticket==FirstTicket);
@@ -16,7 +16,7 @@ TEST_CASE("Forge") {
     SUBCASE("Forge") {
         Forge forge;
         auto res = 0;
-        auto const ticket = forge.add([]()->Coroutine{co_yield 345;}, [&res](Data const &data){
+        auto const ticket = forge.add([]()->Coroutine{co_return 345;}, [&res](Data const &data){
             CHECK(data.is<int>()==true);
             res=data.as<int>();
         });

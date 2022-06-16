@@ -9,7 +9,7 @@ using namespace FSNG;
 TEST_CASE("DiningPhilosophers") {
     PathSpaceTE space = PathSpace();
     int const numberOfPhilosophers = 5;
-    int const totalLoops = 1000;
+    int const totalLoops = 10;
     auto thinkOrEat = [](int const &i, std::string const &type, PathSpaceTE &space){
         std::this_thread::sleep_for(std::chrono::nanoseconds(random_number(50000, 300000)));
         space.grabBlock<bool>("/print_mutex");
@@ -26,14 +26,17 @@ TEST_CASE("DiningPhilosophers") {
                 auto const leftChopStick = space.grabBlock<int>("/chopstick/"+std::to_string(i));
                 auto const rightChopStick = space.grabBlock<int>("/chopstick/"+std::to_string((i+1)%numberOfPhilosophers));
                 thinkOrEat(i, "eat", space);
-                space.insert("/chopstick/"+std::to_string(i), leftChopStick.value());
-                space.insert("/chopstick/"+std::to_string((i+1)%numberOfPhilosophers), rightChopStick.value());
+                space.insert("/chopstick/"+std::to_string(i), leftChopStick);
+                space.insert("/chopstick/"+std::to_string((i+1)%numberOfPhilosophers), rightChopStick);
             }
-            co_yield currentLoop;
+            co_return 123;
         });
         if(i<(numberOfPhilosophers-1))
             space.insert("/room_ticket", i);
     }
-    for(int i = 0; i < numberOfPhilosophers; ++i)
-        std::cout << space.grabBlock<int>("/philosopher").value() << std::endl;
+    for(int i = 0; i < numberOfPhilosophers; ++i) {
+        int const ret = space.grabBlock<int>("/philosopher");
+        CHECK(ret==123);
+        std::cout << ret << std::endl;
+    }
 }

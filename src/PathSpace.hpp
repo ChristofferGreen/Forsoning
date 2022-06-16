@@ -38,17 +38,16 @@ struct PathSpace {
         return false;
     }
 
-    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> void {
         if(range.isAtData())
-            return this->grabBlock(range.dataName(), info, data, isTriviallyCopyable);
-        if(auto const spaceName = range.spaceName()) {
-            bool ret = false;
-            this->codices.writeWaitForExistance(spaceName.value(), [&ret, &spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
-                ret = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){return space.grabBlock(range.next(), info, data, isTriviallyCopyable);});;
+            this->grabBlock(range.dataName(), info, data, isTriviallyCopyable);
+        else if(auto const spaceName = range.spaceName()) {
+            this->codices.writeWaitForExistance(spaceName.value(), [&spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
+                codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){space.grabBlock(range.next(), info, data, isTriviallyCopyable);return true;});;
             });
-            return ret;
         }
-        return false;
+        else
+            while(true) {}; // for paths such as ""
     }
 
     virtual auto insert(Path const &range, Data const &data) -> bool {
@@ -85,17 +84,15 @@ private:
         return ret;
     }
 
-    virtual auto grabBlock(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> bool {
-        bool ret = false;
+    virtual auto grabBlock(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> void {
         if(*info==typeid(Coroutine)) {
            // if(this->processor)
         } else {
-            this->codices.writeWaitForExistance(dataName, [&dataName, data, info, &ret, isFundamentalType](auto &codices){
+            this->codices.writeWaitForExistance(dataName, [&dataName, data, info, isFundamentalType](auto &codices){
                 if(codices.contains(dataName))
-                    ret = codices.at(dataName).grab(info, data, isFundamentalType);
+                    codices.at(dataName).grab(info, data, isFundamentalType);
             });
         }
-        return ret;
     }
 
     virtual auto insert(std::string const &dataName, Data const &data) -> bool {

@@ -29,6 +29,10 @@ struct Coroutine {
         return std::move(coro.promise().current_value);
     }
 
+    auto done() -> bool {
+        return coro.done();
+    }
+
     auto next() {
         coro.resume();
         return !coro.done();
@@ -50,11 +54,12 @@ struct Coroutine {
             return Coroutine {handle_type::from_promise(*this)};
         }
 
-        auto return_void() {
-            return std::experimental::suspend_never{};
+        auto yield_value(Data &&value) {
+            current_value = std::move(value);
+            return std::experimental::suspend_always{};
         }
 
-        auto yield_value(Data &&value) {
+        auto return_value(Data &&value) {
             current_value = std::move(value);
             return std::experimental::suspend_always{};
         }

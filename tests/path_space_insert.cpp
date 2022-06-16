@@ -213,12 +213,11 @@ TEST_CASE("PathSpace Insert") {
             for(auto i = 0; i < 10; ++i)
                 co_yield i;
             space.insert("/finished", 1);
+            co_return 10;
         }) == true);
-        //space.grabBlock("/finished");
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        space.grabBlock<int>("/finished");
         nlohmann::json json;
-        json["finished"] = {1};
-        json["test"] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        json["test"] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
         CHECK(space.toJSON() == json);
     }
 }

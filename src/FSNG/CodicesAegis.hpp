@@ -19,6 +19,10 @@ struct CodicesAegis {
         fun(this->codices);
         if(this->waiters.contains(name))
             this->waiters.at(name).notify_all();
+        if(this->codices.contains(name)) {
+            if(this->codices.at(name).empty())
+                this->codices.erase(name);
+        }
     }
 
     auto read(auto const &fun) const -> void {
@@ -31,6 +35,10 @@ struct CodicesAegis {
         while(!this->codices.contains(name))
             this->waiters[name].wait(this->mutex); // How do we remove a waiter?
         fun(this->codices);
+        if(this->codices.contains(name)) {
+            if(this->codices.at(name).empty())
+                this->codices.erase(name);
+        }
     }
     
     private:
