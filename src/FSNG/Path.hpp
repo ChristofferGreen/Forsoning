@@ -15,6 +15,7 @@ struct Path {
             this->current++;
     }
     Path(const char* const &str) : Path(std::filesystem::path(str)) {}
+    Path(std::string const &str) : Path(std::filesystem::path(str)) {}
     Path(std::filesystem::path::const_iterator const &current, std::filesystem::path::const_iterator const &end) : current(current), end(end) {}
 
     auto next() const {

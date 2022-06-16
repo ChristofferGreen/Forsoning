@@ -5,6 +5,7 @@ add_executable(ForsoningTest
   cpp_json.cpp
   cpp_asio.cpp
   cpp_random_string.cpp
+  multithreaded_problems.cpp
   forge.cpp
   path.cpp
   path_space.cpp

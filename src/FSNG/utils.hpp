@@ -59,4 +59,9 @@ inline auto random_string(std::string::size_type length = 32) -> std::string {
     return s;
 }
 
+inline int random_number(int min, int max) {
+  static std::mt19937 rnd(std::time(nullptr));
+  return std::uniform_int_distribution<>(min,max)(rnd);
+}
+
 }
