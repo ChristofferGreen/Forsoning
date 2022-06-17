@@ -2,6 +2,8 @@
 
 #include "PathSpace.hpp"
 
+#include <mutex>
+
 using namespace FSNG;
 
 TEST_CASE("Forge") {
@@ -22,5 +24,24 @@ TEST_CASE("Forge") {
         });
         forge.wait(ticket);
         CHECK(res==345);
+    }
+
+    SUBCASE("Forge Multiple Tasks") {
+        Forge forge;
+        std::set<int> s;
+        std::vector<int> tickets;
+        std::shared_mutex mutex;
+        for(auto i = 0; i < 128; ++i) {
+            tickets.push_back(forge.add([i]()->Coroutine{co_return i;}, [i, &s, &mutex](Data const &data){
+                CHECK(data.is<int>()==true);
+                auto writeLock = std::unique_lock<std::shared_mutex>(mutex);
+                s.insert(i);
+            }));
+        }
+        for(auto const &ticket : tickets)
+            forge.wait(ticket);
+        CHECK(s.size()==128);
+        for(auto i = 0; i < 128; ++i)
+            CHECK(s.contains(i));
     }
 }

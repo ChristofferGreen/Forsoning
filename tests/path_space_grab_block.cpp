@@ -183,11 +183,22 @@ TEST_CASE("PathSpace Grab Block") {
         check_grab_block(space, rootTestPath, static_cast<int>(34));
     }
 
-    SUBCASE("Grab Block deep") {
+    SUBCASE("Grab Block Deep") {
         CHECK(space.insert(rootTestTest2Path, 5) == true);
         auto const val = space.grabBlock<int>(rootTestTest2Path);
 
         CHECK(val==static_cast<int>(5));
+    }
+
+    SUBCASE("Grab Block Vector Order") {
+        CHECK(space.insert("/test", 5) == true);
+        CHECK(space.insert("/test", 6) == true);
+        CHECK(space.insert("/test", 7) == true);
+        CHECK(space.insert("/test", 8) == true);
+        CHECK(space.grabBlock<int>("/test")==5);
+        CHECK(space.grabBlock<int>("/test")==6);
+        CHECK(space.grabBlock<int>("/test")==7);
+        CHECK(space.grabBlock<int>("/test")==8);
     }
 
     /*SUBCASE("Grab Block space") {

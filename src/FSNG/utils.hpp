@@ -5,6 +5,8 @@
 #include <functional>
 #include <random>
 #include <string>
+#include <iostream>
+#include <mutex>
 
 namespace FSNG {
 namespace Converters {
@@ -59,9 +61,16 @@ inline auto random_string(std::string::size_type length = 32) -> std::string {
     return s;
 }
 
-inline int random_number(int min, int max) {
+inline auto random_number(int min, int max) -> int {
   static std::mt19937 rnd(std::time(nullptr));
   return std::uniform_int_distribution<>(min,max)(rnd);
+}
+
+inline auto printm(std::string const &s) -> void {
+    static std::shared_mutex printMutex;
+    auto writeLock = std::unique_lock<std::shared_mutex>(printMutex);
+    std::cout << s << std::endl;
+
 }
 
 }

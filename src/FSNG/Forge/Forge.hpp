@@ -1,12 +1,13 @@
 #pragma once
 #include "FSNG/Forge/Hearth.hpp"
 #include "FSNG/Forge/Eschelon.hpp"
+#include "FSNG/utils.hpp"
 
 #include <iostream>
 
 namespace FSNG {
 struct Forge {
-    Forge() : hearth(&Forge::executor, this) {}
+    Forge() : eschelon(), hearth(&Forge::executor, this) {}
 
     ~Forge() {
         this->isAlive = false;
@@ -29,7 +30,9 @@ struct Forge {
 
     auto executor(int const id) -> void {
         while(this->isAlive) {
+            printm(fmt::format("Thread: {} waiting for task, tasks available: {}", id, this->eschelon.size()));
             if(auto task = this->eschelon.popWait()) {
+                printm(fmt::format("Thread: {} got task", id));
                 this->hearth.starting(task.value().ticket);
                 auto coroutine = task.value().fun();
                 while(!coroutine.done()) {
@@ -37,13 +40,14 @@ struct Forge {
                     task.value().inserter(coroutine.getValue());
                 }
                 this->hearth.finished(task.value().ticket);
+                printm(fmt::format("Thread: {} finished task", id));
             }
         }
     }
 
 private:
-    Hearth hearth;
-    Eschelon eschelon;
     std::atomic<bool> isAlive = true;
+    Eschelon eschelon;
+    Hearth hearth;
 };
 }

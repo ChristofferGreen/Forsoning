@@ -1,6 +1,10 @@
 #pragma once
 #include "FSNG/Forge/Task.hpp"
 
+#include <iostream>
+
+#define FMT_HEADER_ONLY
+#include "fmt/format.h"
 
 namespace FSNG {
 struct Eschelon {
@@ -8,7 +12,8 @@ struct Eschelon {
         auto const writeLock = std::lock_guard<std::shared_mutex>(this->mutex);
         auto const ticket = this->currentTicket++;
         this->tasks[ticket] = Task{ticket, coroutineFun, inserter};
-        this->condition.notify_one();
+        this->condition.notify_all();
+        printm(fmt::format("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters));
         return ticket;
     }
 
@@ -42,6 +47,11 @@ struct Eschelon {
         this->isAlive = false;
         this->condition.notify_all();
         while(this->waiters>0) {}
+    }
+
+    auto size() const -> int {
+        auto readLock = std::shared_lock(this->mutex);
+        return this->tasks.size();
     }
 private:
     std::map<Ticket, Task> tasks;
