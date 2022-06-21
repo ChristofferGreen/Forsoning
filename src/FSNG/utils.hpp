@@ -2,6 +2,8 @@
 #include "FSNG/Coroutine.hpp"
 #include "FSNG/Data.hpp"
 
+#include "spdlog/spdlog.h"
+
 #include <functional>
 #include <random>
 #include <string>
@@ -74,3 +76,6 @@ inline auto printm(std::string const &s) -> void {
 }
 
 }
+
+//#define LOG(...)
+#define LOG(...) spdlog::get("file")->info(__VA_ARGS__);

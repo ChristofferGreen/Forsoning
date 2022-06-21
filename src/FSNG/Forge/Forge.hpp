@@ -42,6 +42,7 @@ struct Forge {
                 while(!coroutine.done()) {
                     coroutine.next();
                     task.value().inserter(coroutine.getValue());
+                    spdlog::get("file")->info(fmt::format("Thread: {} inserting coroutine value", id));
                 }
                 this->hearth.finished(task.value().ticket);
                 spdlog::get("file")->info(fmt::format("Thread: {} finished task", id));

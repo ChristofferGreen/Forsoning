@@ -30,6 +30,11 @@ struct CodicesAegis {
         auto readLock = std::shared_lock(this->mutex);
         this->condition.wait(readLock);
     }
+
+    auto size() const -> int {
+         auto readLock = std::shared_lock(this->mutex);
+         return this->codices.size();
+    }
     
     private:
         auto popEmptySpace(std::string const &name) -> void {

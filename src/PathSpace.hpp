@@ -12,7 +12,6 @@
 #include "FSNG/utils.hpp"
 
 #include "nlohmann/json.hpp"
-#include "spdlog/spdlog.h"
 
 #include <deque>
 #include <memory>
@@ -67,7 +66,7 @@ struct PathSpace {
     virtual auto insert(Path const &range, Data const &data) -> bool {
         bool const isAtRoot = range.isAtRoot();
         if(isAtRoot)
-            spdlog::get("file")->info("PathSpace::insert {}", range.string());
+            LOG("PathSpace::insert {}", range.string());
         if(range.isAtData())
             return this->insert(range.dataName(), data);
         if(auto const spaceName = range.spaceName()) { // Create space if it does not exist
@@ -83,11 +82,13 @@ struct PathSpace {
     }
 
     virtual auto toJSON() const -> nlohmann::json {
+        LOG("PathSpace::toJSON codices size: {}", this->codices.size());
         nlohmann::json json;
         this->codices.read([&json](auto const &codices){
             for(auto const &p : codices)
                 json[p.first] = p.second.toJSON();
         });
+        LOG("PathSpace::toJSON finished");
         return json;
     }
 
