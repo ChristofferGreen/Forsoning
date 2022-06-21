@@ -15,7 +15,7 @@ struct Eschelon {
         auto const ticket = this->currentTicket++;
         this->tasks[ticket] = Task{ticket, coroutineFun, inserter};
         this->condition.notify_all();
-        spdlog::get("file")->info(fmt::format("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters));
+        spdlog::get("file")->info("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters);
         return ticket;
     }
 

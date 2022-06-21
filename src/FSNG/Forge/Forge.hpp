@@ -32,20 +32,20 @@ struct Forge {
 
     auto executor(int const id) -> void {
         while(!spdlog::get("file")) {}
-        spdlog::get("file")->info(fmt::format("Thread: {} started executing.", id));
+        LOG("Thread: {} started executing.", id);
         while(this->isAlive) {
-            spdlog::get("file")->info(fmt::format("Thread: {} waiting for task, tasks available: {}", id, this->eschelon.size()));
+            LOG("Thread: {} waiting for task, tasks available: {}", id, this->eschelon.size());
             if(auto task = this->eschelon.popWait()) {
-                spdlog::get("file")->info(fmt::format("Thread: {} got task", id));
+                LOG("Thread: {} got task", id);
                 this->hearth.starting(task.value().ticket);
                 auto coroutine = task.value().fun();
                 while(!coroutine.done()) {
                     coroutine.next();
                     task.value().inserter(coroutine.getValue());
-                    spdlog::get("file")->info(fmt::format("Thread: {} inserting coroutine value", id));
+                    LOG("Thread: {} inserting coroutine value", id);
                 }
                 this->hearth.finished(task.value().ticket);
-                spdlog::get("file")->info(fmt::format("Thread: {} finished task", id));
+                LOG("Thread: {} finished task", id);
             }
         }
     }
