@@ -6,6 +6,8 @@
 #define FMT_HEADER_ONLY
 #include "fmt/format.h"
 
+#include "spdlog/spdlog.h"
+
 namespace FSNG {
 struct Eschelon {
     auto add(std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data)> const &inserter) -> Ticket {
@@ -13,7 +15,7 @@ struct Eschelon {
         auto const ticket = this->currentTicket++;
         this->tasks[ticket] = Task{ticket, coroutineFun, inserter};
         this->condition.notify_all();
-        printm(fmt::format("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters));
+        spdlog::get("file")->info(fmt::format("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters));
         return ticket;
     }
 

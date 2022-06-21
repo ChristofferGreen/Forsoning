@@ -17,12 +17,8 @@ struct CodicesAegis {
     auto write(std::string const &name, auto const &fun) -> void {
         auto const mapWriteMutex = std::lock_guard<std::shared_mutex>(this->mutex);
         fun(this->codices);
-        if(this->waiters.contains(name))
-            this->waiters.at(name).notify_all();
-        if(this->codices.contains(name)) {
-            if(this->codices.at(name).empty())
-                this->codices.erase(name);
-        }
+        this->popEmptySpace(name);
+        this->condition.notify_all();
     }
 
     auto read(auto const &fun) const -> void {
@@ -30,20 +26,21 @@ struct CodicesAegis {
         fun(this->codices);
     }
 
-    auto writeWaitForExistance(std::string const &name, auto const &fun) -> void {
-        auto const mapWriteMutex = std::lock_guard<std::shared_mutex>(this->mutex);
-        while(!this->codices.contains(name))
-            this->waiters[name].wait(this->mutex); // How do we remove a waiter?
-        fun(this->codices);
-        if(this->codices.contains(name)) {
-            if(this->codices.at(name).empty())
-                this->codices.erase(name);
-        }
+    auto waitForWrite() const -> void {
+        auto readLock = std::shared_lock(this->mutex);
+        this->condition.wait(readLock);
     }
     
     private:
+        auto popEmptySpace(std::string const &name) -> void {
+            if(this->codices.contains(name)) {
+                if(this->codices.at(name).empty())
+                    this->codices.erase(name);
+            }
+        }
+
         std::unordered_map<std::string, Codex> codices;
-        std::unordered_map<std::string, std::condition_variable_any> waiters;
         mutable std::shared_mutex mutex;
+        mutable std::condition_variable_any condition;
 };
 }

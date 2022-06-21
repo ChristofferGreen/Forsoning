@@ -30,12 +30,23 @@ struct Path {
         return *this->current;
     }
 
+    auto string() const -> std::string {
+        return this->path.string();
+    }
+
     auto dataName() const -> std::string {
         return *this->end;
     }
 
     auto isAtData() const -> bool {
         return current==end;
+    }
+
+    auto isAtRoot() const -> bool {
+        auto start = this->path.begin();
+        if(*start=="/")
+            start++;
+        return start==this->current;
     }
 
     auto isValid() -> bool {

@@ -12,6 +12,7 @@
 #include "FSNG/utils.hpp"
 
 #include "nlohmann/json.hpp"
+#include "spdlog/spdlog.h"
 
 #include <deque>
 #include <memory>
@@ -26,6 +27,8 @@ struct PathSpace {
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
     
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+        if(range.isAtRoot())
+            spdlog::get("file")->info("PathSpace::grab {}, isTriviallyCopyable: {}", range.string(), isTriviallyCopyable);
         if(range.isAtData())
             return this->grab(range.dataName(), info, data, isTriviallyCopyable);
         if(auto const spaceName = range.spaceName()) {
@@ -39,18 +42,32 @@ struct PathSpace {
     }
 
     auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> void {
-        if(range.isAtData())
-            this->grabBlock(range.dataName(), info, data, isTriviallyCopyable);
-        else if(auto const spaceName = range.spaceName()) {
-            this->codices.writeWaitForExistance(spaceName.value(), [&spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
-                codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){space.grabBlock(range.next(), info, data, isTriviallyCopyable);return true;});;
-            });
-        }
-        else
-            while(true) {}; // for paths such as ""
+        bool isFound = false;
+        bool const isAtRoot = range.isAtRoot();
+        if(isAtRoot)
+            spdlog::get("file")->info("PathSpace::grabBlock {}, isTriviallyCopyable: {}", range.string(), isTriviallyCopyable);
+        do {
+            if(range.isAtData())
+                isFound = this->grabBlock(range.dataName(), info, data, isTriviallyCopyable);
+            else if(auto const spaceName = range.spaceName()) {
+                this->codices.write(spaceName.value(), [&spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
+                    if(codices.contains(spaceName.value()))
+                        codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){space.grabBlock(range.next(), info, data, isTriviallyCopyable);return true;});;
+                });
+            }
+            if(isAtRoot && !isFound) {
+                spdlog::get("file")->info("PathSpace::grabBlock {}, waiting for data", range.string());
+                this->codices.waitForWrite();
+                spdlog::get("file")->info("PathSpace::grabBlock {}, woke up", range.string());
+            }
+        } while(isAtRoot && !isFound);
+        spdlog::get("file")->info("PathSpace::grabBlock {}, finished found status: {}", range.string(), isFound);
     }
 
     virtual auto insert(Path const &range, Data const &data) -> bool {
+        bool const isAtRoot = range.isAtRoot();
+        if(isAtRoot)
+            spdlog::get("file")->info("PathSpace::insert {}", range.string());
         if(range.isAtData())
             return this->insert(range.dataName(), data);
         if(auto const spaceName = range.spaceName()) { // Create space if it does not exist
@@ -84,15 +101,19 @@ private:
         return ret;
     }
 
-    virtual auto grabBlock(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> void {
+    virtual auto grabBlock(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> bool {
+        bool isFound = false;
         if(*info==typeid(Coroutine)) {
            // if(this->processor)
         } else {
-            this->codices.writeWaitForExistance(dataName, [&dataName, data, info, isFundamentalType](auto &codices){
-                if(codices.contains(dataName))
+            this->codices.write(dataName, [&isFound, &dataName, data, info, isFundamentalType](auto &codices){
+                if(codices.contains(dataName)) {
                     codices.at(dataName).grab(info, data, isFundamentalType);
+                    isFound = true;
+                }
             });
         }
+        return isFound;
     }
 
     virtual auto insert(std::string const &dataName, Data const &data) -> bool {

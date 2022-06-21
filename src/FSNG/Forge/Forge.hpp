@@ -3,6 +3,8 @@
 #include "FSNG/Forge/Eschelon.hpp"
 #include "FSNG/utils.hpp"
 
+#include "spdlog/spdlog.h"
+
 #include <iostream>
 
 namespace FSNG {
@@ -29,10 +31,12 @@ struct Forge {
     }
 
     auto executor(int const id) -> void {
+        while(!spdlog::get("file")) {}
+        spdlog::get("file")->info(fmt::format("Thread: {} started executing.", id));
         while(this->isAlive) {
-            printm(fmt::format("Thread: {} waiting for task, tasks available: {}", id, this->eschelon.size()));
+            spdlog::get("file")->info(fmt::format("Thread: {} waiting for task, tasks available: {}", id, this->eschelon.size()));
             if(auto task = this->eschelon.popWait()) {
-                printm(fmt::format("Thread: {} got task", id));
+                spdlog::get("file")->info(fmt::format("Thread: {} got task", id));
                 this->hearth.starting(task.value().ticket);
                 auto coroutine = task.value().fun();
                 while(!coroutine.done()) {
@@ -40,7 +44,7 @@ struct Forge {
                     task.value().inserter(coroutine.getValue());
                 }
                 this->hearth.finished(task.value().ticket);
-                printm(fmt::format("Thread: {} finished task", id));
+                spdlog::get("file")->info(fmt::format("Thread: {} finished task", id));
             }
         }
     }

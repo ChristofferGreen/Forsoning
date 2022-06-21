@@ -14,7 +14,7 @@ auto check_grab_block(auto &space, auto const &path, auto const &testValue) {
     CHECK(val==testValue);
 }
 
-TEST_CASE("PathSpace Grab Block") {
+TEST_CASE("PathSpace Grab Block" * doctest::timeout(2.0)) {
     PathSpaceTE space = PathSpace{};
     Path const rootTestPath{"/test"};
     Path const rootTestPath2{"/test2"};

@@ -9,7 +9,8 @@ namespace FSNG {
 struct Hearth {
     template<typename T, typename U>
     Hearth(T t, U u) {
-        auto const nbrThreads = std::max(static_cast<unsigned int>(32), std::thread::hardware_concurrency()*2);
+        auto const nbrThreads = 4;
+        //auto const nbrThreads = std::max(static_cast<unsigned int>(32), std::thread::hardware_concurrency()*2);
         for(auto i = 0; i < nbrThreads; ++i)
             this->threads.push_back(std::thread(t, u, i));
     }
