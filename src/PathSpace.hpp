@@ -27,24 +27,25 @@ struct PathSpace {
     
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         if(range.isAtRoot())
-            spdlog::get("file")->info("PathSpace::grab {}, isTriviallyCopyable: {}", range.string(), isTriviallyCopyable);
+            LOG("PathSpace::grab {}, isTriviallyCopyable: {}", range.string(), isTriviallyCopyable);
+        bool isFound = false;
         if(range.isAtData())
-            return this->grab(range.dataName(), info, data, isTriviallyCopyable);
-        if(auto const spaceName = range.spaceName()) {
-            bool ret = false;
-            this->codices.write(spaceName.value(), [&ret, &spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
-                ret = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){return space.grab(range.next(), info, data, isTriviallyCopyable);});;
+            isFound = this->grab(range.dataName(), info, data, isTriviallyCopyable);
+        else if(auto const spaceName = range.spaceName()) {
+            this->codices.write(spaceName.value(), [&isFound, &spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
+                isFound = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){return space.grab(range.next(), info, data, isTriviallyCopyable);});;
             });
-            return ret;
         }
-        return false;
+        if(range.isAtRoot())
+            LOG("PathSpace::grab {}, found: {}", range.string(), isFound);
+        return isFound;
     }
 
     auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> void {
         bool isFound = false;
         bool const isAtRoot = range.isAtRoot();
         if(isAtRoot)
-            spdlog::get("file")->info("PathSpace::grabBlock {}, isTriviallyCopyable: {}", range.string(), isTriviallyCopyable);
+            LOG("PathSpace::grabBlock {}, isTriviallyCopyable: {}", range.string(), isTriviallyCopyable);
         do {
             if(range.isAtData())
                 isFound = this->grabBlock(range.dataName(), info, data, isTriviallyCopyable);
@@ -55,12 +56,12 @@ struct PathSpace {
                 });
             }
             if(isAtRoot && !isFound) {
-                spdlog::get("file")->info("PathSpace::grabBlock {}, waiting for data", range.string());
+                LOG("PathSpace::grabBlock {}, waiting for data", range.string());
                 this->codices.waitForWrite();
-                spdlog::get("file")->info("PathSpace::grabBlock {}, woke up", range.string());
+                LOG("PathSpace::grabBlock {}, woke up", range.string());
             }
         } while(isAtRoot && !isFound);
-        spdlog::get("file")->info("PathSpace::grabBlock {}, finished found status: {}", range.string(), isFound);
+        LOG("PathSpace::grabBlock {}, finished found status: {}", range.string(), isFound);
     }
 
     virtual auto insert(Path const &range, Data const &data) -> bool {
@@ -73,7 +74,7 @@ struct PathSpace {
             bool ret = false;
             this->codices.write(spaceName.value(), [this, &spaceName, &ret, &range, &data](auto &codices){
                 if(codices.count(spaceName.value())==0)
-                    codices[spaceName.value()].insert(PathSpaceTE(PathSpace{}));
+                    codices[spaceName.value()].insert(PathSpaceTE(PathSpace{}), [](Data const &data){});
                 ret = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &data](auto &space){return space.insert(range.next(), data);});
             });
             return ret;
@@ -118,8 +119,12 @@ private:
     }
 
     virtual auto insert(std::string const &dataName, Data const &data) -> bool {
-        this->codices.write(dataName, [&dataName, &data](auto &codices){
-            codices[dataName].insert(data);
+        this->codices.write(dataName, [this, &dataName, &data](auto &codices){
+            codices[dataName].insert(data, [this, dataName](Data const &coroData){
+                this->codices.write(dataName, [&dataName, &coroData](auto &codices){
+                    codices[dataName].insert(coroData, [](Data const &data){});
+                });
+            });
         });
         return true;
     }

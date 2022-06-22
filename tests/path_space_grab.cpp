@@ -233,14 +233,17 @@ TEST_CASE("PathSpace Grab" * doctest::timeout(2.0)) {
 
     SUBCASE("Grab Coroutine Result") {
         CHECK(space.insert("/coro", [&space]() -> Coroutine {
-            for(auto i = 0; i < 1000; ++i)
+            for(auto i = 0; i < 1000; ++i) {
+                LOG("co_yield {}", i)
                 co_yield i;
+            }
+            LOG(std::string(space.toJSON()))
             space.insert("/finished", 1);
             co_return 1000;
         }) == true);
         CHECK(space.grabBlock<int>("/finished")==1);
         for(auto i = 0; i < 1000; ++i)
-            CHECK(space.grab<int>("/coro").value_or(0)==i);
+            CHECK(space.grab<int>("/coro").value_or(-1)==i);
     }
 
     /*SUBCASE("Grab Coroutine") {
