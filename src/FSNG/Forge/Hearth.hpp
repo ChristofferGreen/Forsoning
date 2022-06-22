@@ -20,23 +20,6 @@ struct Hearth {
             thread.join();
     }
 
-    auto starting(Ticket const &ticket) {
-        auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
-        this->currentlyActiveTickets.insert(ticket);
-    }
-
-    auto finished(Ticket const &ticket) {
-        auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
-        this->currentlyActiveTickets.erase(ticket);
-        this->condition.notify_all();
-    }
-
-    auto wait(Ticket const &ticket) -> void {
-        auto readLock = std::shared_lock(this->mutex);
-        while(this->currentlyActiveTickets.contains(ticket))
-            this->condition.wait(readLock);
-    }
-
     auto remove(Ticket const &ticket) -> void {
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
         // ??????
@@ -44,8 +27,6 @@ struct Hearth {
 
 private:
     std::vector<std::thread> threads;
-    std::set<Ticket> currentlyActiveTickets;
     mutable std::shared_mutex mutex;
-    mutable std::condition_variable_any condition;
 };
 }

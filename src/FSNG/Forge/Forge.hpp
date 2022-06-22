@@ -1,6 +1,7 @@
 #pragma once
 #include "FSNG/Forge/Hearth.hpp"
 #include "FSNG/Forge/Eschelon.hpp"
+#include "FSNG/Forge/Esprit.hpp"
 #include "FSNG/utils.hpp"
 
 #include "spdlog/spdlog.h"
@@ -17,7 +18,9 @@ struct Forge {
     }
 
     auto add(std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data)> const &inserter=[](Data const &data){}) -> Ticket {
-        return this->eschelon.add(coroutineFun, inserter);
+        auto const ticket = this->eschelon.add(coroutineFun, inserter);
+        this->esprit.activate(ticket);
+        return ticket;
     }
 
     auto remove(Ticket const &ticket) -> void {
@@ -27,9 +30,7 @@ struct Forge {
 
     auto wait(Ticket const &ticket) -> void {
         LOG("eschelon.wait for ticket {}", ticket);
-        this->eschelon.wait(ticket);
-        LOG("hearth.wait for ticket {} ", ticket);
-        this->hearth.wait(ticket);
+        this->esprit.wait(ticket);
         LOG("Forge::wait done for ticket {}", ticket);
     }
 
@@ -40,14 +41,13 @@ struct Forge {
             LOG("Thread: {} waiting for task, tasks available: {}", id, this->eschelon.size());
             if(auto task = this->eschelon.popWait()) {
                 LOG("Thread: {} got task", id);
-                this->hearth.starting(task.value().ticket);
                 auto coroutine = task.value().fun();
                 while(coroutine.next()) {
                     task.value().inserter(coroutine.getValue());
                     LOG("Thread: {} inserting coroutine value", id);
                 }
-                this->hearth.finished(task.value().ticket);
                 LOG("Thread: {} finished task", id);
+                this->esprit.deactivate(task.value().ticket);
             }
         }
     }
@@ -56,5 +56,6 @@ private:
     std::atomic<bool> isAlive = true;
     Eschelon eschelon;
     Hearth hearth;
+    Esprit esprit;
 };
 }

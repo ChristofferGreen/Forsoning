@@ -16,20 +16,22 @@ TEST_CASE("Forge") {
     }
 
     SUBCASE("Forge") {
-        Forge forge;
-        auto res = 0;
-        bool hasRun = false;
-        auto const ticket = forge.add([]()->Coroutine{co_yield 345;}, [&res, &hasRun](Data const &data){
-            LOG("Forge test coro start");
-            CHECK(data.is<int>()==true);
-            res=data.as<int>();
+        for(int i = 0; i < 100; ++i) {
+            Forge forge;
+            auto res = 0;
+            bool hasRun = false;
+            auto const ticket = forge.add([]()->Coroutine{co_yield 345;}, [&res, &hasRun](Data const &data){
+                LOG("Forge test coro start");
+                CHECK(data.is<int>()==true);
+                res=data.as<int>();
+                CHECK(res==345);
+                hasRun=true;
+                LOG("Forge test coro end");
+            });
+            forge.wait(ticket);
+            CHECK(hasRun==true);
             CHECK(res==345);
-            hasRun=true;
-            LOG("Forge test coro end");
-        });
-        forge.wait(ticket);
-        CHECK(hasRun==true);
-        CHECK(res==345);
+        }
     }
 
     SUBCASE("Forge Multiple Tasks") {
