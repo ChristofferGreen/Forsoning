@@ -15,7 +15,7 @@ struct Eschelon {
         auto const ticket = this->currentTicket++;
         this->tasks[ticket] = Task{ticket, coroutineFun, inserter};
         this->condition.notify_all();
-        spdlog::get("file")->info("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters);
+        LOG("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters);
         return ticket;
     }
 
@@ -25,6 +25,7 @@ struct Eschelon {
     }
 
     auto popWait() -> std::optional<Task> {
+        LOG("Eschelon::popWait enter");
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
         while(this->isAlive && this->tasks.size()==0) {
             this->waiters++;
@@ -36,13 +37,19 @@ struct Eschelon {
         auto const task = *this->tasks.begin();
         this->tasks.erase(this->tasks.begin());
         this->condition.notify_all();
+        LOG("Eschelon::popWait exit");
         return task.second;
     }
 
     auto wait(Ticket const &ticket) -> void {
+        LOG("Eschelon::wait grabbing read mutex for ticket {}", ticket);
         auto readLock = std::shared_lock(this->mutex);
+        LOG("Eschelon::wait grabbed read mutex for ticket {}, tickets {}, contains ticket {}", ticket, this->tasks.size(), this->tasks.contains(ticket));
+        for(auto const &task : this->tasks)
+            LOG("Eschelon::wait has task ticket {}", task.first);
         while(this->tasks.contains(ticket))
             this->condition.wait(readLock);
+        LOG("Eschelon::wait (woke up) exiting for ticket {}", ticket);
     }
 
     auto shutdown() -> void {

@@ -230,6 +230,15 @@ TEST_CASE("PathSpace Grab" * doctest::timeout(2.0)) {
         CHECK(val.grab<int>("/val").value_or(0) == 123);
         CHECK(space.grab<int>("/val").value_or(0) == 321);
     }
+}
+
+TEST_CASE("PathSpace Grab Multithreaded" * doctest::timeout(2.0)) {
+    PathSpaceTE space = PathSpace{};
+    Path const rootTestPath{"/test"};
+    Path const rootTestPath2{"/test2"};
+    Path const rootTestPath3{"/test3"};
+
+    Path const rootTestTest2Path{"/test/test2"};
 
     SUBCASE("Grab Coroutine Result") {
         CHECK(space.insert("/coro", [&space]() -> Coroutine {
@@ -237,9 +246,8 @@ TEST_CASE("PathSpace Grab" * doctest::timeout(2.0)) {
                 LOG("co_yield {}", i)
                 co_yield i;
             }
-            LOG(std::string(space.toJSON()))
+            //LOG(std::string(space.toJSON()))
             space.insert("/finished", 1);
-            co_return 1000;
         }) == true);
         CHECK(space.grabBlock<int>("/finished")==1);
         for(auto i = 0; i < 1000; ++i)

@@ -43,4 +43,12 @@ TEST_CASE("Path") {
         CHECK(Path{"/test1/test2"}.spaceName().value()=="test1");
         CHECK(Path{"/test1/test2"}.next().spaceName().value()=="test2");
     }
+
+    SUBCASE("IsAtRoot") {
+        CHECK(Path{"/test1"}.isAtRoot()==true);
+        CHECK(Path{"/test1/"}.isAtRoot()==true);
+        CHECK(Path{"/test1/test2"}.isAtRoot()==true);
+        CHECK(Path{"/test1/test2/"}.isAtRoot()==true);
+        CHECK(Path{"/test1/test2/test3"}.isAtRoot()==true);
+    }
 }

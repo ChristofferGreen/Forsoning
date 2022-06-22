@@ -207,17 +207,24 @@ TEST_CASE("PathSpace Insert") {
         json["space"][0]["val"] = {34};
         CHECK(space.toJSON() == json);
     }
+}
 
+TEST_CASE("PathSpace Insert Multithreaded") {
+    PathSpaceTE space = PathSpace{};
+    Path const rootTestPath{"/test"};
+    Path const rootTestPath2{"/test2"};
+    Path const rootTestPath3{"/test3"};
+
+    Path const rootTestTest2Path{"/test/test2"};
     SUBCASE("Insert coroutine") {
         CHECK(space.insert(rootTestPath, [&space]() -> Coroutine {
             for(auto i = 0; i < 10; ++i)
                 co_yield i;
             space.insert("/finished", 1);
-            co_return 10;
         }) == true);
         space.grabBlock<int>("/finished");
         nlohmann::json json;
-        json["test"] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        json["test"] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
         CHECK(space.toJSON() == json);
     }
 }

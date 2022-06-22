@@ -59,8 +59,7 @@ struct Coroutine {
             return std::experimental::suspend_always{};
         }
 
-        auto return_value(Data &&value) {
-            current_value = std::move(value);
+        auto return_void() {
             return std::experimental::suspend_always{};
         }
 

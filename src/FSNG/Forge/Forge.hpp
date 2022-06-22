@@ -26,8 +26,11 @@ struct Forge {
     }
 
     auto wait(Ticket const &ticket) -> void {
+        LOG("eschelon.wait for ticket {}", ticket);
         this->eschelon.wait(ticket);
+        LOG("hearth.wait for ticket {} ", ticket);
         this->hearth.wait(ticket);
+        LOG("Forge::wait done for ticket {}", ticket);
     }
 
     auto executor(int const id) -> void {
@@ -39,8 +42,7 @@ struct Forge {
                 LOG("Thread: {} got task", id);
                 this->hearth.starting(task.value().ticket);
                 auto coroutine = task.value().fun();
-                while(!coroutine.done()) {
-                    coroutine.next();
+                while(coroutine.next()) {
                     task.value().inserter(coroutine.getValue());
                     LOG("Thread: {} inserting coroutine value", id);
                 }

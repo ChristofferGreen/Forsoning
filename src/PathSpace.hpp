@@ -50,9 +50,9 @@ struct PathSpace {
             if(range.isAtData())
                 isFound = this->grabBlock(range.dataName(), info, data, isTriviallyCopyable);
             else if(auto const spaceName = range.spaceName()) {
-                this->codices.write(spaceName.value(), [&spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
+                this->codices.write(spaceName.value(), [&spaceName, &range, &info, &data, &isTriviallyCopyable, &isFound](auto &codices){
                     if(codices.contains(spaceName.value()))
-                        codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){space.grabBlock(range.next(), info, data, isTriviallyCopyable);return true;});;
+                        isFound = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){space.grabBlock(range.next(), info, data, isTriviallyCopyable);return true;});;
                 });
             }
             if(isAtRoot && !isFound) {
@@ -110,8 +110,7 @@ private:
         } else {
             this->codices.write(dataName, [&isFound, &dataName, data, info, isFundamentalType](auto &codices){
                 if(codices.contains(dataName)) {
-                    codices.at(dataName).grab(info, data, isFundamentalType);
-                    isFound = true;
+                    isFound = codices.at(dataName).grab(info, data, isFundamentalType);
                 }
             });
         }
