@@ -15,8 +15,16 @@ struct CodicesAegis {
     }
 
     auto write(std::string const &name, auto const &fun) -> void {
-        auto const mapWriteMutex = std::lock_guard<std::shared_mutex>(this->mutex);
+        auto const mapWriteMutex = std::unique_lock<std::shared_mutex>(this->mutex);
         fun(this->codices);
+        this->popEmptySpace(name);
+        this->condition.notify_all();
+    }
+
+    auto writeUntilSucess(std::string const &name, auto const &fun) -> void {
+        auto mapWriteMutex = std::unique_lock<std::shared_mutex>(this->mutex);
+        while(!fun(this->codices))
+            this->condition.wait(mapWriteMutex);
         this->popEmptySpace(name);
         this->condition.notify_all();
     }

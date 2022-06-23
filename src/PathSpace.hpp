@@ -42,26 +42,18 @@ struct PathSpace {
     }
 
     auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> void {
-        bool isFound = false;
         bool const isAtRoot = range.isAtRoot();
         if(isAtRoot)
             LOG("PathSpace::grabBlock {}, isTriviallyCopyable: {}", range.string(), isTriviallyCopyable);
-        do {
-            if(range.isAtData())
-                isFound = this->grabBlock(range.dataName(), info, data, isTriviallyCopyable);
-            else if(auto const spaceName = range.spaceName()) {
-                this->codices.write(spaceName.value(), [&spaceName, &range, &info, &data, &isTriviallyCopyable, &isFound](auto &codices){
-                    if(codices.contains(spaceName.value()))
-                        isFound = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){space.grabBlock(range.next(), info, data, isTriviallyCopyable);return true;});;
-                });
-            }
-            if(isAtRoot && !isFound) {
-                LOG("PathSpace::grabBlock {}, waiting for data", range.string());
-                this->codices.waitForWrite();
-                LOG("PathSpace::grabBlock {}, woke up", range.string());
-            }
-        } while(isAtRoot && !isFound);
-        LOG("PathSpace::grabBlock {}, finished found status: {}", range.string(), isFound);
+        if(range.isAtData())
+            this->grabBlock(range.dataName(), info, data, isTriviallyCopyable);
+        else if(auto const spaceName = range.spaceName()) {
+            this->codices.write(spaceName.value(), [&spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
+                if(codices.contains(spaceName.value()))
+                    codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){space.grabBlock(range.next(), info, data, isTriviallyCopyable);return true;});;
+            });
+        }
+        LOG("PathSpace::grabBlock {}, finished", range.string());
     }
 
     virtual auto insert(Path const &range, Data const &data) -> bool {
@@ -103,18 +95,18 @@ private:
         return ret;
     }
 
-    virtual auto grabBlock(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> bool {
-        bool isFound = false;
+    virtual auto grabBlock(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> void {
         if(*info==typeid(Coroutine)) {
            // if(this->processor)
         } else {
-            this->codices.write(dataName, [&isFound, &dataName, data, info, isFundamentalType](auto &codices){
+            this->codices.writeUntilSucess(dataName, [&dataName, data, info, isFundamentalType](auto &codices){
                 if(codices.contains(dataName)) {
-                    isFound = codices.at(dataName).grab(info, data, isFundamentalType);
+                    codices.at(dataName).grab(info, data, isFundamentalType);
+                    return true;
                 }
+                return false;
             });
         }
-        return isFound;
     }
 
     virtual auto insert(std::string const &dataName, Data const &data) -> bool {
