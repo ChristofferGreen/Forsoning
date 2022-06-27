@@ -14,10 +14,21 @@ struct CodicesAegis {
         return this->codices==rhs.codices; 
     }
 
-    auto write(std::string const &name, auto const &fun) -> void {
+    auto write(std::string const &name, auto const &fun) {
         auto const mapWriteMutex = std::unique_lock<std::shared_mutex>(this->mutex);
         fun(this->codices);
         this->popEmptySpace(name);
+    }
+
+    auto writeRet(std::string const &name, auto const &fun) {
+        auto const mapWriteMutex = std::unique_lock<std::shared_mutex>(this->mutex);
+        auto const val = fun(this->codices);
+        this->popEmptySpace(name);
+        return val;
+    }
+
+    auto writeInsert(std::string const &name, auto const &fun) -> void {
+        this->write(name, fun);
         this->condition.notify_all();
     }
 
@@ -26,7 +37,6 @@ struct CodicesAegis {
         while(!fun(this->codices))
             this->condition.wait(mapWriteMutex);
         this->popEmptySpace(name);
-        this->condition.notify_all();
     }
 
     auto read(auto const &fun) const -> void {

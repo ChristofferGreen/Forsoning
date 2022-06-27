@@ -94,7 +94,7 @@ struct Codex {
     }
 
     template<typename T>
-    auto visitFirst(auto const &fun) {
+    auto visitFirst(auto const &fun) -> bool {
         if constexpr(std::is_same<T, PathSpaceTE>::value)
             if(!this->spaces.empty())
                 return fun(this->spaces.front());

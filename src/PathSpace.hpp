@@ -41,17 +41,19 @@ struct PathSpace {
         return isFound;
     }
 
-    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> void {
+    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         bool const isAtRoot = range.isAtRoot();
         if(isAtRoot)
             LOG("PathSpace::grabBlock {}, isTriviallyCopyable: {}", range.string(), isTriviallyCopyable);
-        if(range.isAtData())
-            this->grabBlock(range.dataName(), info, data, isTriviallyCopyable);
-        else if(auto const spaceName = range.spaceName()) {
-            this->codices.write(spaceName.value(), [&spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
-                if(codices.contains(spaceName.value()))
-                    codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){space.grabBlock(range.next(), info, data, isTriviallyCopyable);return true;});;
-            });
+        while(true) {
+            bool ret = false;
+            if(range.isAtData())
+                ret = this->grabDataName(range.dataName(), info, data, isTriviallyCopyable);
+            else if(auto const spaceName = range.spaceName())
+                ret = this->grabSpaceName(spaceName.value(), range, info, data, isTriviallyCopyable);
+            if(range.isAtRoot()) {}
+            else
+                return ret;
         }
         LOG("PathSpace::grabBlock {}, finished", range.string());
     }
@@ -64,7 +66,7 @@ struct PathSpace {
             return this->insert(range.dataName(), data);
         if(auto const spaceName = range.spaceName()) { // Create space if it does not exist
             bool ret = false;
-            this->codices.write(spaceName.value(), [this, &spaceName, &ret, &range, &data](auto &codices){
+            this->codices.writeInsert(spaceName.value(), [this, &spaceName, &ret, &range, &data](auto &codices){
                 if(codices.count(spaceName.value())==0)
                     codices[spaceName.value()].insert(PathSpaceTE(PathSpace{}), [](Data const &data){});
                 ret = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &data](auto &space){return space.insert(range.next(), data);});
@@ -95,11 +97,20 @@ private:
         return ret;
     }
 
-    virtual auto grabBlock(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> void {
+    virtual auto grabSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+        return this->codices.writeRet(spaceName, [&spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
+            if(codices.contains(spaceName)) {
+                return codices[spaceName].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){return space.grabBlock(range.next(), info, data, isTriviallyCopyable);});;
+            }
+            return false;
+        });
+    }
+
+    virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> bool {
         if(*info==typeid(Coroutine)) {
            // if(this->processor)
         } else {
-            this->codices.writeUntilSucess(dataName, [&dataName, data, info, isFundamentalType](auto &codices){
+            return this->codices.writeRet(dataName, [&dataName, data, info, isFundamentalType](auto &codices){
                 if(codices.contains(dataName)) {
                     codices.at(dataName).grab(info, data, isFundamentalType);
                     return true;
@@ -107,12 +118,13 @@ private:
                 return false;
             });
         }
+        return false;
     }
 
     virtual auto insert(std::string const &dataName, Data const &data) -> bool {
         this->codices.write(dataName, [this, &dataName, &data](auto &codices){
             codices[dataName].insert(data, [this, dataName](Data const &coroData){
-                this->codices.write(dataName, [&dataName, &coroData](auto &codices){
+                this->codices.writeInsert(dataName, [&dataName, &coroData](auto &codices){
                     codices[dataName].insert(coroData, [](Data const &data){});
                 });
             });
