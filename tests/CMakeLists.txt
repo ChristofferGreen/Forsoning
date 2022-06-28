@@ -3,6 +3,7 @@ add_executable(ForsoningTest
   cpp_concepts.cpp
   cpp_coroutine.cpp
   cpp_json.cpp
+  cpp_mutex.cpp
   cpp_asio.cpp
   cpp_random_string.cpp
   multithreaded_problems.cpp
