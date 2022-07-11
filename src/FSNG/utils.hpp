@@ -9,6 +9,7 @@
 #include <string>
 #include <iostream>
 #include <mutex>
+#include <shared_mutex>
 
 namespace FSNG {
 namespace Converters {

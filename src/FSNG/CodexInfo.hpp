@@ -1,4 +1,5 @@
 #pragma once
+#include "FSNG/PathSpaceTE.hpp"
 
 namespace FSNG {
 struct CodexInfo {

@@ -92,7 +92,6 @@ namespace atomic_mutex
 		}
 
 	private:
-
 		shared_atomic_mutex* m_mutex;
 		bool m_owns_shared;
 		bool m_owns_unique;

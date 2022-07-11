@@ -1,6 +1,4 @@
 #pragma once
-#include "FSNG/ArraysAegis.hpp"
-#include "FSNG/CodicesAegis.hpp"
 #include "FSNG/Coroutine.hpp"
 #include "FSNG/Codex.hpp"
 #include "FSNG/Data.hpp"
@@ -9,9 +7,13 @@
 #include "FSNG/Security.hpp"
 #include "FSNG/Forge/Eschelon.hpp"
 #include "FSNG/Forge/Hearth.hpp"
+#include "FSNG/Forge/UpgradableMutex.hpp"
 #include "FSNG/utils.hpp"
 
 #include "nlohmann/json.hpp"
+
+#include "amutex/shared_atomic_mutex.h"
+#include "amutex/upgradable_lock.h"
 
 #include <deque>
 #include <memory>
@@ -22,117 +24,106 @@
 namespace FSNG {
 struct PathSpace {
     PathSpace() = default;
+    PathSpace(const PathSpace &rhs) {
+        atomic_mutex::upgradable_lock lock(this->mutex);
+        atomic_mutex::upgradable_lock lockRHS(rhs.mutex);
+        this->codices = rhs.codices;
+    }
 
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
     
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        if(range.isAtRoot())
-            LOG("PathSpace::grab {}, isTriviallyCopyable: {}", range.string(), isTriviallyCopyable);
-        bool isFound = false;
+        atomic_mutex::upgradable_lock lock(this->mutex);
+        std::shared_lock<UpgradableMutex> lock2(this->umutex);
         if(range.isAtData())
-            isFound = this->grab(range.dataName(), info, data, isTriviallyCopyable);
-        else if(auto const spaceName = range.spaceName()) {
-            this->codices.write(spaceName.value(), [&isFound, &spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
-                isFound = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){return space.grab(range.next(), info, data, isTriviallyCopyable);});;
-            });
-        }
-        if(range.isAtRoot())
-            LOG("PathSpace::grab {}, found: {}", range.string(), isFound);
-        return isFound;
+            return this->grabDataName(range.dataName(), info, data, isTriviallyCopyable, lock);
+        return this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, lock);
     }
 
     auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        bool const isAtRoot = range.isAtRoot();
-        if(isAtRoot)
-            LOG("PathSpace::grabBlock {}, isTriviallyCopyable: {}", range.string(), isTriviallyCopyable);
-        while(true) {
-            bool ret = false;
+        bool found = false;
+        if(range.isAtRoot()) {
+            while(!found) {
+                atomic_mutex::upgradable_lock lock(this->mutex);
+                if(range.isAtData())
+                    found = this->grabDataName(range.dataName(), info, data, isTriviallyCopyable, lock);
+                else
+                    found = this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, lock);
+                if(!found) 
+                    this->condition.wait(this->mutex);
+            }
+        } else {
+            atomic_mutex::upgradable_lock lock(this->mutex);
             if(range.isAtData())
-                ret = this->grabDataName(range.dataName(), info, data, isTriviallyCopyable);
-            else if(auto const spaceName = range.spaceName())
-                ret = this->grabSpaceName(spaceName.value(), range, info, data, isTriviallyCopyable);
-            if(range.isAtRoot()) {}
-            else
-                return ret;
+                return this->grabDataName(range.dataName(), info, data, isTriviallyCopyable, lock);
+            return this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, lock);
         }
-        LOG("PathSpace::grabBlock {}, finished", range.string());
+        return found;
     }
 
     virtual auto insert(Path const &range, Data const &data) -> bool {
-        bool const isAtRoot = range.isAtRoot();
-        if(isAtRoot)
-            LOG("PathSpace::insert {}", range.string());
         if(range.isAtData())
-            return this->insert(range.dataName(), data);
-        if(auto const spaceName = range.spaceName()) { // Create space if it does not exist
-            bool ret = false;
-            this->codices.writeInsert(spaceName.value(), [this, &spaceName, &ret, &range, &data](auto &codices){
-                if(codices.count(spaceName.value())==0)
-                    codices[spaceName.value()].insert(PathSpaceTE(PathSpace{}), [](Data const &data){});
-                ret = codices[spaceName.value()].template visitFirst<PathSpaceTE>([&range, &data](auto &space){return space.insert(range.next(), data);});
-            });
-            return ret;
-        }
-        return false;
+            return this->insertDataName(range.dataName(), data);
+        return this->insertSpaceName(range, range.spaceName().value(), data);
     }
 
     virtual auto toJSON() const -> nlohmann::json {
-        LOG("PathSpace::toJSON codices size: {}", this->codices.size());
         nlohmann::json json;
-        this->codices.read([&json](auto const &codices){
-            for(auto const &p : codices)
-                json[p.first] = p.second.toJSON();
-        });
-        LOG("PathSpace::toJSON finished");
+        atomic_mutex::upgradable_lock lock(this->mutex);
+        for(auto const &p : codices)
+            json[p.first] = p.second.toJSON();
         return json;
     }
 
 private:
-    virtual auto grab(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> bool {
-        bool ret = false;
-        this->codices.write(dataName, [&dataName, data, info, &ret, isFundamentalType](auto &codices){
-            if(codices.contains(dataName))
-                ret = codices.at(dataName).grab(info, data, isFundamentalType);
-        });
-        return ret;
+    virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, atomic_mutex::upgradable_lock &lock) -> bool {
+        if(this->codices.contains(dataName)) {
+            lock.upgrade();
+            return codices.at(dataName).grab(info, data, isTriviallyCopyable);
+        }
+        return false;
     }
 
-    virtual auto grabSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        return this->codices.writeRet(spaceName, [&spaceName, &range, &info, &data, &isTriviallyCopyable](auto &codices){
-            if(codices.contains(spaceName)) {
-                return codices[spaceName].template visitFirst<PathSpaceTE>([&range, &info, &data, &isTriviallyCopyable](auto &space){return space.grabBlock(range.next(), info, data, isTriviallyCopyable);});;
+    virtual auto grabSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable, atomic_mutex::upgradable_lock &lock) -> bool {
+        if(this->codices.contains(spaceName)) {
+            lock.upgrade();
+            return codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable](auto &space){return space.grab(range.next(), info, data, isTriviallyCopyable);});
+        }
+        return false;
+    }
+
+    virtual auto insertDataName(std::string const &dataName, Data const &data) -> bool {
+        atomic_mutex::upgradable_lock lock(this->mutex);
+        lock.upgrade();
+        this->codices[dataName].insert(data, [this, dataName](Data const &coroData){
+            atomic_mutex::upgradable_lock lock(this->mutex);
+            lock.upgrade();
+            codices[dataName].insert(coroData, [](Data const &data){});
+            this->condition.notify_all();
+        }); // ToDo:: What about recursive coroutines???
+        return true;
+    }
+
+    virtual auto insertSpaceName(Path const &range, std::string const &spaceName, Data const &data) -> bool {
+        atomic_mutex::upgradable_lock lock(this->mutex);
+        lock.upgrade();
+        if(!codices.contains(spaceName)) {
+            codices[spaceName].insert(PathSpaceTE(PathSpace{}), [](Data const &data){});
+            this->condition.notify_all();
+        }
+        return codices[spaceName].template visitFirst<PathSpaceTE>([&range, &data, this](auto &space){
+            if(space.insert(range.next(), data)) {
+                this->condition.notify_all();
+                return true;
             }
             return false;
         });
     }
 
-    virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isFundamentalType) -> bool {
-        if(*info==typeid(Coroutine)) {
-           // if(this->processor)
-        } else {
-            return this->codices.writeRet(dataName, [&dataName, data, info, isFundamentalType](auto &codices){
-                if(codices.contains(dataName)) {
-                    codices.at(dataName).grab(info, data, isFundamentalType);
-                    return true;
-                }
-                return false;
-            });
-        }
-        return false;
-    }
-
-    virtual auto insert(std::string const &dataName, Data const &data) -> bool {
-        this->codices.write(dataName, [this, &dataName, &data](auto &codices){
-            codices[dataName].insert(data, [this, dataName](Data const &coroData){
-                this->codices.writeInsert(dataName, [&dataName, &coroData](auto &codices){
-                    codices[dataName].insert(coroData, [](Data const &data){});
-                });
-            });
-        });
-        return true;
-    }
-
     private:
-        CodicesAegis codices;
+        std::unordered_map<std::string, Codex> codices;
+        mutable atomic_mutex::shared_atomic_mutex mutex;
+        mutable std::condition_variable_any condition;
+        mutable UpgradableMutex umutex;
 };
 }
