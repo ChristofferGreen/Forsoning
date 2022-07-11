@@ -241,16 +241,21 @@ TEST_CASE("PathSpace Grab Multithreaded" * doctest::timeout(2.0)) {
     Path const rootTestTest2Path{"/test/test2"};
 
     SUBCASE("Grab Coroutine Result") {
+        LOG("Grab Coroutine Result start");
         CHECK(space.insert("/coro", [&space]() -> Coroutine {
-            for(auto i = 0; i < 1000; ++i) {
+            LOG("Starting coro")
+            for(auto i = 0; i < 5; ++i) {
                 LOG("co_yield {}", i)
                 co_yield i;
             }
-            //LOG(std::string(space.toJSON()))
+            LOG("Inserting /finished")
             space.insert("/finished", 1);
+            LOG("Inserted /finished")
         }) == true);
+        LOG("Trying to grab /finished")
         CHECK(space.grabBlock<int>("/finished")==1);
-        for(auto i = 0; i < 1000; ++i)
+        LOG("Grabbed /finished")
+        for(auto i = 0; i < 5; ++i)
             CHECK(space.grab<int>("/coro").value_or(-1)==i);
     }
 
