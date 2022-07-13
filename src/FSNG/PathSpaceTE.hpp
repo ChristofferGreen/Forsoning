@@ -18,10 +18,8 @@ class PathSpaceTE {
 		virtual auto insert_(Path const &range, Data const &data)                                                    -> bool                       = 0;
 		virtual auto grab_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       = 0;
 		virtual auto grabBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
-        /*virtual auto popFrontData_()                                                                                        -> std::optional<DataType>    = 0;
-		virtual auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters)                               -> std::optional<PathSpaceTE> = 0;
-		virtual auto grabBlock_(std::filesystem::path const &path)                                                          -> std::optional<PathSpaceTE> = 0;
-		virtual auto grabBlock_(std::filesystem::path const &path, PathIterConstPair const &iters)                          -> std::optional<PathSpaceTE> = 0;*/
+		virtual auto read_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       = 0;
+		virtual auto readBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
 	};
 public:
 	PathSpaceTE() = default;
@@ -52,7 +50,7 @@ public:
 			return data;
 		return std::nullopt;
 	}
-    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                {
+    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
 		return this->self->grabBlock_(range, info, data, isTriviallyCopyable);
 	}
 	template<typename T>
@@ -61,41 +59,25 @@ public:
 		this->grabBlock(range, &typeid(T), reinterpret_cast<void*>(&data), std::is_trivially_copyable<T>());
 		return data;
 	}
-	/*auto insert(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &data)       -> bool { return this->self->insert_(path, iters, data); }
-
-    template<typename T>
-    auto grab(std::filesystem::path const &path) -> std::optional<T> {
-        if(auto val = this->self->grab_(path)) {
-            if constexpr(std::is_same<T, PathSpaceTE>::value)
-                return val.value();
-            else if(auto data = val.value().popFrontData())
-                return std::get<T>(data.value());
-        }
-        return {};
-    }
-    
-    auto grab(std::filesystem::path const &path, PathIterConstPair const &iters) -> std::optional<PathSpaceTE> {
-        return this->self->grab_(path, iters);
-    }
-
-    template<typename T>
-	auto grabBlock(std::filesystem::path const &path) -> std::optional<T> { 
-        if(auto val = this->self->grabBlock_(path)) {
-            if constexpr(std::is_same<T, PathSpaceTE>::value)
-                return val.value();
-            else if(auto data = val.value().popFrontData())
-                return std::get<T>(data.value());
-        }
-        return {};
-    }
-
-    auto grabBlock(std::filesystem::path const &path, PathIterConstPair const &iters) -> std::optional<PathSpaceTE> {
-        return this->self->grabBlock_(path, iters);
-    }
-
-	auto popFrontData() -> std::optional<DataType> { 
-        return this->self->popFrontData_();
-    }*/
+    auto read(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+		return this->self->read_(range, info, data, isTriviallyCopyable);
+	}
+	template<typename T>
+	auto read(Path const &range)                                         -> std::optional<T> {
+		T data;
+		if(this->read(range, &typeid(T), reinterpret_cast<void*>(&data), std::is_trivially_copyable<T>()))
+			return data;
+		return std::nullopt;
+	}
+    auto readBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+		return this->self->readBlock_(range, info, data, isTriviallyCopyable);
+	}
+	template<typename T>
+	auto readBlock(Path const &range)                                         -> T {
+		T data;
+		this->readBlock(range, &typeid(T), reinterpret_cast<void*>(&data), std::is_trivially_copyable<T>());
+		return data;
+	}
 private:
 	template<typename T> 
 	struct model final : concept_t {
@@ -107,13 +89,9 @@ private:
 		auto insert_(Path const &range, Data const &d)                                                       -> bool                       override {return this->data.insert(range, d);}
 		auto grab_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       override {return this->data.grab(range, info, data, isTriviallyCopyable);}
 		auto grabBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       override {return this->data.grabBlock(range, info, data, isTriviallyCopyable);}
-		/*auto insert_(std::filesystem::path const &path, PathIterConstPair const &iters, DataType const &d)      -> bool                           override {return this->data.insert(path, iters, d);}
-        auto popFrontData_()                                                                                    -> std::optional<DataType>        override {return this->data.popFrontData();}
-		auto grab_(std::filesystem::path const &path)                                                           -> std::optional<PathSpaceTE>     override {return this->data.grab(path);}
-		auto grab_(std::filesystem::path const &path, PathIterConstPair const &iters)                           -> std::optional<PathSpaceTE>     override {return this->data.grab(path, iters);}
-		auto grabBlock_(std::filesystem::path const &path)                                                      -> std::optional<PathSpaceTE>     override {return this->data.grabBlock(path);}
-		auto grabBlock_(std::filesystem::path const &path, PathIterConstPair const &iters)                      -> std::optional<PathSpaceTE>     override {return this->data.grabBlock(path, iters);}*/
-		
+		auto read_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       override {return this->data.read(range, info, data, isTriviallyCopyable);}
+		auto readBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       override {return this->data.readBlock(range, info, data, isTriviallyCopyable);}
+
 		T data;
 	};
 	std::unique_ptr<concept_t> self;

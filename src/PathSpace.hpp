@@ -28,7 +28,7 @@ struct PathSpace {
     }
 
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
-    
+
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         UnlockedToUpgradedLock lock(this->mutex);
         if(range.isAtData())
@@ -37,6 +37,34 @@ struct PathSpace {
     }
 
     auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+        bool found = false;
+        if(range.isAtRoot()) {
+            while(!found) {
+                UnlockedToUpgradedLock lock(this->mutex);
+                if(range.isAtData())
+                    found = this->grabDataName(range.dataName(), info, data, isTriviallyCopyable);
+                else
+                    found = this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
+                //if(!found) 
+                //    this->condition.wait(this->mutex);
+            }
+        } else {
+            UnlockedToUpgradedLock lock(this->mutex);
+            if(range.isAtData())
+                return this->grabDataName(range.dataName(), info, data, isTriviallyCopyable);
+            return this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
+        }
+        return found;
+    }
+
+    auto read(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+        UnlockedToUpgradedLock lock(this->mutex);
+        if(range.isAtData())
+            return this->grabDataName(range.dataName(), info, data, isTriviallyCopyable);
+        return this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
+    }
+
+    auto readBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         bool found = false;
         if(range.isAtRoot()) {
             while(!found) {
