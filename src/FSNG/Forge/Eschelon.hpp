@@ -3,9 +3,6 @@
 
 #include <iostream>
 
-#define FMT_HEADER_ONLY
-#include "fmt/format.h"
-
 #include "spdlog/spdlog.h"
 
 namespace FSNG {
