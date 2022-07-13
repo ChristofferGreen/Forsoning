@@ -18,8 +18,9 @@ struct Forge {
     }
 
     auto add(std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data)> const &inserter=[](Data const &data){}) -> Ticket {
-        auto const ticket = this->eschelon.add(coroutineFun, inserter);
+        auto const ticket = this->eschelon.newTicket();
         this->esprit.activate(ticket);
+        this->eschelon.add(ticket, coroutineFun, inserter);
         return ticket;
     }
 

@@ -10,13 +10,11 @@
 
 namespace FSNG {
 struct Eschelon {
-    auto add(std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data)> const &inserter) -> Ticket {
+    auto add(Ticket const &ticket, std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data)> const &inserter) -> void {
         auto const writeLock = std::lock_guard<std::shared_mutex>(this->mutex);
-        auto const ticket = this->currentTicket++;
         this->tasks[ticket] = Task{ticket, coroutineFun, inserter};
         this->condition.notify_all();
         LOG("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters);
-        return ticket;
     }
 
     auto remove(Ticket const &ticket) -> bool {
@@ -54,17 +52,21 @@ struct Eschelon {
 
     auto shutdown() -> void {
         this->isAlive = false;
-        this->condition.notify_all();
-        while(this->waiters>0) {}
+        while(this->waiters>0) {this->condition.notify_all();}
     }
 
     auto size() const -> int {
         auto readLock = std::shared_lock(this->mutex);
         return this->tasks.size();
     }
+
+    auto newTicket() -> Ticket {
+        return this->currentTicket++;
+    }
+
 private:
     std::map<Ticket, Task> tasks;
-    bool isAlive = true;
+    std::atomic<bool> isAlive = true;
     std::atomic<int> waiters = 0;
     Ticket currentTicket = FirstTicket;
     mutable std::shared_mutex mutex;

@@ -9,28 +9,28 @@ using namespace FSNG;
 TEST_CASE("Forge") {
     SUBCASE("Eschelon") {
         Eschelon queue;
-        queue.add([]()->Coroutine{co_yield 0;}, [](Data const &data){});
+        auto ticket = queue.newTicket();
+        queue.add(ticket, []()->Coroutine{co_yield 0;}, [](Data const &data){});
         auto const task = queue.popWait();
         CHECK(task.has_value()==true);
         CHECK(task.value().ticket==FirstTicket);
     }
 
     SUBCASE("Forge") {
-        for(int i = 0; i < 100; ++i) {
+        for(int i = 0; i < 100000; ++i) {
             Forge forge;
             auto res = 0;
             bool hasRun = false;
             auto const ticket = forge.add([]()->Coroutine{co_yield 345;}, [&res, &hasRun](Data const &data){
-                LOG("Forge test coro start");
                 CHECK(data.is<int>()==true);
                 res=data.as<int>();
                 CHECK(res==345);
                 hasRun=true;
-                LOG("Forge test coro end");
             });
             forge.wait(ticket);
             CHECK(hasRun==true);
             CHECK(res==345);
+            LOG("Forge loop nbr: {}", i)
         }
     }
 

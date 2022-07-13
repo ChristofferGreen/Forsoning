@@ -12,9 +12,6 @@
 
 #include "nlohmann/json.hpp"
 
-#include "amutex/shared_atomic_mutex.h"
-#include "amutex/upgradable_lock.h"
-
 #include <deque>
 #include <memory>
 #include <string>
@@ -25,37 +22,37 @@ namespace FSNG {
 struct PathSpace {
     PathSpace() = default;
     PathSpace(const PathSpace &rhs) {
-        std::shared_lock<UpgradableMutex> lock(this->mutex);
-        std::shared_lock<UpgradableMutex> lockRHS(rhs.mutex);
+        UnlockedToExclusiveLock lock(this->mutex);
+        UnlockedToSharedLock lockRHS(rhs.mutex);
         this->codices = rhs.codices;
     }
 
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
     
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        std::shared_lock<UpgradableMutex> lock(this->mutex);
+        UnlockedToUpgradedLock lock(this->mutex);
         if(range.isAtData())
-            return this->grabDataName(range.dataName(), info, data, isTriviallyCopyable, lock);
-        return this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, lock);
+            return this->grabDataName(range.dataName(), info, data, isTriviallyCopyable);
+        return this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
     }
 
     auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         bool found = false;
         if(range.isAtRoot()) {
             while(!found) {
-                std::shared_lock<UpgradableMutex> lock(this->mutex);
+                UnlockedToUpgradedLock lock(this->mutex);
                 if(range.isAtData())
-                    found = this->grabDataName(range.dataName(), info, data, isTriviallyCopyable, lock);
+                    found = this->grabDataName(range.dataName(), info, data, isTriviallyCopyable);
                 else
-                    found = this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, lock);
+                    found = this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
                 //if(!found) 
                 //    this->condition.wait(this->mutex);
             }
         } else {
-            std::shared_lock<UpgradableMutex> lock(this->mutex);
+            UnlockedToUpgradedLock lock(this->mutex);
             if(range.isAtData())
-                return this->grabDataName(range.dataName(), info, data, isTriviallyCopyable, lock);
-            return this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, lock);
+                return this->grabDataName(range.dataName(), info, data, isTriviallyCopyable);
+            return this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
         }
         return found;
     }
@@ -68,35 +65,33 @@ struct PathSpace {
 
     virtual auto toJSON() const -> nlohmann::json {
         nlohmann::json json;
-        std::shared_lock<UpgradableMutex> lock(this->mutex);
+        UnlockedToSharedLock lock(this->mutex);
         for(auto const &p : codices)
             json[p.first] = p.second.toJSON();
         return json;
     }
 
 private:
-    virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, std::shared_lock<UpgradableMutex> &lock) -> bool {
+    virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         if(this->codices.contains(dataName)) {
-            Upgrade upgraded(lock);
+            UpgradedToExclusiveLock upgraded(this->mutex);
             return codices.at(dataName).grab(info, data, isTriviallyCopyable);
         }
         return false;
     }
 
-    virtual auto grabSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable, std::shared_lock<UpgradableMutex> &lock) -> bool {
+    virtual auto grabSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         if(this->codices.contains(spaceName)) {
-            Upgrade upgraded(lock);
+            UpgradedToExclusiveLock upgraded(this->mutex);
             return codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable](auto &space){return space.grab(range.next(), info, data, isTriviallyCopyable);});
         }
         return false;
     }
 
     virtual auto insertDataName(std::string const &dataName, Data const &data) -> bool {
-        std::shared_lock<UpgradableMutex> lock(this->mutex);
-        Upgrade upgraded(lock);
+        UnlockedToExclusiveLock upgraded(this->mutex);
         this->codices[dataName].insert(data, [this, dataName](Data const &coroData){
-            std::shared_lock<UpgradableMutex> lock(this->mutex);
-            Upgrade upgraded(lock);
+            UnlockedToExclusiveLock upgraded(this->mutex);
             codices[dataName].insert(coroData, [](Data const &data){});
             this->condition.notify_all();
         }); // ToDo:: What about recursive coroutines???
@@ -104,8 +99,7 @@ private:
     }
 
     virtual auto insertSpaceName(Path const &range, std::string const &spaceName, Data const &data) -> bool {
-        std::shared_lock<UpgradableMutex> lock(this->mutex);
-        Upgrade upgraded(lock);
+        UnlockedToExclusiveLock upgraded(this->mutex);
         if(!codices.contains(spaceName)) {
             codices[spaceName].insert(PathSpaceTE(PathSpace{}), [](Data const &data){});
             this->condition.notify_all();

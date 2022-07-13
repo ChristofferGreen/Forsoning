@@ -15,6 +15,7 @@ struct Esprit {
     auto deactivate(Ticket const &ticket) {
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
         this->active.erase(ticket);
+        this->deactivated.insert(ticket);
         this->condition.notify_all();
     }
 
@@ -28,8 +29,10 @@ struct Esprit {
         while(this->active.contains(ticket))
             this->condition.wait(readLock);
     }
+
 private:
     std::set<Ticket> active;
+    std::set<Ticket> deactivated;
     mutable std::shared_mutex mutex;
     mutable std::condition_variable_any condition;
 };
