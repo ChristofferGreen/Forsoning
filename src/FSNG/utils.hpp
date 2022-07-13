@@ -78,5 +78,4 @@ inline auto printm(std::string const &s) -> void {
 
 }
 
-//#define LOG(...)
-#define LOG(...) spdlog::get("file")->info(__VA_ARGS__);spdlog::get("file")->flush();
+#define LOG(...) {while(!spdlog::get("file")) {};if(auto file = spdlog::get("file")) {file->info(__VA_ARGS__);file->flush();}}

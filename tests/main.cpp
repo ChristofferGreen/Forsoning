@@ -6,6 +6,9 @@
 
 #include "backward.hpp"
 
+#include <chrono>
+#include <thread>
+
 namespace backward {
 backward::SignalHandling sh;
 }
@@ -18,6 +21,8 @@ int main(int argc, char** argv) {
         std::cout << "Log init failed: " << ex.what() << std::endl;
     }
     spdlog::get("file")->info("main");
+    using namespace std::chrono_literals;
+    std::this_thread::sleep_for(100ms);
     
     doctest::Context context(argc, argv);
     int res = context.run();

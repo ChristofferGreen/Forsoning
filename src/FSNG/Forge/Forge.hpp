@@ -36,7 +36,6 @@ struct Forge {
     }
 
     auto executor(int const id) -> void {
-        while(!spdlog::get("file")) {}
         LOG("Thread: {} started executing.", id);
         while(this->isAlive) {
             LOG("Thread: {} waiting for task, tasks available: {}", id, this->eschelon.size());
