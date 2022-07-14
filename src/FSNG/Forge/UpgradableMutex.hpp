@@ -74,8 +74,7 @@ private:
 };
 
 struct UnlockedToSharedLock {
-    UnlockedToSharedLock(UpgradableMutex &mutex) {
-        this->mutex = &mutex;
+    UnlockedToSharedLock(UpgradableMutex &mutex) : mutex(&mutex) {
         this->mutex->lock_shared();
     }
     ~UnlockedToSharedLock() {
@@ -85,8 +84,7 @@ struct UnlockedToSharedLock {
 };
 
 struct UnlockedToUpgradedLock {
-    UnlockedToUpgradedLock(UpgradableMutex &mutex) {
-        this->mutex = &mutex;
+    UnlockedToUpgradedLock(UpgradableMutex &mutex) : mutex(&mutex) {
         this->mutex->lock_upgrade();
     }
     ~UnlockedToUpgradedLock() {
@@ -96,8 +94,7 @@ struct UnlockedToUpgradedLock {
 };
 
 struct UpgradedToExclusiveLock {
-    UpgradedToExclusiveLock(UpgradableMutex &mutex) {
-        this->mutex = &mutex;
+    UpgradedToExclusiveLock(UpgradableMutex &mutex) : mutex(&mutex) {
         this->mutex->unlock_upgrade_and_lock();
     }
     ~UpgradedToExclusiveLock() {
@@ -107,12 +104,22 @@ struct UpgradedToExclusiveLock {
 };
 
 struct UnlockedToExclusiveLock {
-    UnlockedToExclusiveLock(UpgradableMutex &mutex) {
-        this->mutex = &mutex;
+    UnlockedToExclusiveLock(UpgradableMutex &mutex) : mutex(&mutex) {
         this->mutex->lock();
     }
     ~UnlockedToExclusiveLock() {
         this->mutex->unlock();
+    }
+    UpgradableMutex *mutex;
+};
+
+struct UpgradableMutexWaitableWrapper {
+    UpgradableMutexWaitableWrapper(UpgradableMutex &mutex) : mutex(&mutex) {}
+    auto lock() -> void {
+        this->mutex->lock_upgrade();
+    }
+    auto unlock() -> void {
+        this->mutex->unlock_upgrade();
     }
     UpgradableMutex *mutex;
 };

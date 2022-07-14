@@ -46,6 +46,31 @@ struct Codex {
         this->popInfo();
         return ret;
     }
+
+    auto read(std::type_info const *info, void *data, bool const isTriviallyCopyable) -> bool {
+        if(this->info.empty())
+            return false;
+        if(this->info.begin()->info!=info)
+            return false;
+        bool ret = false;
+        if(isTriviallyCopyable) {
+            copy_byte_raw(this->codices.data()+this->currentByte, this->info.begin()->dataSizeBytesSingleItem(), static_cast<std::byte*>(data));
+            ret = true;
+        } else if(*info==typeid(std::string)) {
+            std::string &str = *static_cast<std::string*>(data);
+            str = std::string(reinterpret_cast<char*>(this->codices.data()+this->currentByte), this->info.begin()->nbrChars());
+            ret = true;
+        } else if(*info==typeid(PathSpaceTE)) {
+            if(this->spaces.size()==0)
+                return false;
+            *reinterpret_cast<PathSpaceTE*>(data) = this->spaces.front();
+            ret = true;
+        } else if(Converters::fromByteArrayConverters.contains(info))
+            ret = Converters::fromByteArrayConverters.at(info)(this->codices.data()+this->currentByte, data);
+        else if(Converters::fromJSONConverters.contains(info))
+            ret = Converters::fromJSONConverters.at(info)(this->codices.data()+this->currentByte, this->info.begin()->dataSizeBytesSingleItem(), data);
+        return ret;
+    }
  
     auto insert(Data const &data, auto const &fun) -> void {
         if(data.is<bool>())                    this->insertBasic<bool>               (data);

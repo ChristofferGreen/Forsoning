@@ -41,12 +41,11 @@ struct PathSpace {
         if(range.isAtRoot()) {
             while(!found) {
                 UnlockedToUpgradedLock lock(this->mutex);
+                bool const shouldWait = true;
                 if(range.isAtData())
-                    found = this->grabDataName(range.dataName(), info, data, isTriviallyCopyable);
+                    found = this->grabDataName(range.dataName(), info, data, isTriviallyCopyable, shouldWait);
                 else
-                    found = this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
-                //if(!found) 
-                //    this->condition.wait(this->mutex);
+                    found = this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, shouldWait);
             }
         } else {
             UnlockedToUpgradedLock lock(this->mutex);
@@ -58,29 +57,28 @@ struct PathSpace {
     }
 
     auto read(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        UnlockedToUpgradedLock lock(this->mutex);
+        UnlockedToSharedLock lock(this->mutex);
         if(range.isAtData())
-            return this->grabDataName(range.dataName(), info, data, isTriviallyCopyable);
-        return this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
+            return this->readDataName(range.dataName(), info, data, isTriviallyCopyable);
+        return this->readSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
     }
 
     auto readBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         bool found = false;
         if(range.isAtRoot()) {
             while(!found) {
-                UnlockedToUpgradedLock lock(this->mutex);
+                UnlockedToSharedLock lock(this->mutex);
+                bool const shouldWait = true;
                 if(range.isAtData())
-                    found = this->grabDataName(range.dataName(), info, data, isTriviallyCopyable);
+                    found = this->readDataName(range.dataName(), info, data, isTriviallyCopyable, shouldWait);
                 else
-                    found = this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
-                //if(!found) 
-                //    this->condition.wait(this->mutex);
+                    found = this->readSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, shouldWait);
             }
         } else {
-            UnlockedToUpgradedLock lock(this->mutex);
+            UnlockedToSharedLock lock(this->mutex);
             if(range.isAtData())
-                return this->grabDataName(range.dataName(), info, data, isTriviallyCopyable);
-            return this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
+                return this->readDataName(range.dataName(), info, data, isTriviallyCopyable);
+            return this->readSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
         }
         return found;
     }
@@ -100,19 +98,41 @@ struct PathSpace {
     }
 
 private:
-    virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+    virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
         if(this->codices.contains(dataName)) {
             UpgradedToExclusiveLock upgraded(this->mutex);
-            return codices.at(dataName).grab(info, data, isTriviallyCopyable);
+            bool const found = codices.at(dataName).grab(info, data, isTriviallyCopyable);
+            if(!found && shouldWait) {
+                auto u = UpgradableMutexWaitableWrapper(this->mutex);
+                this->condition.wait(u);
+            }
+            return found;
         }
         return false;
     }
 
-    virtual auto grabSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+    virtual auto grabSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
         if(this->codices.contains(spaceName)) {
             UpgradedToExclusiveLock upgraded(this->mutex);
-            return codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable](auto &space){return space.grab(range.next(), info, data, isTriviallyCopyable);});
+            bool const found = codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable](auto &space){return space.grab(range.next(), info, data, isTriviallyCopyable);});
+            if(!found && shouldWait) {
+                auto u = UpgradableMutexWaitableWrapper(this->mutex);
+                this->condition.wait(u);
+            }
+            return found;
         }
+        return false;
+    }
+
+    virtual auto readDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
+        if(this->codices.contains(dataName))
+            return codices.at(dataName).read(info, data, isTriviallyCopyable);
+        return false;
+    }
+
+    virtual auto readSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
+        if(this->codices.contains(spaceName))
+            return codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable](auto &space){return space.read(range.next(), info, data, isTriviallyCopyable);});
         return false;
     }
 
