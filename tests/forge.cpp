@@ -10,18 +10,18 @@ TEST_CASE("Forge") {
     SUBCASE("Eschelon") {
         Eschelon queue;
         auto ticket = queue.newTicket();
-        queue.add(ticket, []()->Coroutine{co_yield 0;}, [](Data const &data){});
+        queue.add(ticket, []()->Coroutine{co_return 0;}, [](Data const &data){});
         auto const task = queue.popWait();
         CHECK(task.has_value()==true);
         CHECK(task.value().ticket==FirstTicket);
     }
 
     SUBCASE("Forge") {
-        for(int i = 0; i < 1000; ++i) {
+        for(int i = 0; i < 3; ++i) {
             Forge forge;
             auto res = 0;
             bool hasRun = false;
-            auto const ticket = forge.add([]()->Coroutine{co_yield 345;}, [&res, &hasRun](Data const &data){
+            auto const ticket = forge.add([]()->Coroutine{co_return 345;}, [&res, &hasRun](Data const &data){
                 CHECK(data.is<int>()==true);
                 res=data.as<int>();
                 CHECK(res==345);
@@ -40,7 +40,7 @@ TEST_CASE("Forge") {
         std::vector<int> tickets;
         std::shared_mutex mutex;
         for(auto i = 0; i < 128; ++i) {
-            tickets.push_back(forge.add([i]()->Coroutine{co_yield i;}, [i, &s, &mutex](Data const &data){
+            tickets.push_back(forge.add([i]()->Coroutine{co_return i;}, [i, &s, &mutex](Data const &data){
                 CHECK(data.is<int>()==true);
                 auto writeLock = std::unique_lock<std::shared_mutex>(mutex);
                 s.insert(i);

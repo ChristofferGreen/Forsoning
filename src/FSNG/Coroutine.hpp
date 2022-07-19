@@ -25,8 +25,14 @@ struct Coroutine {
             coro.destroy();
     }
 
+    auto hasValue() {
+        return coro.promise().currentValue.has_value();
+    }
+
     auto getValue() {
-        return std::move(coro.promise().current_value);
+        auto val = std::move(coro.promise().currentValue.value());
+        coro.promise().currentValue = std::nullopt;
+        return val;
     }
 
     auto done() -> bool {
@@ -55,11 +61,12 @@ struct Coroutine {
         }
 
         auto yield_value(Data &&value) {
-            current_value = std::move(value);
+            currentValue = std::move(value);
             return std::experimental::suspend_always{};
         }
 
-        auto return_void() {
+        auto return_value(Data &&value) {
+            currentValue = std::move(value);
             return std::experimental::suspend_always{};
         }
 
@@ -67,7 +74,7 @@ struct Coroutine {
             std::exit(1);
         }
 
-        Data current_value;
+        std::optional<Data> currentValue;
     };
     handle_type coro;
 };

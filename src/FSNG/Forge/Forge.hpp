@@ -42,10 +42,13 @@ struct Forge {
             if(auto task = this->eschelon.popWait()) {
                 LOG("Thread: {} got task", id);
                 auto coroutine = task.value().fun();
-                while(coroutine.next()) {
-                    task.value().inserter(coroutine.getValue());
+                bool shouldGoAgain = false;
+                do {
+                    shouldGoAgain = coroutine.next();
                     LOG("Thread: {} inserting coroutine value", id);
-                }
+                    if(coroutine.hasValue())
+                        task.value().inserter(coroutine.getValue());
+                } while(shouldGoAgain);
                 LOG("Thread: {} finished task", id);
                 this->esprit.deactivate(task.value().ticket);
             }

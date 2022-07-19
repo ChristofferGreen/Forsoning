@@ -13,6 +13,7 @@ add_executable(ForsoningTest
   path_space_insert.cpp
   path_space_grab.cpp
   path_space_grab_block.cpp
+  path_space_read.cpp
 )
 
 target_include_directories(ForsoningTest 

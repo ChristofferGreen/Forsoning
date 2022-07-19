@@ -42,10 +42,8 @@ struct PathSpace {
             while(!found) {
                 UnlockedToUpgradedLock lock(this->mutex);
                 bool const shouldWait = true;
-                if(range.isAtData())
-                    found = this->grabDataName(range.dataName(), info, data, isTriviallyCopyable, shouldWait);
-                else
-                    found = this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, shouldWait);
+                found = range.isAtData() ? this->grabDataName(range.dataName(), info, data, isTriviallyCopyable, shouldWait) :
+                                           this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, shouldWait);
             }
         } else {
             UnlockedToUpgradedLock lock(this->mutex);
@@ -69,10 +67,8 @@ struct PathSpace {
             while(!found) {
                 UnlockedToSharedLock lock(this->mutex);
                 bool const shouldWait = true;
-                if(range.isAtData())
-                    found = this->readDataName(range.dataName(), info, data, isTriviallyCopyable, shouldWait);
-                else
-                    found = this->readSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, shouldWait);
+                found = range.isAtData() ? this->readDataName(range.dataName(), info, data, isTriviallyCopyable, shouldWait) :
+                                           this->readSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, shouldWait);
             }
         } else {
             UnlockedToSharedLock lock(this->mutex);
