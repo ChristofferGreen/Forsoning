@@ -18,6 +18,13 @@
 #include <unordered_map>
 #include <variant>
 
+#ifdef LOG_PATH_SPACE
+#define LOG_PS LOG
+#else
+#define LOG_PS(...)
+#define LogRAII(...) 0
+#endif
+
 namespace FSNG {
 struct PathSpace {
     PathSpace() = default;
@@ -30,6 +37,7 @@ struct PathSpace {
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
 
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+        auto const raii = LogRAII("PathSpace::grab "+range.dataName());
         UnlockedToUpgradedLock lock(this->mutex);
         if(range.isAtData())
             return this->grabDataName(range.dataName(), info, data, isTriviallyCopyable);
@@ -37,6 +45,7 @@ struct PathSpace {
     }
 
     auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+        auto const raii = LogRAII("PathSpace::grabBlock "+range.dataName());
         bool found = false;
         if(range.isAtRoot()) {
             while(!found) {
@@ -55,6 +64,7 @@ struct PathSpace {
     }
 
     auto read(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+        auto const raii = LogRAII("PathSpace::read "+range.dataName());
         UnlockedToSharedLock lock(this->mutex);
         if(range.isAtData())
             return this->readDataName(range.dataName(), info, data, isTriviallyCopyable);
@@ -62,6 +72,7 @@ struct PathSpace {
     }
 
     auto readBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+        auto const raii = LogRAII("PathSpace::readBlock "+range.dataName());
         bool found = false;
         if(range.isAtRoot()) {
             while(!found) {
@@ -80,12 +91,14 @@ struct PathSpace {
     }
 
     virtual auto insert(Path const &range, Data const &data) -> bool {
+        auto const raii = LogRAII("PathSpace::insert "+range.dataName());
         if(range.isAtData())
             return this->insertDataName(range.dataName(), data);
         return this->insertSpaceName(range, range.spaceName().value(), data);
     }
 
     virtual auto toJSON() const -> nlohmann::json {
+        auto const raii = LogRAII("PathSpace::toJSON");
         nlohmann::json json;
         UnlockedToSharedLock lock(this->mutex);
         for(auto const &p : codices)
@@ -95,11 +108,13 @@ struct PathSpace {
 
 private:
     virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
+        auto const raii = LogRAII("PathSpace::grabDataName "+dataName);
         if(this->codices.contains(dataName)) {
             UpgradedToExclusiveLock upgraded(this->mutex);
             bool const found = codices.at(dataName).grab(info, data, isTriviallyCopyable);
             if(!found && shouldWait) {
                 auto u = UpgradableMutexWaitableWrapper(this->mutex);
+                auto const raii = LogRAII("PathSpace::grabDataName condition wait (UpgradedToExclusiveLock)");
                 this->condition.wait(u);
             }
             return found;
@@ -108,6 +123,7 @@ private:
     }
 
     virtual auto grabSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
+        auto const raii = LogRAII("PathSpace::grabSpaceName "+dataName);
         if(this->codices.contains(spaceName)) {
             UpgradedToExclusiveLock upgraded(this->mutex);
             bool const found = codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable](auto &space){return space.grab(range.next(), info, data, isTriviallyCopyable);});
@@ -121,20 +137,24 @@ private:
     }
 
     virtual auto readDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
+        auto const raii = LogRAII("PathSpace::readDataName "+dataName);
         if(this->codices.contains(dataName))
             return codices.at(dataName).read(info, data, isTriviallyCopyable);
         return false;
     }
 
     virtual auto readSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
+        auto const raii = LogRAII("PathSpace::readSpaceName "+spaceName);
         if(this->codices.contains(spaceName))
             return codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable](auto &space){return space.read(range.next(), info, data, isTriviallyCopyable);});
         return false;
     }
 
     virtual auto insertDataName(std::string const &dataName, Data const &data) -> bool {
+        auto const raii = LogRAII("PathSpace::insertDataName "+dataName);
         UnlockedToExclusiveLock upgraded(this->mutex);
         this->codices[dataName].insert(data, [this, dataName](Data const &coroData){
+            auto const raii = LogRAII("PathSpace::insertDataName codex insert");
             UnlockedToExclusiveLock upgraded(this->mutex);
             codices[dataName].insert(coroData, [](Data const &data){});
             this->condition.notify_all();
@@ -143,6 +163,7 @@ private:
     }
 
     virtual auto insertSpaceName(Path const &range, std::string const &spaceName, Data const &data) -> bool {
+        auto const raii = LogRAII("PathSpace::insertSpaceName "+spaceName);
         UnlockedToExclusiveLock upgraded(this->mutex);
         if(!codices.contains(spaceName)) {
             codices[spaceName].insert(PathSpaceTE(PathSpace{}), [](Data const &data){});

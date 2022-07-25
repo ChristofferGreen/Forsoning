@@ -79,3 +79,14 @@ inline auto printm(std::string const &s) -> void {
 }
 
 #define LOG(...) {while(!spdlog::get("file")) {};if(auto file = spdlog::get("file")) {file->info(__VA_ARGS__);file->flush();}}
+
+struct LogRAII {
+    LogRAII(std::string const &message) : message(message) {LOG(this->message+" start")}
+    ~LogRAII() {LOG(this->message+" end")}
+private:
+    std::string message;
+};
+
+//#define LOG_MUTEX
+#define LOG_PATH_SPACE
+//#define LOG_FORGE

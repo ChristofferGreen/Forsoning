@@ -8,6 +8,13 @@
 
 #include <iostream>
 
+#ifdef LOG_FORGE
+#define LOG_F LOG
+#else
+#define LOG_F(...)
+#define LogRAII(...) 0
+#endif
+
 namespace FSNG {
 struct Forge {
     Forge() : eschelon(), hearth(&Forge::executor, this) {}
@@ -30,26 +37,19 @@ struct Forge {
     }
 
     auto wait(Ticket const &ticket) -> void {
-        LOG("eschelon.wait for ticket {}", ticket);
         this->esprit.wait(ticket);
-        LOG("Forge::wait done for ticket {}", ticket);
     }
 
     auto executor(int const id) -> void {
-        LOG("Thread: {} started executing.", id);
         while(this->isAlive) {
-            LOG("Thread: {} waiting for task, tasks available: {}", id, this->eschelon.size());
             if(auto task = this->eschelon.popWait()) {
-                LOG("Thread: {} got task", id);
                 auto coroutine = task.value().fun();
                 bool shouldGoAgain = false;
                 do {
                     shouldGoAgain = coroutine.next();
-                    LOG("Thread: {} inserting coroutine value", id);
                     if(coroutine.hasValue())
                         task.value().inserter(coroutine.getValue());
                 } while(shouldGoAgain);
-                LOG("Thread: {} finished task", id);
                 this->esprit.deactivate(task.value().ticket);
             }
         }
