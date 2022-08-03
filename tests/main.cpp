@@ -4,8 +4,6 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/basic_file_sink.h"
 
-#include "backward.hpp"
-
 int main(int argc, char** argv) {
     try {
         auto logger = spdlog::basic_logger_mt("file", "logs/basic-log.txt", true);
