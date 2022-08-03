@@ -11,6 +11,14 @@
     Single type: |Data|Data|Data
 */
 
+#ifdef LOG_CODEX
+#define LOG_C LOG
+#define LogRAII_C LogRAII
+#else
+#define LOG_C(...)
+#define LogRAII_C(...) 0
+#endif
+
 namespace FSNG {
 struct Codex {
     auto operator==(Codex const &rhs) const -> bool { 
@@ -161,6 +169,10 @@ struct Codex {
     auto empty() -> bool {
         return this->info.size()==0;
     }
+
+    auto isCoroReturnOngoing(std::string const &name) -> bool {
+        return false;
+    }
     
 private:
     auto popInfo() -> void {
@@ -169,6 +181,7 @@ private:
             return;
         }
         assert(this->info.begin()->nbrItems()!=0);
+        LOG_C("Codex::PopInfo erasing info")
         this->info.erase(this->info.begin());
     }
 
@@ -185,12 +198,16 @@ private:
     }
 
     auto addInfo(int const nbrItems, std::type_info const *ptr) -> CodexInfo {
-        if(this->info.size()==0)
+        if(this->info.size()==0) {
+            LOG_C("Codex::addInfo creating info")
             this->info.emplace_back(nbrItems, ptr);
+        }
         else if(*this->info.rbegin()->info==*ptr && (*ptr!=typeid(std::string) && *ptr!=typeid(char const*)))
             this->info.rbegin()->items.nbr++;
-        else
+        else {
+            LOG_C("Codex::addInfo creating info")
             this->info.emplace_back(nbrItems, ptr);
+        }
 
         return *this->info.rbegin();
     }

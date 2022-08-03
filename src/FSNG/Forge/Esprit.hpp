@@ -30,6 +30,11 @@ struct Esprit {
             this->condition.wait(readLock);
     }
 
+    auto nbrActive() {
+        auto readLock = std::shared_lock(this->mutex);
+        return this->active.size();
+    }
+
 private:
     std::set<Ticket> active;
     std::set<Ticket> deactivated;

@@ -64,16 +64,14 @@ TEST_CASE("DP" * doctest::timeout(5.0)) {
                 LOG("Philosopher starting: {}", i);
                 co_return 123;
             });
-            if(i<(numberOfPhilosophers-1))
-                space.insert("/room_ticket", i);
         }
         for(int i = 0; i < numberOfPhilosophers; ++i) {
             LOG("Philosopher grabbing: {}", i);
             int const ret = space.grabBlock<int>("/philosopher");
             CHECK(ret==123);
-            LOG("Philosopher {} has ret: {}", i, ret);
         }
         try {
+            spdlog::drop("file");
             auto logger = spdlog::basic_logger_mt("file", "logs/basic-log.txt", true);
             logger->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
         } catch (const spdlog::spdlog_ex &ex) {}

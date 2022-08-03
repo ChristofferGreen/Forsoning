@@ -7,9 +7,10 @@
 
 #ifdef LOG_FORGE
 #define LOG_F LOG
+#define LogRAII_F LogRAII
 #else
 #define LOG_F(...)
-#define LogRAII(...) 0
+#define LogRAII_F(...) 0
 #endif
 
 namespace FSNG {
@@ -27,7 +28,7 @@ struct Eschelon {
     }
 
     auto popWait() -> std::optional<Task> {
-        auto const raii = LogRAII("Eschelon::popWait");
+        auto const raii = LogRAII_F("Eschelon::popWait");
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
         while(this->isAlive && this->tasks.size()==0) {
             this->waiters++;
@@ -43,14 +44,14 @@ struct Eschelon {
     }
 
     auto wait(Ticket const &ticket) -> void {
-        auto const raii = LogRAII("Eschelon::wait");
+        auto const raii = LogRAII_F("Eschelon::wait");
         auto readLock = std::shared_lock(this->mutex);
         while(this->tasks.contains(ticket))
             this->condition.wait(readLock);
     }
 
     auto shutdown() -> void {
-        auto const raii = LogRAII("Eschelon::shutdown");
+        auto const raii = LogRAII_F("Eschelon::shutdown");
         this->isAlive = false;
         while(this->waiters>0) {this->condition.notify_all();}
     }
@@ -61,7 +62,7 @@ struct Eschelon {
     }
 
     auto newTicket() -> Ticket {
-        auto const raii = LogRAII("Eschelon::newTicket");
+        auto const raii = LogRAII_F("Eschelon::newTicket");
         return this->currentTicket++;
     }
 

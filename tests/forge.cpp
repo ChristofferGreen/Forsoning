@@ -17,7 +17,7 @@ TEST_CASE("Forge") {
     }
 
     SUBCASE("Forge") {
-        for(int i = 0; i < 3; ++i) {
+        for(int i = 0; i < 1; ++i) {
             Forge forge;
             auto res = 0;
             bool hasRun = false;
