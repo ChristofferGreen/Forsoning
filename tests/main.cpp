@@ -22,7 +22,6 @@ int main(int argc, char** argv) {
     }
     spdlog::get("file")->info("main");
     using namespace std::chrono_literals;
-    std::this_thread::sleep_for(100ms);
     
     doctest::Context context(argc, argv);
     int res = context.run();
