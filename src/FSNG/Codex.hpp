@@ -106,7 +106,8 @@ struct Codex {
             auto const dataSizeBytes = info.dataSizeBytes();
             copy_byte_back_insert(d.c_str(), dataSizeBytes, this->codices);
         } else if(data.is<std::unique_ptr<std::function<Coroutine()>>>()) {
-            this->forge.add(*data.as<std::unique_ptr<std::function<Coroutine()>>>(), fun);
+            auto const ticket = this->forge.add(*data.as<std::unique_ptr<std::function<Coroutine()>>>(), fun);
+            this->addInfo(1, &typeid(Coroutine), ticket);
         } else if(data.is<std::unique_ptr<PathSpaceTE>>()) {
             this->addInfo(1, &typeid(PathSpaceTE));
             auto const &p = data.as<std::unique_ptr<PathSpaceTE>>();
@@ -124,6 +125,13 @@ struct Codex {
                 copy_byte_back_insert(dataRef.data, dataRef.size, this->codices);
             }
         }
+    }
+
+    auto removeCoroutine(Ticket const &ticket) {
+        auto const iter = std::find_if(this->info.begin(), this->info.end(), [&ticket](CodexInfo const &info){return ticket==info.items.ticket;});
+        if(iter == this->info.end())
+            return;
+        this->info.erase(iter);
     }
 
     template<typename T>
@@ -169,10 +177,6 @@ struct Codex {
     auto empty() -> bool {
         return this->info.size()==0;
     }
-
-    auto isCoroReturnOngoing(std::string const &name) -> bool {
-        return false;
-    }
     
 private:
     auto popInfo() -> void {
@@ -209,6 +213,12 @@ private:
             this->info.emplace_back(nbrItems, ptr);
         }
 
+        return *this->info.rbegin();
+    }
+
+    auto addInfo(int const nbrItems, std::type_info const *ptr, Ticket const &ticket) -> CodexInfo {
+        LOG_C("Codex::addInfo creating info ticket")
+        this->info.emplace_back(ticket, ptr);
         return *this->info.rbegin();
     }
 

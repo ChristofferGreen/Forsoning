@@ -15,7 +15,7 @@
 
 namespace FSNG {
 struct Eschelon {
-    auto add(Ticket const &ticket, std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data)> const &inserter) -> void {
+    auto add(Ticket const &ticket, std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data, Ticket const &ticket)> const &inserter) -> void {
         auto const writeLock = std::lock_guard<std::shared_mutex>(this->mutex);
         this->tasks[ticket] = Task{ticket, coroutineFun, inserter};
         this->condition.notify_one();

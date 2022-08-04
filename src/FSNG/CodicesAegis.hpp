@@ -57,7 +57,7 @@ struct CodicesAegis {
     private:
         auto popEmptySpace(std::string const &name) -> void {
             if(this->codices.contains(name)) {
-                if(this->codices.at(name).empty() && !this->codices.at(name).isCoroReturnOngoing(name))
+                if(this->codices.at(name).empty())
                     this->codices.erase(name);
             }
         }

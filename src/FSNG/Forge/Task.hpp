@@ -9,6 +9,6 @@ namespace FSNG {
 struct Task {
     Ticket ticket;
     std::function<Coroutine()> fun = []()->Coroutine{co_return 0;};
-    std::function<void(Data const &data)> inserter = [](Data const &data){};
+    std::function<void(Data const &data, Ticket const &ticket)> inserter = [](Data const &data, Ticket const &ticket){};
 };
 }

@@ -1,10 +1,12 @@
 #pragma once
 #include "FSNG/PathSpaceTE.hpp"
+#include "FSNG/Forge/Ticket.hpp"
 
 namespace FSNG {
 struct CodexInfo {
     CodexInfo() = default;
     CodexInfo(int const nbrItems, std::type_info const *info) : items(nbrItems), info(info) {};
+    CodexInfo(Ticket const ticket, std::type_info const *info) : items(ticket, 0), info(info) {};
     auto operator==(CodexInfo const &rhs) const -> bool { return (this->items.nbr&&rhs.items.nbr) && (this->info==rhs.info); }
 
     auto nbrItems() const -> uint32_t {
@@ -44,15 +46,18 @@ struct CodexInfo {
         else if(*this->info==typeid(char const*))                  return sizeof(char)*this->items.nbr;
         else if(*this->info==typeid(std::string))                  return sizeof(char)*this->items.nbr;
         else if(*this->info==typeid(PathSpaceTE))                  return 0;
+        else if(*this->info==typeid(Coroutine))                    return 0;
         else if(Converters::toJSONConverters.contains(this->info)) return this->items.size;
         return -1;
     }
 
     union Items {
         Items() = default;
-        Items(uint32_t i) : nbr(i) {}
+        explicit Items(uint32_t i) : nbr(i) {}
+        explicit Items(Ticket t, int) : ticket(t) {}
         uint32_t nbr;
         uint32_t size;
+        Ticket ticket;
     } items;
     std::type_info const *info = nullptr;
 };
