@@ -146,8 +146,8 @@ private:
         this->codices[dataName].insert(data, [this, dataName](Data const &coroResultData, Ticket const &ticket) { // change this to the codex as param
             auto const raii = LogRAII_PS("PathSpace::insertDataName codex insert "+dataName);
             UnlockedToExclusiveLock lock(this->mutex);
-            codices[dataName].insert(coroResultData, [](Data const &data, Ticket const &ticket){});
-            codices[dataName].removeCoroutine(ticket);
+            this->codices[dataName].insert(coroResultData);
+            this->codices[dataName].removeCoroutine(ticket);
             this->condition.notify_all();
         }); // ToDo:: What about recursive coroutines???
         return true;
@@ -157,7 +157,7 @@ private:
         auto const raii = LogRAII_PS("PathSpace::insertSpaceName "+spaceName);
         UnlockedToExclusiveLock upgraded(this->mutex);
         if(!codices.contains(spaceName)) {
-            codices[spaceName].insert(PathSpaceTE(PathSpace{}), [](Data const &data, Ticket const &ticket){});
+            codices[spaceName].insert(PathSpaceTE(PathSpace{}));
             this->condition.notify_all();
         }
         return codices[spaceName].template visitFirst<PathSpaceTE>([&range, &data, this](auto &space){

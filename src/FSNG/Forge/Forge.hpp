@@ -25,7 +25,7 @@ struct Forge {
             thread.join();
     }
 
-    auto add(std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data, Ticket const &ticket)> const &inserter=[](Data const &data, Ticket const &ticket){}) -> Ticket {
+    auto add(std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data, Ticket const &ticket)> const &inserter) -> Ticket {
         auto const ticket = this->eschelon.newTicket();
         this->esprit.activate(ticket);
         this->eschelon.add(ticket, coroutineFun, inserter);
