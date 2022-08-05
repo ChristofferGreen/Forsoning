@@ -88,6 +88,6 @@ private:
 };
 
 #define LOG_MUTEX
-#define LOG_PATH_SPACE
+//#define LOG_PATH_SPACE
 //#define LOG_CODEX
 //#define LOG_FORGE

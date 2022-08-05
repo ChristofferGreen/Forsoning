@@ -13,44 +13,57 @@ auto sleepThread() {
     auto const number = random_number(5000000*10, 30000000*10);
     std::this_thread::sleep_for(std::chrono::nanoseconds(number));
 }
-/*
+
 TEST_CASE("DiningPhilosophers" * doctest::timeout(2.0)) {
     PathSpaceTE space = PathSpace();
     int const numberOfPhilosophers = 5;
     int const totalLoops = 10;
-    auto think = [](){sleepThread();};
-    auto eat   = [](){sleepThread();};
+    auto think = [](auto i){LOG("Philosopher {} thinking", i)sleepThread();LOG("Philosopher {} woke up", i)};
+    auto eat   = [](auto i){LOG("Philosopher {} eating", i)sleepThread();LOG("Philosopher {} finished eating", i)};
     
     for(int i = 0; i < numberOfPhilosophers; ++i) {
+        LOG("Inserting chopstick {}", i)
         space.insert("/chopstick/"+std::to_string(i), 0);
+        LOG("Inserting philosopher {}", i)
         space.insert("/philosopher", [&space, i, think, eat, totalLoops]()->Coroutine{
-            std::cout << "Philosopher starting: " << i << std::endl;
+            LOG("Philosopher starting:  {}", i)
             auto const leftChopstickName  = "/chopstick/"+std::to_string(i);
             auto const rightChopstickName = "/chopstick/"+std::to_string((i+1)%numberOfPhilosophers);
             int currentLoop = 0;
-            while(currentLoop++<totalLoops) {
-                think();
+            while(currentLoop<totalLoops) {
+                think(i);
+                LOG("Philosopher {} grabs room ticket", i)
                 auto const roomTicket     = space.grabBlock<int>("/room_ticket");
+                LOG("Philosopher {} grabbing left chopstick", i)
                 auto const leftChopStick  = space.grabBlock<int>(leftChopstickName);
+                LOG("Philosopher {} grabbing right chopstick", i)
                 auto const rightChopStick = space.grabBlock<int>(rightChopstickName);
-                eat();
+                LOG("Philosopher {} has both chopstick", i)
+                eat(i);
+                LOG("Philosopher {} inserts left chopstick", i)
                 space.insert(leftChopstickName, leftChopStick);
+                LOG("Philosopher {} inserts right chopstick", i)
                 space.insert(rightChopstickName, rightChopStick);
+                LOG("Philosopher {} inserts room ticket", i)
                 space.insert("/room_ticket", i);
+                LOG("Philosopher {} loops around current loop {} total loops {}", i, currentLoop, totalLoops)
                 currentLoop++;
             }
-            std::cout << "Philosopher ending: " << i << std::endl;
+            LOG("Philosopher ending: {}", i)
             co_return 123;
         });
-        if(i<(numberOfPhilosophers-1))
+        if(i<(numberOfPhilosophers-1)) {
+            LOG("Inserting room ticket {}", i)
             space.insert("/room_ticket", i);
+        }
     }
     for(int i = 0; i < numberOfPhilosophers; ++i) {
+        LOG("Grabbing philosopher {}", i)
         int const ret = space.grabBlock<int>("/philosopher");
         CHECK(ret==123);
-        std::cout << ret << std::endl;
+        LOG("Grabbed philosopher {} with result {}", i, ret)
     }
-}*/
+}
 
 TEST_CASE("DP" * doctest::timeout(5.0)) {
     for(int x = 0; x < 2100; ++x) {
