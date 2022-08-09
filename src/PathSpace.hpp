@@ -33,6 +33,10 @@ struct PathSpace {
         UnlockedToSharedLock lockRHS(rhs.mutex);
         this->codices = rhs.codices;
     }
+    ~PathSpace() {
+        int a = 0;
+        a++;
+    }
 
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
 
@@ -157,7 +161,7 @@ private:
         auto const raii = LogRAII_PS("PathSpace::insertSpaceName "+spaceName);
         UnlockedToExclusiveLock upgraded(this->mutex);
         if(!codices.contains(spaceName)) {
-            codices[spaceName].insert(PathSpaceTE(PathSpace{}));
+            codices[spaceName].insertSpace(PathSpaceTE(PathSpace{}));
             this->condition.notify_all();
         }
         return codices[spaceName].template visitFirst<PathSpaceTE>([&range, &data, this](auto &space){

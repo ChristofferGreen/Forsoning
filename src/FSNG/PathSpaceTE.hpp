@@ -26,6 +26,7 @@ public:
 	template<typename T>
 	PathSpaceTE(T x)                             : self(std::make_unique<model<T>>(std::move(x))) {}
 	PathSpaceTE(PathSpaceTE const &rhs)          : self(rhs.self->copy_())                        {}
+	PathSpaceTE(PathSpaceTE &&rhs)               : self(std::move(rhs.self))                      {}
 	PathSpaceTE(std::unique_ptr<concept_t> self) : self(std::move(self))                          {}
 
 	auto operator= (PathSpaceTE const &rhs)       -> PathSpaceTE& {return *this = PathSpaceTE(rhs);}

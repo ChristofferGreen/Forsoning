@@ -1,8 +1,5 @@
 #pragma once
-#include "FSNG/Coroutine.hpp"
-#include "FSNG/Data.hpp"
-
-#include "spdlog/spdlog.h"
+#include "FSNG/log.hpp"
 
 #include <functional>
 #include <random>
@@ -12,12 +9,6 @@
 #include <shared_mutex>
 
 namespace FSNG {
-namespace Converters {
-inline std::unordered_map<std::type_info const*, std::function<nlohmann::json(std::byte const *fromBytes, int size)>> toJSONConverters;
-inline std::unordered_map<std::type_info const*, std::function<bool          (std::byte const *fromBytes, int size, void *toObject)>> fromJSONConverters;
-inline std::unordered_map<std::type_info const*, std::function<void          (std::vector<std::byte> &vec, void const *obj)>> toByteArrayConverters;
-inline std::unordered_map<std::type_info const*, std::function<bool          (std::byte const *fromBytes, void *toObj)>> fromByteArrayConverters;
-};
 
 inline auto copy_byte_back_insert(auto start, auto nbr, auto &to) {
     std::copy(static_cast<std::byte const * const>(static_cast<void const * const>(start)),
@@ -77,17 +68,3 @@ inline auto printm(std::string const &s) -> void {
 }
 
 }
-
-#define LOG(...) {while(!spdlog::get("file")) {};if(auto file = spdlog::get("file")) {file->info(__VA_ARGS__);file->flush();}}
-
-struct LogRAII {
-    LogRAII(std::string const &message) : message(message) {LOG(this->message+" start")}
-    ~LogRAII() {LOG(this->message+" end")}
-private:
-    std::string message;
-};
-
-#define LOG_MUTEX
-//#define LOG_PATH_SPACE
-//#define LOG_CODEX
-//#define LOG_FORGE

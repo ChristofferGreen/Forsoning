@@ -80,6 +80,12 @@ struct Codex {
         return ret;
     }
  
+    template<typename T>
+    auto insertSpace(T &&space) -> void {
+        this->spaces.emplace_back(std::move(space));
+        this->addInfo(1, &typeid(PathSpaceTE));
+    }
+
     auto insert(Data const &data, std::function<void(Data const &coroResultData, Ticket const &ticket)> const &coroResultInserter = [](Data const &coroResultData, Ticket const &ticket){}) -> void {
         if(data.is<bool>())                    this->insertBasic<bool>               (data);
         else if(data.is<signed char>())        this->insertBasic<signed char>        (data);
@@ -172,10 +178,6 @@ struct Codex {
             }
         }
         return json;
-    }
-
-    auto empty() -> bool {
-        return this->info.size()==0;
     }
     
 private:
