@@ -13,7 +13,7 @@ auto sleepThread() {
     auto const number = random_number(5000000*10, 30000000*10);
     std::this_thread::sleep_for(std::chrono::nanoseconds(number));
 }
-
+/*
 TEST_CASE("DiningPhilosophers" * doctest::timeout(2.0)) {
     PathSpaceTE space = PathSpace();
     int const numberOfPhilosophers = 5;
@@ -63,7 +63,7 @@ TEST_CASE("DiningPhilosophers" * doctest::timeout(2.0)) {
         CHECK(ret==123);
         LOG("Grabbed philosopher {} with result {}", i, ret)
     }
-}
+}*/
 
 TEST_CASE("DP" * doctest::timeout(5.0)) {
     for(int x = 0; x < 2100; ++x) {

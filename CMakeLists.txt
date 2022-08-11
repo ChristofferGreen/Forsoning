@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 project(Forsoning LANGUAGES CXX)
 
+include(CTest)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 #SET (CMAKE_CXX_FLAGS "-fuse-ld=mold")

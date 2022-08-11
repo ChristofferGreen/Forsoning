@@ -16,7 +16,7 @@ TEST_CASE("Forge") {
         CHECK(task.value().ticket==FirstTicket);
     }
 
-    SUBCASE("Forge") {
+    SUBCASE("Coroutine") {
         for(int i = 0; i < 1; ++i) {
             Forge forge;
             auto res = 0;
@@ -34,7 +34,7 @@ TEST_CASE("Forge") {
         }
     }
 
-    SUBCASE("Forge Multiple Tasks") {
+    SUBCASE("Multiple Tasks") {
         Forge forge;
         std::set<int> s;
         std::vector<int> tickets;

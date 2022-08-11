@@ -12,13 +12,20 @@ private:
     std::string message;
 };
 
+#define LL(...) spdlog::details::log_msg("", spdlog::level::level_enum::info, __VA_ARGS__)
+
 template<typename Mutex>
-class html_file_sink final : public spdlog::sinks::base_sink<Mutex>
-{
+class html_file_sink final : public spdlog::sinks::base_sink<Mutex> {
 public:
     explicit html_file_sink(const spdlog::filename_t &filename, bool truncate = false, const spdlog::file_event_handlers &event_handlers = {}) : file_helper_{event_handlers} {
         file_helper_.open(filename, truncate);
+        this->log(LL("<!DOCTYPE html><html><body>"));
     }
+
+    ~html_file_sink() {
+        this->log(LL("</html></body>"));
+    }
+    
     const spdlog::filename_t &filename() const {
         return file_helper_.filename();
     }
@@ -26,7 +33,7 @@ public:
 protected:
     void sink_it_(const spdlog::details::log_msg &msg) override {
         spdlog::memory_buf_t formatted;
-        spdlog::sinks::base_sink<Mutex>::formatter_->format(msg, formatted);
+        fmt::format_to(std::back_inserter(formatted), "{}\n", msg.payload);
         file_helper_.write(formatted);
     }
 

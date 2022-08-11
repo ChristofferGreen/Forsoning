@@ -8,7 +8,7 @@
 
 int main(int argc, char** argv) {
     try {
-        auto logger = html_logger_mt("file", "logs/basic-log.txt", true);
+        auto logger = html_logger_mt("file", "logs/basic-log.html", true);
         logger->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
         spdlog::get("file")->info("main");
     } catch (const spdlog::spdlog_ex &ex) {
