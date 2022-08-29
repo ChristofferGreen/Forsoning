@@ -7,11 +7,6 @@
 
 using namespace FSNG;
 
-TEST_CASE("ABC") {
-    SECTION("A") {}
-    SECTION("B") {}
-}
-
 TEST_CASE("PathSpaceInsert") {
     PathSpaceTE space = PathSpace{};
     Path const rootTestPath{"/test"};

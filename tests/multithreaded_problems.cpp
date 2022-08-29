@@ -9,8 +9,9 @@
 
 using namespace FSNG;
 
-auto sleepThread() {
-    auto const number = random_number(5000000*10, 30000000*10);
+inline auto sleepThread(float from=0.05, float to=0.3) {
+    auto const secondInNanoseconds = 1000000000;
+    auto const number = random_number(secondInNanoseconds*from, secondInNanoseconds*to);
     std::this_thread::sleep_for(std::chrono::nanoseconds(number));
 }
 
@@ -88,5 +89,6 @@ TEST_CASE("DP") {
             auto logger = spdlog::basic_logger_mt("file", "logs/basic-log.txt", true);
             logger->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
         } catch (const spdlog::spdlog_ex &ex) {}
+        std::cout << "." << std::flush;
     }
 }
