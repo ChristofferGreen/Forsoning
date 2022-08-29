@@ -1,4 +1,4 @@
-#include <doctest.h>
+#include <catch.hpp>
 
 #include "PathSpace.hpp"
 #include "test_utils.hpp"
@@ -10,11 +10,11 @@ auto check_read(auto &space, auto const &path, auto const &testValue) {
     using InTRR = typename std::remove_reference<InT>::type;
     using InTRRRC = typename std::remove_const<InTRR>::type;
     auto const val = space.template read<InTRRRC>(path);
-    CHECK(val.has_value());
-    CHECK(val.value()==testValue);
+    REQUIRE(val.has_value());
+    REQUIRE(val.value()==testValue);
 }
 
-TEST_CASE("PathSpace Read" * doctest::timeout(2.0)) {
+TEST_CASE("PathSpace Read") {
     PathSpaceTE space = PathSpace{};
     Path const rootTestPath{"/test"};
     Path const rootTestPath2{"/test2"};
@@ -22,176 +22,176 @@ TEST_CASE("PathSpace Read" * doctest::timeout(2.0)) {
 
     Path const rootTestTest2Path{"/test/test2"};
 
-    SUBCASE("Read Simple") {
-        CHECK(space.insert("/test", 5) == true);
-        CHECK(space.insert("/test", 6) == true);
+    SECTION("Read Simple") {
+        REQUIRE(space.insert("/test", 5) == true);
+        REQUIRE(space.insert("/test", 6) == true);
         auto const val = space.read<int>("/test");
-        CHECK(val.value() == 5);
+        REQUIRE(val.value() == 5);
         auto const val2 = space.grab<int>("/test");
-        CHECK(val2.value() == 5);
+        REQUIRE(val2.value() == 5);
         auto const val3 = space.read<int>("/test");
-        CHECK(val3.value() == 6);
+        REQUIRE(val3.value() == 6);
     }
 
-    SUBCASE("Read Empty") {
+    SECTION("Read Empty") {
         auto const val3 = space.read<int>("/test");
-        CHECK(!val3.has_value());
+        REQUIRE(!val3.has_value());
     }
 
-    SUBCASE("Read Misc") {
-        CHECK(space.insert(rootTestPath, 5) == true);
-        CHECK(space.read<int>(rootTestPath) == 5);
+    SECTION("Read Misc") {
+        REQUIRE(space.insert(rootTestPath, 5) == true);
+        REQUIRE(space.read<int>(rootTestPath) == 5);
 
-        CHECK(space.insert(rootTestPath2, "hello") == true);
+        REQUIRE(space.insert(rootTestPath2, "hello") == true);
         auto val = space.read<std::string>(rootTestPath2);
-        CHECK(val.has_value());
-        CHECK(std::string(val.value()) == "hello");
+        REQUIRE(val.has_value());
+        REQUIRE(std::string(val.value()) == "hello");
 
-        CHECK(space.grab<int>(rootTestPath).value_or(0) == 5);
-        CHECK(space.insert(rootTestPath, 234) == true);
-        CHECK(space.read<int>(rootTestPath) == 234);
+        REQUIRE(space.grab<int>(rootTestPath).value_or(0) == 5);
+        REQUIRE(space.insert(rootTestPath, 234) == true);
+        REQUIRE(space.read<int>(rootTestPath) == 234);
     }
 
-    SUBCASE("Read POD") {
+    SECTION("Read POD") {
         POD const pod1;
-        CHECK(space.insert(rootTestPath, pod1) == true);
+        REQUIRE(space.insert(rootTestPath, pod1) == true);
         auto const pod2 = space.read<POD>(rootTestPath);
-        CHECK(pod2.has_value());
-        CHECK(pod1 == pod2.value());
+        REQUIRE(pod2.has_value());
+        REQUIRE(pod1 == pod2.value());
     }
 
-    SUBCASE("Read NonTrivial Class") {
+    SECTION("Read NonTrivial Class") {
         NonTrivial nt;
         nt.b = {1, 2, 3};
-        CHECK(space.insert(rootTestPath, nt) == true);
+        REQUIRE(space.insert(rootTestPath, nt) == true);
 
         auto const nt2 = space.read<NonTrivial>(rootTestPath);
-        CHECK(nt2.has_value());
-        CHECK(nt == nt2.value());
+        REQUIRE(nt2.has_value());
+        REQUIRE(nt == nt2.value());
     }
 
-    SUBCASE("Read NonTrivial Class JS") {
+    SECTION("Read NonTrivial Class JS") {
         NonTrivialJS nt;
         nt.b = {1, 2, 3};
-        CHECK(space.insert(rootTestPath, nt) == true);
+        REQUIRE(space.insert(rootTestPath, nt) == true);
         auto const val = space.read<NonTrivialJS>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(nt == val.value());
+        REQUIRE(val.has_value());
+        REQUIRE(nt == val.value());
     }
 
-    SUBCASE("Read Bool") {
-        CHECK(space.insert(rootTestPath, static_cast<bool>(true)) == true);
-        CHECK(space.insert(rootTestPath, static_cast<bool>(false)) == true);
-        CHECK(space.insert(rootTestPath, static_cast<bool>(true)) == true);
+    SECTION("Read Bool") {
+        REQUIRE(space.insert(rootTestPath, static_cast<bool>(true)) == true);
+        REQUIRE(space.insert(rootTestPath, static_cast<bool>(false)) == true);
+        REQUIRE(space.insert(rootTestPath, static_cast<bool>(true)) == true);
         auto const v1 = space.read<bool>(rootTestPath);
         space.grab<bool>(rootTestPath);
         auto const v2 = space.read<bool>(rootTestPath);
         space.grab<bool>(rootTestPath);
         auto const v3 = space.read<bool>(rootTestPath);
-        CHECK(v1.has_value());
-        CHECK(v2.has_value());
-        CHECK(v3.has_value());
-        CHECK(v1.value()==true);
-        CHECK(v2.value()==false);
-        CHECK(v3.value()==true);
+        REQUIRE(v1.has_value());
+        REQUIRE(v2.has_value());
+        REQUIRE(v3.has_value());
+        REQUIRE(v1.value()==true);
+        REQUIRE(v2.value()==false);
+        REQUIRE(v3.value()==true);
     }
 
-    SUBCASE("Read Signed Char") {
-        CHECK(space.insert(rootTestPath, static_cast<signed char>('C')) == true);
+    SECTION("Read Signed Char") {
+        REQUIRE(space.insert(rootTestPath, static_cast<signed char>('C')) == true);
         auto const val = space.read<signed char>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()=='C');
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()=='C');
     }
 
-    SUBCASE("Read Unsigned Char") {
-        CHECK(space.insert(rootTestPath, static_cast<unsigned char>('C')) == true);
+    SECTION("Read Unsigned Char") {
+        REQUIRE(space.insert(rootTestPath, static_cast<unsigned char>('C')) == true);
         auto const val = space.read<unsigned char>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()=='C');
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()=='C');
     }
 
-    SUBCASE("Read wchar_t") {
-        CHECK(space.insert(rootTestPath, static_cast<wchar_t>('C')) == true);
+    SECTION("Read wchar_t") {
+        REQUIRE(space.insert(rootTestPath, static_cast<wchar_t>('C')) == true);
         auto const val = space.read<wchar_t>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()=='C');
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()=='C');
     }
 
-    SUBCASE("Read Short") {
-        CHECK(space.insert(rootTestPath, static_cast<short>(43)) == true);
+    SECTION("Read Short") {
+        REQUIRE(space.insert(rootTestPath, static_cast<short>(43)) == true);
         auto const val = space.read<short>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==43);
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()==43);
     }
 
-    SUBCASE("Read Unsigned Short") {
-        CHECK(space.insert(rootTestPath, static_cast<unsigned short>(-43)) == true);
+    SECTION("Read Unsigned Short") {
+        REQUIRE(space.insert(rootTestPath, static_cast<unsigned short>(-43)) == true);
         auto const val = space.read<unsigned short>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<unsigned short>(-43));
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()==static_cast<unsigned short>(-43));
     }
 
-    SUBCASE("Read Int") {
-        CHECK(space.insert(rootTestPath, static_cast<int>(43)) == true);
+    SECTION("Read Int") {
+        REQUIRE(space.insert(rootTestPath, static_cast<int>(43)) == true);
         auto const val = space.read<int>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<int>(43));
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()==static_cast<int>(43));
     }
 
-    SUBCASE("Read Unsigned Int") {
-        CHECK(space.insert(rootTestPath, static_cast<unsigned int>(-43)) == true);
+    SECTION("Read Unsigned Int") {
+        REQUIRE(space.insert(rootTestPath, static_cast<unsigned int>(-43)) == true);
         auto const val = space.read<unsigned int>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<unsigned int>(-43));
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()==static_cast<unsigned int>(-43));
     }
 
-    SUBCASE("Read Long") {
-        CHECK(space.insert(rootTestPath, static_cast<long>(43)) == true);
+    SECTION("Read Long") {
+        REQUIRE(space.insert(rootTestPath, static_cast<long>(43)) == true);
         auto const val = space.read<long>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<long>(43));
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()==static_cast<long>(43));
     }
 
-    SUBCASE("Read Unsigned Long") {
-        CHECK(space.insert(rootTestPath, static_cast<unsigned long>(-43)) == true);
+    SECTION("Read Unsigned Long") {
+        REQUIRE(space.insert(rootTestPath, static_cast<unsigned long>(-43)) == true);
         auto const val = space.read<unsigned long>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<unsigned long>(-43));
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()==static_cast<unsigned long>(-43));
     }
 
-    SUBCASE("Read Long Long") {
-        CHECK(space.insert(rootTestPath, static_cast<long long>(43)) == true);
+    SECTION("Read Long Long") {
+        REQUIRE(space.insert(rootTestPath, static_cast<long long>(43)) == true);
         auto const val = space.read<long long>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<long long>(43));
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()==static_cast<long long>(43));
     }
 
-    SUBCASE("Read Unsigned Long Long") {
-        CHECK(space.insert(rootTestPath, static_cast<unsigned long long>(-43)) == true);
+    SECTION("Read Unsigned Long Long") {
+        REQUIRE(space.insert(rootTestPath, static_cast<unsigned long long>(-43)) == true);
         auto const val = space.read<unsigned long long>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<unsigned long long>(-43));
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()==static_cast<unsigned long long>(-43));
     }
 
-    SUBCASE("Read Double") {
-        CHECK(space.insert(rootTestPath, static_cast<double>(5.45)) == true);
+    SECTION("Read Double") {
+        REQUIRE(space.insert(rootTestPath, static_cast<double>(5.45)) == true);
         auto const val = space.read<double>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<double>(5.45));
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()==static_cast<double>(5.45));
     }
 
-    SUBCASE("Read Long Double") {
-        CHECK(space.insert(rootTestPath, static_cast<long double>(5.45)) == true);
+    SECTION("Read Long Double") {
+        REQUIRE(space.insert(rootTestPath, static_cast<long double>(5.45)) == true);
         auto const val = space.read<long double>(rootTestPath);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<long double>(5.45));
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()==static_cast<long double>(5.45));
     }
 
-    SUBCASE("Read Multiple Types") {
-        CHECK(space.insert(rootTestPath, 5) == true);
-        CHECK(space.insert(rootTestPath, "hello") == true);
-        CHECK(space.insert(rootTestPath, "hello2") == true);
-        CHECK(space.insert(rootTestPath, 34) == true);
+    SECTION("Read Multiple Types") {
+        REQUIRE(space.insert(rootTestPath, 5) == true);
+        REQUIRE(space.insert(rootTestPath, "hello") == true);
+        REQUIRE(space.insert(rootTestPath, "hello2") == true);
+        REQUIRE(space.insert(rootTestPath, 34) == true);
         check_read(space, rootTestPath, static_cast<int>(5));
         space.grab<int>(rootTestPath);
         check_read(space, rootTestPath, static_cast<std::string>("hello"));
@@ -201,40 +201,40 @@ TEST_CASE("PathSpace Read" * doctest::timeout(2.0)) {
         check_read(space, rootTestPath, static_cast<int>(34));
     }
 
-    SUBCASE("Read deep") {
-        CHECK(space.insert(rootTestTest2Path, 5) == true);
+    SECTION("Read deep") {
+        REQUIRE(space.insert(rootTestTest2Path, 5) == true);
         auto const val = space.read<int>(rootTestTest2Path);
-        CHECK(val.has_value());
-        CHECK(val.value()==static_cast<int>(5));
+        REQUIRE(val.has_value());
+        REQUIRE(val.value()==static_cast<int>(5));
     }
 
-    SUBCASE("Read Empty Space") {
-        CHECK(space.insert("/space", PathSpaceTE{PathSpace{}}) == true);
+    SECTION("Read Empty Space") {
+        REQUIRE(space.insert("/space", PathSpaceTE{PathSpace{}}) == true);
         auto const valOpt = space.read<PathSpaceTE>("/space");
-        CHECK(valOpt.has_value());
-        CHECK(valOpt.value() == PathSpaceTE{PathSpace{}});
+        REQUIRE(valOpt.has_value());
+        REQUIRE(valOpt.value() == PathSpaceTE{PathSpace{}});
     }
 
-    SUBCASE("Read Space") {
-        CHECK(space.insert("/space/val", 123) == true);
+    SECTION("Read Space") {
+        REQUIRE(space.insert("/space/val", 123) == true);
         auto const valOpt = space.read<PathSpaceTE>("/space");
-        CHECK(valOpt.has_value());
+        REQUIRE(valOpt.has_value());
         auto val = valOpt.value();
-        CHECK(val.read<int>("/val") == 123);
+        REQUIRE(val.read<int>("/val") == 123);
     }
 
-    SUBCASE("Read Mixed Space/Builtin") {
-        CHECK(space.insert("/space/val", 123) == true);
-        CHECK(space.insert("/val", 321) == true);
+    SECTION("Read Mixed Space/Builtin") {
+        REQUIRE(space.insert("/space/val", 123) == true);
+        REQUIRE(space.insert("/val", 321) == true);
         auto const valOpt = space.read<PathSpaceTE>("/space");
-        CHECK(valOpt.has_value());
+        REQUIRE(valOpt.has_value());
         auto val = valOpt.value();
-        CHECK(val.read<int>("/val").value_or(0) == 123);
-        CHECK(space.read<int>("/val").value_or(0) == 321);
+        REQUIRE(val.read<int>("/val").value_or(0) == 123);
+        REQUIRE(space.read<int>("/val").value_or(0) == 321);
     }
 }
 
-TEST_CASE("PathSpace Read Multithreaded" * doctest::timeout(2.0)) {
+TEST_CASE("PathSpace Read Multithreaded") {
     PathSpaceTE space = PathSpace{};
     Path const rootTestPath{"/test"};
     Path const rootTestPath2{"/test2"};
@@ -242,9 +242,9 @@ TEST_CASE("PathSpace Read Multithreaded" * doctest::timeout(2.0)) {
 
     Path const rootTestTest2Path{"/test/test2"};
 
-    SUBCASE("Read Coroutine Result") {
+    SECTION("Read Coroutine Result") {
         LOG("Read Coroutine Result start");
-        CHECK(space.insert("/coro", [&space]() -> Coroutine {
+        REQUIRE(space.insert("/coro", [&space]() -> Coroutine {
             LOG("Starting coro")
             for(auto i = 0; i < 5; ++i) {
                 LOG("co_yield {}", i)
@@ -255,19 +255,19 @@ TEST_CASE("PathSpace Read Multithreaded" * doctest::timeout(2.0)) {
             LOG("Inserted /finished")
         }) == true);
         LOG("Trying to Read /finished")
-        CHECK(space.readBlock<int>("/finished")==1);
+        REQUIRE(space.readBlock<int>("/finished")==1);
         LOG("Readbed /finished")
         for(auto i = 0; i < 5; ++i) {
-            CHECK(space.read<int>("/coro").value_or(-1)==i);
+            REQUIRE(space.read<int>("/coro").value_or(-1)==i);
             space.grab<int>("/coro");
         }
     }
 
-    /*SUBCASE("Read Coroutine") {
-        CHECK(space.insert("/coro", [&space]() -> Coroutine {
-            space.readBlock<int>("/exit_coro");
-            co_yield 1;
-        }) == true);
-        auto coroOpt = space.readBlock<int>("/coro");
-    }*/
+    //SECTION("Read Coroutine") {
+    //    REQUIRE(space.insert("/coro", [&space]() -> Coroutine {
+    //        space.readBlock<int>("/exit_coro");
+    //        co_yield 1;
+    //    }) == true);
+    //    auto coroOpt = space.readBlock<int>("/coro");
+    //}
 }

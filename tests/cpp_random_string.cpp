@@ -1,13 +1,13 @@
-#include <doctest.h>
+#include <catch.hpp>
 
 #include "PathSpace.hpp"
 
 using namespace FSNG;
 
 TEST_CASE("Random String") {
-    SUBCASE("Basic") {
+    SECTION("Basic") {
         std::string r1 = random_string();
         std::string r2 = random_string();
-        CHECK(r1!=r2);
+        REQUIRE(r1!=r2);
     }
 }

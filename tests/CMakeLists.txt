@@ -1,5 +1,6 @@
 add_executable(ForsoningTest
   main.cpp
+  catch.cpp
   cpp_concepts.cpp
   cpp_coroutine.cpp
   cpp_json.cpp
@@ -33,6 +34,7 @@ target_include_directories(ForsoningTest
 target_compile_definitions(ForsoningTest
   PUBLIC
     ${DepDefines}
+    CATCH_AMALGAMATED_CUSTOM_MAIN
 )
 
 target_link_libraries(ForsoningTest
@@ -40,6 +42,6 @@ target_link_libraries(ForsoningTest
     ${DepLibraries}
 )
 
-enable_testing()
-include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
-doctest_discover_tests(ForsoningTest)
+#enable_testing()
+#include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
+#doctest_discover_tests(ForsoningTest)

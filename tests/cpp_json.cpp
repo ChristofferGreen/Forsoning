@@ -1,12 +1,12 @@
-#include <doctest.h>
+#include <catch.hpp>
 
 #include "nlohmann/json.hpp"
 
 TEST_CASE("Nlohmann JSON") {
-    SUBCASE("Simple") {
+    SECTION("Simple") {
         nlohmann::json j;
         j["test"] = 3;
-        CHECK(j["test"]==3);
-        CHECK(j["test2"]==nullptr);
+        REQUIRE(j["test"]==3);
+        REQUIRE(j["test2"]==nullptr);
    }
 }

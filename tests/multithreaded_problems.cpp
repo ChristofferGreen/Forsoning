@@ -1,4 +1,4 @@
-#include <doctest.h>
+#include <catch.hpp>
 
 #include "PathSpace.hpp"
 
@@ -13,8 +13,8 @@ auto sleepThread() {
     auto const number = random_number(5000000*10, 30000000*10);
     std::this_thread::sleep_for(std::chrono::nanoseconds(number));
 }
-/*
-TEST_CASE("DiningPhilosophers" * doctest::timeout(2.0)) {
+
+TEST_CASE("DiningPhilosophers") {
     PathSpaceTE space = PathSpace();
     int const numberOfPhilosophers = 5;
     int const totalLoops = 10;
@@ -60,12 +60,12 @@ TEST_CASE("DiningPhilosophers" * doctest::timeout(2.0)) {
     for(int i = 0; i < numberOfPhilosophers; ++i) {
         LOG("Grabbing philosopher {}", i)
         int const ret = space.grabBlock<int>("/philosopher");
-        CHECK(ret==123);
+        REQUIRE(ret==123);
         LOG("Grabbed philosopher {} with result {}", i, ret)
     }
-}*/
+}
 
-TEST_CASE("DP" * doctest::timeout(5.0)) {
+TEST_CASE("DP") {
     for(int x = 0; x < 2100; ++x) {
         PathSpaceTE space = PathSpace();
         int const numberOfPhilosophers = 5;
@@ -81,7 +81,7 @@ TEST_CASE("DP" * doctest::timeout(5.0)) {
         for(int i = 0; i < numberOfPhilosophers; ++i) {
             LOG("Philosopher grabbing: {}", i);
             int const ret = space.grabBlock<int>("/philosopher");
-            CHECK(ret==123);
+            REQUIRE(ret==123);
         }
         try {
             spdlog::drop("file");

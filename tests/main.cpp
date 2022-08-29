@@ -1,5 +1,4 @@
-#define DOCTEST_CONFIG_IMPLEMENT
-#include "doctest.h"
+#include <catch.hpp>
 
 #include "FSNG/utils.hpp"
 
@@ -14,7 +13,9 @@ int main(int argc, char** argv) {
     } catch (const spdlog::spdlog_ex &ex) {
         std::cout << "Log init failed: " << ex.what() << std::endl;
     }
+    for(auto i = 0; i < argc; ++i)
+        spdlog::get("file")->info("{}", argv[i]);
+    spdlog::get("file")->flush();
     
-    doctest::Context context(argc, argv);
-    return context.run();
+    return Catch::Session().run(argc, argv);
 }

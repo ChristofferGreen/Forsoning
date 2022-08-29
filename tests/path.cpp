@@ -1,4 +1,4 @@
-#include <doctest.h>
+#include <catch.hpp>
 
 #include "PathSpace.hpp"
 
@@ -8,47 +8,47 @@ TEST_CASE("Path") {
     Path const path{"/test1/test2/test3"};
     auto range = path;
 
-    SUBCASE("Initial state") {
-        CHECK(*range.spaceName()=="test1");
-        CHECK(range.dataName()=="test3");
+    SECTION("Initial state") {
+        REQUIRE(*range.spaceName()=="test1");
+        REQUIRE(range.dataName()=="test3");
     }
 
-    SUBCASE("Iteration") {
+    SECTION("Iteration") {
         range = range.next();
-        CHECK(*range.spaceName()=="test2");
-        CHECK(range.dataName()=="test3");
+        REQUIRE(*range.spaceName()=="test2");
+        REQUIRE(range.dataName()=="test3");
         range = range.next();
-        CHECK(*range.spaceName()=="test3");
-        CHECK(range.dataName()=="test3");
-        CHECK(*range.spaceName()==range.dataName());
+        REQUIRE(*range.spaceName()=="test3");
+        REQUIRE(range.dataName()=="test3");
+        REQUIRE(*range.spaceName()==range.dataName());
     }
 
-    SUBCASE("Ill formed ranges") {
-        CHECK(not Path{"/"}.isValid());
+    SECTION("Ill formed ranges") {
+        REQUIRE(not Path{"/"}.isValid());
     }
 
-    SUBCASE("Only spaces") {
-        CHECK(Path{"/test1/test2"}.dataName()=="test2");
-        CHECK(Path{"/test1/test2/"}.dataName()=="");
+    SECTION("Only spaces") {
+        REQUIRE(Path{"/test1/test2"}.dataName()=="test2");
+        REQUIRE(Path{"/test1/test2/"}.dataName()=="");
     }
 
-    SUBCASE("Data name") {
-        CHECK(path.dataName()=="test3");
+    SECTION("Data name") {
+        REQUIRE(path.dataName()=="test3");
 
-        CHECK(Path{"/test1"}.dataName()=="test1");
-        CHECK(Path{"/test1/test2/test3"}.dataName()=="test3");
+        REQUIRE(Path{"/test1"}.dataName()=="test1");
+        REQUIRE(Path{"/test1/test2/test3"}.dataName()=="test3");
     }
 
-    SUBCASE("Space name") {
-        CHECK(Path{"/test1/test2"}.spaceName().value()=="test1");
-        CHECK(Path{"/test1/test2"}.next().spaceName().value()=="test2");
+    SECTION("Space name") {
+        REQUIRE(Path{"/test1/test2"}.spaceName().value()=="test1");
+        REQUIRE(Path{"/test1/test2"}.next().spaceName().value()=="test2");
     }
 
-    SUBCASE("IsAtRoot") {
-        CHECK(Path{"/test1"}.isAtRoot()==true);
-        CHECK(Path{"/test1/"}.isAtRoot()==true);
-        CHECK(Path{"/test1/test2"}.isAtRoot()==true);
-        CHECK(Path{"/test1/test2/"}.isAtRoot()==true);
-        CHECK(Path{"/test1/test2/test3"}.isAtRoot()==true);
+    SECTION("IsAtRoot") {
+        REQUIRE(Path{"/test1"}.isAtRoot()==true);
+        REQUIRE(Path{"/test1/"}.isAtRoot()==true);
+        REQUIRE(Path{"/test1/test2"}.isAtRoot()==true);
+        REQUIRE(Path{"/test1/test2/"}.isAtRoot()==true);
+        REQUIRE(Path{"/test1/test2/test3"}.isAtRoot()==true);
     }
 }

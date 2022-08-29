@@ -1,10 +1,10 @@
-#include <doctest.h>
+#include <catch.hpp>
 
-//#include "asio.hpp"
+#include "asio.hpp"
 
 TEST_CASE("ASIO") {
-    /*SUBCASE("Simple") {
+    SECTION("Simple") {
         asio::io_context io_context(1);
 
-   }*/
+   }
 }

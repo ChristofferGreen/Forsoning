@@ -1,4 +1,4 @@
-#include <doctest.h>
+#include <catch.hpp>
 
 #include <concepts>
 #include <iostream>
@@ -12,8 +12,8 @@ struct CTest {
 
 
 TEST_CASE("Concepts Syntax Check") {
-    SUBCASE("CTest int/float") {
-        CHECK(CTest(1).mode==1);
-        CHECK(CTest(1.5).mode==2);
+    SECTION("CTest int/float") {
+        REQUIRE(CTest(1).mode==1);
+        REQUIRE(CTest(1.5).mode==2);
    }
 }

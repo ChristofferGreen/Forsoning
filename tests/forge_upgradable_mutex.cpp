@@ -1,15 +1,15 @@
-#include <doctest.h>
+#include <catch.hpp>
 
 #include "PathSpace.hpp"
 
 using namespace FSNG;
 
 TEST_CASE("Forge Upgradable Mutex") {
-    SUBCASE("Basics") {
+    SECTION("Basics") {
         UpgradableMutex mutex;
         UnlockedToExclusiveLock upgrade(mutex);
     }
-    SUBCASE("One Reader One Writer") {
+    SECTION("One Reader One Writer") {
         bool startSecond = false;
         UpgradableMutex mutex;
         int val = 0;
@@ -25,9 +25,9 @@ TEST_CASE("Forge Upgradable Mutex") {
         });
         t1.join();
         t2.join();
-        CHECK(val==5);
+        REQUIRE(val==5);
     }
-    SUBCASE("Multiple Writers") {
+    SECTION("Multiple Writers") {
         for(auto j = 0; j < 100; ++j) {
             UpgradableMutex mutex;
             int val = 0;
@@ -38,7 +38,7 @@ TEST_CASE("Forge Upgradable Mutex") {
                     UpgradedToExclusiveLock upgrade(mutex);
                     val++;
                 }
-                CHECK(val==v+1);
+                REQUIRE(val==v+1);
             };
             int const numThreads = 30;
             std::vector<std::thread> threads;
@@ -46,7 +46,7 @@ TEST_CASE("Forge Upgradable Mutex") {
                 threads.emplace_back(l);
             for(auto &thread : threads)
                 thread.join();
-            CHECK(val==numThreads);
+            REQUIRE(val==numThreads);
         }
     }
 }

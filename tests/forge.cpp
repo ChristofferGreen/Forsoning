@@ -1,4 +1,4 @@
-#include <doctest.h>
+#include <catch.hpp>
 
 #include "PathSpace.hpp"
 
@@ -7,49 +7,49 @@
 using namespace FSNG;
 
 TEST_CASE("Forge") {
-    SUBCASE("Eschelon") {
+    SECTION("Eschelon") {
         Eschelon queue;
         auto ticket = queue.newTicket();
         queue.add(ticket, []()->Coroutine{co_return 0;}, [](Data const &data, Ticket const &ticket){});
         auto const task = queue.popWait();
-        CHECK(task.has_value()==true);
-        CHECK(task.value().ticket==FirstTicket);
+        REQUIRE(task.has_value()==true);
+        REQUIRE(task.value().ticket==FirstTicket);
     }
 
-    SUBCASE("Coroutine") {
+    SECTION("Coroutine") {
         for(int i = 0; i < 1; ++i) {
             Forge forge;
             auto res = 0;
             bool hasRun = false;
             auto const ticket = forge.add([]()->Coroutine{co_return 345;}, [&res, &hasRun](Data const &data, Ticket const &ticket){
-                CHECK(data.is<int>()==true);
+                REQUIRE(data.is<int>()==true);
                 res=data.as<int>();
-                CHECK(res==345);
+                REQUIRE(res==345);
                 hasRun=true;
             });
             forge.wait(ticket);
-            CHECK(hasRun==true);
-            CHECK(res==345);
+            REQUIRE(hasRun==true);
+            REQUIRE(res==345);
             LOG("Forge loop nbr: {}", i)
         }
     }
 
-    SUBCASE("Multiple Tasks") {
+    SECTION("Multiple Tasks") {
         Forge forge;
         std::set<int> s;
         std::vector<int> tickets;
         std::shared_mutex mutex;
         for(auto i = 0; i < 128; ++i) {
             tickets.push_back(forge.add([i]()->Coroutine{co_return i;}, [i, &s, &mutex](Data const &data, Ticket const &ticket){
-                CHECK(data.is<int>()==true);
+                REQUIRE(data.is<int>()==true);
                 auto writeLock = std::unique_lock<std::shared_mutex>(mutex);
                 s.insert(i);
             }));
         }
         for(auto const &ticket : tickets)
             forge.wait(ticket);
-        CHECK(s.size()==128);
+        REQUIRE(s.size()==128);
         for(auto i = 0; i < 128; ++i)
-            CHECK(s.contains(i));
+            REQUIRE(s.contains(i));
     }
 }
