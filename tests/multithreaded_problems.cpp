@@ -86,7 +86,7 @@ TEST_CASE("DP") {
         }
         try {
             spdlog::drop("file");
-            auto logger = spdlog::basic_logger_mt("file", "logs/basic-log.txt", true);
+            auto logger = html_logger_mt("file", "logs/basic-log.html", true);
             logger->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
         } catch (const spdlog::spdlog_ex &ex) {}
         std::cout << "." << std::flush;

@@ -6,8 +6,8 @@
 #include "spdlog/spdlog.h"
 
 #ifdef LOG_FORGE
-#define LOG_F LOG
-#define LogRAII_F LogRAII
+#define LOG_E(...) LOG("<TAG:Echelon>" __VA_ARGS__)
+#define LogRAII_E(...) LogRAII("<TAG:Echelon>" __VA_ARGS__)
 #else
 #define LOG_F(...)
 #define LogRAII_F(...) 0
@@ -19,7 +19,7 @@ struct Eschelon {
         auto const writeLock = std::lock_guard<std::shared_mutex>(this->mutex);
         this->tasks[ticket] = Task{ticket, coroutineFun, inserter};
         this->condition.notify_one();
-        LOG_F("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters);
+        LOG_E("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters);
     }
 
     auto remove(Ticket const &ticket) -> bool {
@@ -28,7 +28,7 @@ struct Eschelon {
     }
 
     auto popWait() -> std::optional<Task> {
-        auto const raii = LogRAII_F("Eschelon::popWait");
+        auto const raii = LogRAII_E("popWait");
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
         while(this->isAlive && this->tasks.size()==0) {
             this->waiters++;
@@ -44,14 +44,14 @@ struct Eschelon {
     }
 
     auto wait(Ticket const &ticket) -> void {
-        auto const raii = LogRAII_F("Eschelon::wait");
+        auto const raii = LogRAII_E("wait");
         auto readLock = std::shared_lock(this->mutex);
         while(this->tasks.contains(ticket))
             this->condition.wait(readLock);
     }
 
     auto shutdown() -> void {
-        auto const raii = LogRAII_F("Eschelon::shutdown");
+        auto const raii = LogRAII_E("shutdown");
         this->isAlive = false;
         while(this->waiters>0) {this->condition.notify_all();}
     }
@@ -62,7 +62,7 @@ struct Eschelon {
     }
 
     auto newTicket() -> Ticket {
-        auto const raii = LogRAII_F("Eschelon::newTicket");
+        auto const raii = LogRAII_E("newTicket");
         return this->currentTicket++;
     }
 

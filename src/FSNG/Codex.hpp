@@ -12,8 +12,8 @@
 */
 
 #ifdef LOG_CODEX
-#define LOG_C LOG
-#define LogRAII_C LogRAII
+#define LOG_C(...) LOG("<TAG:Codex>" __VA_ARGS__)
+#define LogRAII_C(...) LogRAII("<TAG:Codex>" __VA_ARGS__)
 #else
 #define LOG_C(...)
 #define LogRAII_C(...) 0
@@ -187,7 +187,7 @@ private:
             return;
         }
         assert(this->info.begin()->nbrItems()!=0);
-        LOG_C("Codex::PopInfo erasing info")
+        LOG_C("PopInfo erasing info")
         this->info.erase(this->info.begin());
     }
 
@@ -205,13 +205,13 @@ private:
 
     auto addInfo(int const nbrItems, std::type_info const *ptr) -> CodexInfo {
         if(this->info.size()==0) {
-            LOG_C("Codex::addInfo creating info")
+            LOG_C("addInfo creating info")
             this->info.emplace_back(nbrItems, ptr);
         }
         else if(*this->info.rbegin()->info==*ptr && (*ptr!=typeid(std::string) && *ptr!=typeid(char const*)))
             this->info.rbegin()->items.nbr++;
         else {
-            LOG_C("Codex::addInfo creating info")
+            LOG_C("addInfo creating info")
             this->info.emplace_back(nbrItems, ptr);
         }
 
@@ -219,7 +219,7 @@ private:
     }
 
     auto addInfo(int const nbrItems, std::type_info const *ptr, Ticket const &ticket) -> CodexInfo {
-        LOG_C("Codex::addInfo creating info ticket")
+        LOG_C("addInfo creating info ticket")
         this->info.emplace_back(ticket, ptr);
         return *this->info.rbegin();
     }

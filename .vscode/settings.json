@@ -96,7 +96,8 @@
         "span": "cpp",
         "charconv": "cpp",
         "numbers": "cpp",
-        "unordered_set": "cpp"
+        "unordered_set": "cpp",
+        "regex": "cpp"
     },
     "search.exclude": {
         "**/ext/": true

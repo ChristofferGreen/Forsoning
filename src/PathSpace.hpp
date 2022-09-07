@@ -18,8 +18,8 @@
 #include <variant>
 
 #ifdef LOG_PATH_SPACE
-#define LOG_PS LOG
-#define LogRAII_PS LogRAII
+#define LOG_PS(...) LOG("<TAG:PathSpace>" __VA_ARGS__)
+#define LogRAII_PS(...) LogRAII("<TAG:PathSpace>" __VA_ARGS__)
 #else
 #define LOG_PS(...)
 #define LogRAII_PS(...) 0

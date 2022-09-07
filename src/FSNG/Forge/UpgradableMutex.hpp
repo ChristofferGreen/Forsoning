@@ -3,8 +3,8 @@
 #include <shared_mutex>
 
 #ifdef LOG_MUTEX
-#define LOG_M LOG
-#define LogRAII_M LogRAII
+#define LOG_M(...) LOG("<TAG:Mutex>" __VA_ARGS__)
+#define LogRAII_M(...) LogRAII("<TAG:Mutex>" __VA_ARGS__)
 #else
 #define LOG_M(...)
 #define LogRAII_M(...) 0
@@ -16,10 +16,10 @@ template<typename T>
 struct MutexLog {
     MutexLog() {}
     MutexLog(std::string const &name) : name(name) {}
-    auto lock()          {LOG_M("#####Starting lock for {} {} current status {}",          this->name, fmt::ptr(this), this->status)this->mutex.lock();         this->status = 2;LOG_M("#####Lock finished, status for {} {} {}",          this->name, this->status, fmt::ptr(this))}
-    auto unlock()        {LOG_M("#####Starting unlock for {} {} current status {}",        this->name, fmt::ptr(this), this->status)this->mutex.unlock();       this->status = 0;LOG_M("#####Unlock finished, status for {} {} {}",        this->name, this->status, fmt::ptr(this))}
-    auto lock_shared()   {LOG_M("#####Starting lock_shared for {} {} current status {}",   this->name, fmt::ptr(this), this->status)this->mutex.lock_shared();  this->status = 1;LOG_M("#####Lock_shared finished, status for {} {} {}",   this->name, this->status, fmt::ptr(this))}
-    auto unlock_shared() {LOG_M("#####Starting unlock_shared for {} {} current status {}", this->name, fmt::ptr(this), this->status)this->mutex.unlock_shared();this->status = 0;LOG_M("#####Unlock_shared finished, status for {} {} {}", this->name, this->status, fmt::ptr(this))}
+    auto lock()          {LOG_M("Starting lock for {} {} current status {}",          this->name, fmt::ptr(this), this->status)this->mutex.lock();         this->status = 2;LOG_M("Lock finished, status for {} {} {}",          this->name, this->status, fmt::ptr(this))}
+    auto unlock()        {LOG_M("Starting unlock for {} {} current status {}",        this->name, fmt::ptr(this), this->status)this->mutex.unlock();       this->status = 0;LOG_M("Unlock finished, status for {} {} {}",        this->name, this->status, fmt::ptr(this))}
+    auto lock_shared()   {LOG_M("Starting lock_shared for {} {} current status {}",   this->name, fmt::ptr(this), this->status)this->mutex.lock_shared();  this->status = 1;LOG_M("Lock_shared finished, status for {} {} {}",   this->name, this->status, fmt::ptr(this))}
+    auto unlock_shared() {LOG_M("Starting unlock_shared for {} {} current status {}", this->name, fmt::ptr(this), this->status)this->mutex.unlock_shared();this->status = 0;LOG_M("Unlock_shared finished, status for {} {} {}", this->name, this->status, fmt::ptr(this))}
 private:
     T mutex;
     std::atomic<int> status = 0;
@@ -44,60 +44,60 @@ https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3427.html
 */
 struct UpgradableMutex {
     auto lock_shared() -> void { // unlocked -> shared
-        auto raii = LogRAII_M("####UpgradableMutex::lock_shared");
+        auto raii = LogRAII_M("UpgradableMutex::lock_shared");
         this->shared.lock_shared();
     }
 
     auto unlock_shared() -> void { // shared -> unlocked
-        auto raii = LogRAII_M("####UpgradableMutex::unlock_shared");
+        auto raii = LogRAII_M("UpgradableMutex::unlock_shared");
         this->shared.unlock_shared();
     }
 
     auto lock() -> void { // unlocked -> exclusive
-        auto raii = LogRAII_M("####UpgradableMutex::lock");
+        auto raii = LogRAII_M("UpgradableMutex::lock");
         this->exclusive.lock();
         this->shared.lock();
     }
 
     auto unlock() -> void { // exclusive -> unlocked
-        auto raii = LogRAII_M("####UpgradableMutex::unlock");
+        auto raii = LogRAII_M("UpgradableMutex::unlock");
         this->shared.unlock();
         this->exclusive.unlock();
     }
 
     auto lock_upgrade() -> void { // unlocked -> upgraded
-        auto raii = LogRAII_M("####UpgradableMutex::lock_upgrade");
+        auto raii = LogRAII_M("UpgradableMutex::lock_upgrade");
         this->exclusive.lock();
         this->shared.lock_shared();
     }
 
     auto unlock_upgrade() -> void { // upgraded -> unlocked
-        auto raii = LogRAII_M("####UpgradableMutex::unlock_upgrade");
+        auto raii = LogRAII_M("UpgradableMutex::unlock_upgrade");
         this->shared.unlock_shared();
         this->exclusive.unlock();
     }
 
     auto unlock_upgrade_and_lock() -> void { // upgraded -> exclusive
-        auto raii = LogRAII_M("####UpgradableMutex::unlock_upgrade_and_lock");
+        auto raii = LogRAII_M("UpgradableMutex::unlock_upgrade_and_lock");
         this->shared.unlock_shared();
         this->shared.lock();
     }
 
     auto unlock_and_lock_upgrade() -> void { // exclusive -> upgraded
-        auto raii = LogRAII_M("####UpgradableMutex::unlock_and_lock_upgrade");
+        auto raii = LogRAII_M("UpgradableMutex::unlock_and_lock_upgrade");
         this->shared.unlock();
         this->shared.lock_shared();
     }
 
     auto unlock_and_lock_shared() -> void { // exclusive -> shared
-        auto raii = LogRAII_M("####UpgradableMutex::unlock_and_lock_shared");
+        auto raii = LogRAII_M("UpgradableMutex::unlock_and_lock_shared");
         this->shared.unlock();
         this->shared.lock_shared();
         this->exclusive.unlock();
     }
 
     auto unlock_upgrade_and_lock_shared() -> void { // upgraded -> shared
-        auto raii = LogRAII_M("####UpgradableMutex::unlock_upgrade_and_lock_shared");
+        auto raii = LogRAII_M("UpgradableMutex::unlock_upgrade_and_lock_shared");
         this->exclusive.unlock();
     }
 private:
