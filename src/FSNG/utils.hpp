@@ -64,7 +64,6 @@ inline auto printm(std::string const &s) -> void {
     static std::shared_mutex printMutex;
     auto writeLock = std::unique_lock<std::shared_mutex>(printMutex);
     std::cout << s << std::endl;
-
 }
 
 }

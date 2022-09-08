@@ -5,7 +5,7 @@
 
 #include <stack>
 
-#define LOG(...) {while(!spdlog::get("file")) {};if(auto file = spdlog::get("file")) {file->info(__VA_ARGS__);file->flush();}}
+#define LOG(...) {if(auto file = spdlog::get("file")) {file->info(__VA_ARGS__);file->flush();}}
 
 struct LogRAII {
     LogRAII(std::string const &message) : message(message) {LOG(this->message+" start")}
@@ -53,14 +53,13 @@ protected:
             if(!this->tagsSeen.contains(tag)) {
                 this->tagToId[tag] = this->tagToId.size();
                 std::string const buttonOnClick = "$(\"tr."+tag+"\", parent.document).toggle();";
-                std::string buttonColor = "";
-                if(this->colors.size() > this->tagToId.at(tag))
-                    buttonColor = "style=\"background-color:"+this->tagToColor(tag)+"\"";
+                std::string const buttonColor = this->colors.size() > this->tagToId.at(tag) ? "style=\"background-color:"+this->tagToColor(tag)+"\"" : "";
                 this->writeToJavascriptFile("<button "+buttonColor+" onclick='"+buttonOnClick+"' type=\"button\">"+tag+"</button>\n");
             }
             this->tagsSeen.insert(tag);
         }
-        this->writeToFile("<tr class=\""+tag+"\">"+this->toRow(this->threadNumber(msg.thread_id), tag, msg.payload, offset)+"</tr>\n");
+        std::string const hclass = tag=="" ? "" : " class=\""+tag+"\"";
+        this->writeToFile("<tr"+hclass+">"+this->toRow(this->threadNumber(msg.thread_id), tag, msg.payload, offset)+"</tr>\n");
     }
 
     auto flush_() -> void  override {
@@ -69,9 +68,10 @@ protected:
 
 private:
     auto tagToColor(std::string const &tag) const -> std::string {
-        if(this->colors.size() > this->tagToId.at(tag))
-            return this->colors[this->tagToId.at(tag)];
-        return "#000000";
+        if(this->tagToId.contains(tag))
+            if(this->colors.size() > this->tagToId.at(tag))
+                return this->colors[this->tagToId.at(tag)];
+        return "#808080";
     }
 
     auto writeToFile(std::string const &str) -> void {

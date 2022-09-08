@@ -112,7 +112,7 @@ struct Codex {
             auto const dataSizeBytes = info.dataSizeBytes();
             copy_byte_back_insert(d.c_str(), dataSizeBytes, this->codices);
         } else if(data.is<std::unique_ptr<std::function<Coroutine()>>>()) {
-            auto const ticket = this->forge.add(*data.as<std::unique_ptr<std::function<Coroutine()>>>(), coroResultInserter);
+            auto const ticket = Forge::instance()->add(*data.as<std::unique_ptr<std::function<Coroutine()>>>(), coroResultInserter);
             this->addInfo(1, &typeid(Coroutine), ticket);
         } else if(data.is<std::unique_ptr<PathSpaceTE>>()) {
             this->addInfo(1, &typeid(PathSpaceTE));
@@ -232,6 +232,5 @@ private:
     std::vector<std::byte> codices;
     std::vector<CodexInfo> info;
     std::vector<PathSpaceTE> spaces;
-    inline static Forge forge;
 };
 }

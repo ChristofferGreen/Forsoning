@@ -1,10 +1,12 @@
 #include <catch.hpp>
 
 #include "FSNG/utils.hpp"
+#include "FSNG/Forge/Forge.hpp"
 
 #include "spdlog/spdlog.h"
 
 int main(int argc, char** argv) {
+    FSNG::Forge::CreateSingleton();
     try {
         auto logger = html_logger_mt("file", "logs/basic-log.html", true);
         logger->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
@@ -15,5 +17,7 @@ int main(int argc, char** argv) {
     //for(auto i = 0; i < argc; ++i)
         //LOG("{}", argv[i]);
     
-    return Catch::Session().run(argc, argv);
+    auto const ret = Catch::Session().run(argc, argv);
+    FSNG::Forge::DestroySingleton();
+    return ret;
 }

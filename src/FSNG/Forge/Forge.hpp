@@ -1,6 +1,7 @@
 #pragma once
 #include "FSNG/Forge/Eschelon.hpp"
 #include "FSNG/Forge/Esprit.hpp"
+#include "FSNG/PathSpaceTE.hpp"
 #include "FSNG/utils.hpp"
 
 #include "spdlog/spdlog.h"
@@ -17,6 +18,18 @@
 
 namespace FSNG {
 struct Forge {
+    auto static CreateSingleton() -> void {
+        Forge::instance_ = std::make_unique<Forge>();
+    }
+
+    auto static DestroySingleton() -> void {
+        Forge::instance_.reset(nullptr);
+    }
+
+    auto static instance() -> std::unique_ptr<Forge>& {
+        return Forge::instance_;
+    }
+
     ~Forge() {
         this->isAlive = false;
         this->eschelon.shutdown();
@@ -61,10 +74,11 @@ struct Forge {
     }
 
 private:
+    inline static std::unique_ptr<Forge> instance_;
     std::atomic<bool> isAlive = true;
+    mutable std::shared_mutex mutex;
+    std::vector<std::thread> threads;
     Eschelon eschelon;
     Esprit esprit;
-    std::vector<std::thread> threads;
-    mutable std::shared_mutex mutex;
 };
 }
