@@ -6,10 +6,9 @@
 #include "spdlog/spdlog.h"
 
 int main(int argc, char** argv) {
-    FSNG::Forge::CreateSingleton();
+    auto const forge = FSNG::Forge::CreateSingleton();
     try {
-        auto logger = html_logger_mt("file", "logs/basic-log.html", true);
-        logger->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
+        HTMLLoggerMT("file", "logs/basic-log.html", true)->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
         LOG("This is the main thread");
     } catch (const spdlog::spdlog_ex &ex) {
         std::cout << "Log init failed: " << ex.what() << std::endl;
@@ -17,7 +16,5 @@ int main(int argc, char** argv) {
     //for(auto i = 0; i < argc; ++i)
         //LOG("{}", argv[i]);
     
-    auto const ret = Catch::Session().run(argc, argv);
-    FSNG::Forge::DestroySingleton();
-    return ret;
+    return Catch::Session().run(argc, argv);
 }

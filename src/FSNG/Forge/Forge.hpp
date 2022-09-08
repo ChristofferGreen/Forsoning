@@ -18,15 +18,13 @@
 
 namespace FSNG {
 struct Forge {
-    auto static CreateSingleton() -> void {
-        Forge::instance_ = std::make_unique<Forge>();
+    auto static CreateSingleton() -> std::unique_ptr<Forge> {
+        auto ptr = std::make_unique<Forge>();
+        Forge::instance_ = &(*ptr);
+        return ptr;
     }
 
-    auto static DestroySingleton() -> void {
-        Forge::instance_.reset(nullptr);
-    }
-
-    auto static instance() -> std::unique_ptr<Forge>& {
+    auto static instance() -> Forge* {
         return Forge::instance_;
     }
 
@@ -74,7 +72,7 @@ struct Forge {
     }
 
 private:
-    inline static std::unique_ptr<Forge> instance_;
+    inline static Forge* instance_;
     std::atomic<bool> isAlive = true;
     mutable std::shared_mutex mutex;
     std::vector<std::thread> threads;

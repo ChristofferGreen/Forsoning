@@ -19,7 +19,7 @@ struct Eschelon {
         auto const writeLock = std::lock_guard<std::shared_mutex>(this->mutex);
         this->tasks[ticket] = Task{ticket, coroutineFun, inserter};
         this->condition.notify_one();
-        LOG_E("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters);
+        LOG_E("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters.load());
     }
 
     auto remove(Ticket const &ticket) -> bool {

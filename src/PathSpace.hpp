@@ -41,13 +41,13 @@ struct PathSpace {
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
 
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        auto const raii = LogRAII_PS("PathSpace::grab "+range.dataName());
+        auto const raii = LogRAII_PS("grab "+range.dataName());
         return range.isAtData() ? this->grabDataName(range.dataName(), info, data, isTriviallyCopyable) :
                                   this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
     }
 
     auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        auto const raii = LogRAII_PS("PathSpace::grabBlock "+range.dataName());
+        auto const raii = LogRAII_PS("grabBlock "+range.dataName());
         if(range.isAtRoot()) {
             bool found = false;
             bool const shouldWait = true;
@@ -61,14 +61,14 @@ struct PathSpace {
     }
 
     auto read(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        auto const raii = LogRAII_PS("PathSpace::read "+range.dataName());
+        auto const raii = LogRAII_PS("read "+range.dataName());
         UnlockedToSharedLock lock(this->mutex);
         return range.isAtData() ?  this->readDataName(range.dataName(), info, data, isTriviallyCopyable) :
                                    this->readSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
     }
 
     auto readBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        auto const raii = LogRAII_PS("PathSpace::readBlock "+range.dataName());
+        auto const raii = LogRAII_PS("readBlock "+range.dataName());
         if(range.isAtRoot()) {
             bool found = false;
             while(!found) {
@@ -86,13 +86,13 @@ struct PathSpace {
     }
 
     virtual auto insert(Path const &range, Data const &data) -> bool {
-        auto const raii = LogRAII_PS("PathSpace::insert "+range.dataName());
+        auto const raii = LogRAII_PS("insert "+range.dataName());
         return range.isAtData() ? this->insertDataName(range.dataName(), data) :
                                   this->insertSpaceName(range, range.spaceName().value(), data);
     }
 
     virtual auto toJSON() const -> nlohmann::json {
-        auto const raii = LogRAII_PS("PathSpace::toJSON");
+        auto const raii = LogRAII_PS("toJSON");
         nlohmann::json json;
         UnlockedToSharedLock lock(this->mutex);
         for(auto const &p : codices)
@@ -102,14 +102,14 @@ struct PathSpace {
 
 private:
     virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
-        auto const raii = LogRAII_PS("PathSpace::grabDataName "+dataName);
+        auto const raii = LogRAII_PS("grabDataName "+dataName);
         UnlockedToUpgradedLock lock(this->mutex);
         bool found = false;
         if(this->codices.contains(dataName)) {
             UpgradedToExclusiveLock upgradedLock(this->mutex);
             found = codices.at(dataName).grab(info, data, isTriviallyCopyable);
             if(!found && shouldWait) {
-                auto const raii = LogRAII_PS("PathSpace::grabDataName starting wait (UpgradedToExclusiveLock)");
+                auto const raii = LogRAII_PS("grabDataName starting wait (UpgradedToExclusiveLock)");
                 auto u = UpgradableMutexWaitableWrapper(this->mutex);
                 this->condition.wait(u);
             }
@@ -118,7 +118,7 @@ private:
     }
 
     virtual auto grabSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
-        auto const raii = LogRAII_PS("PathSpace::grabSpaceName "+spaceName);
+        auto const raii = LogRAII_PS("grabSpaceName "+spaceName);
         UnlockedToUpgradedLock lock(this->mutex);
         if(this->codices.contains(spaceName)) {
             UpgradedToExclusiveLock upgraded(this->mutex);
@@ -133,22 +133,22 @@ private:
     }
 
     virtual auto readDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
-        auto const raii = LogRAII_PS("PathSpace::readDataName "+dataName);
+        auto const raii = LogRAII_PS("readDataName "+dataName);
         return this->codices.contains(dataName) ? codices.at(dataName).read(info, data, isTriviallyCopyable) : false;
     }
 
     virtual auto readSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
-        auto const raii = LogRAII_PS("PathSpace::readSpaceName "+spaceName);
+        auto const raii = LogRAII_PS("readSpaceName "+spaceName);
         return this->codices.contains(spaceName) ?
             codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable](auto &space){return space.read(range.next(), info, data, isTriviallyCopyable);}) :
             false;
     }
 
     virtual auto insertDataName(std::string const &dataName, Data const &data) -> bool {
-        auto const raii = LogRAII_PS("PathSpace::insertDataName "+dataName);
+        auto const raii = LogRAII_PS("insertDataName "+dataName);
         UnlockedToExclusiveLock upgraded(this->mutex);
         this->codices[dataName].insert(data, [this, dataName](Data const &coroResultData, Ticket const &ticket) { // change this to the codex as param
-            auto const raii = LogRAII_PS("PathSpace::insertDataName codex insert "+dataName);
+            auto const raii = LogRAII_PS("insertDataName codex insert "+dataName);
             UnlockedToExclusiveLock lock(this->mutex);
             this->codices[dataName].insert(coroResultData);
             this->codices[dataName].removeCoroutine(ticket);
@@ -158,7 +158,7 @@ private:
     }
 
     virtual auto insertSpaceName(Path const &range, std::string const &spaceName, Data const &data) -> bool {
-        auto const raii = LogRAII_PS("PathSpace::insertSpaceName "+spaceName);
+        auto const raii = LogRAII_PS("insertSpaceName "+spaceName);
         UnlockedToExclusiveLock upgraded(this->mutex);
         if(!codices.contains(spaceName)) {
             codices[spaceName].insertSpace(PathSpaceTE(PathSpace{}));

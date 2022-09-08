@@ -26,7 +26,7 @@ public:
         this->writeToFile("<html>\n");
         this->writeToFile("<head>\n");
         this->writeToFile("<style>\n");
-        this->writeToFile("table, th, td {border: 1px solid black; border-collapse: collapse;}\n");
+        this->writeToFile("table, th, td {border: 1px solid #C0C0C0; border-collapse: collapse;}\n");
         this->writeToFile("</style>\n");
         this->writeToFile("</head>\n");
         this->writeToFile("<body>\n");
@@ -71,7 +71,7 @@ private:
         if(this->tagToId.contains(tag))
             if(this->colors.size() > this->tagToId.at(tag))
                 return this->colors[this->tagToId.at(tag)];
-        return "#808080";
+        return "#DCDCDC";
     }
 
     auto writeToFile(std::string const &str) -> void {
@@ -91,7 +91,7 @@ private:
         std::string s;
         for(int i = 0; i < id; ++i)
             s += "<td></td>";
-        s += std::string("<td style=\"background-color:"+this->tagToColor(tag)+"\">")+std::string(str.data()+offset)+"</td>";
+        s += std::string("<td style=\"background-color:"+this->tagToColor(tag)+"\">")+std::string(str.data()+offset, str.size()-offset)+"</td>";
         return s;
     }
 
@@ -115,7 +115,7 @@ using html_file_sink_mt = html_file_sink<std::mutex>;
 using html_file_sink_st = html_file_sink<spdlog::details::null_mutex>;
 
 template<typename Factory = spdlog::synchronous_factory>
-inline std::shared_ptr<spdlog::logger> html_logger_mt(
+inline std::shared_ptr<spdlog::logger> HTMLLoggerMT (
     const std::string &logger_name, const spdlog::filename_t &filename, bool truncate = false, const spdlog::file_event_handlers &event_handlers = {})
 {
     return Factory::template create<html_file_sink_mt>(logger_name, filename, truncate, event_handlers);
