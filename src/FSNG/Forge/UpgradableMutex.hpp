@@ -4,7 +4,7 @@
 
 #ifdef LOG_MUTEX
 #define LOG_M(...) LOG("<TAG:Mutex>" __VA_ARGS__)
-#define LogRAII_M(...) LogRAII("<TAG:Mutex>" __VA_ARGS__)
+#define LogRAII_M(arg) LogRAII("<TAG:Mutex>"+arg)
 #else
 #define LOG_M(...)
 #define LogRAII_M(...) 0
@@ -43,63 +43,69 @@ https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3427.html
 
 */
 struct UpgradableMutex {
+    UpgradableMutex(std::string const &name) : name(name) {
+        int a = 0;
+        a++;
+    }
+
     auto lock_shared() -> void { // unlocked -> shared
-        auto raii = LogRAII_M("UpgradableMutex::lock_shared");
+        auto raii = LogRAII_M(std::string("lock_shared ")+this->name);
         this->shared.lock_shared();
     }
 
     auto unlock_shared() -> void { // shared -> unlocked
-        auto raii = LogRAII_M("UpgradableMutex::unlock_shared");
+        auto raii = LogRAII_M(std::string("unlock_shared ")+this->name);
         this->shared.unlock_shared();
     }
 
     auto lock() -> void { // unlocked -> exclusive
-        auto raii = LogRAII_M("UpgradableMutex::lock");
+        auto raii = LogRAII_M(std::string("lock ")+this->name);
         this->exclusive.lock();
         this->shared.lock();
     }
 
     auto unlock() -> void { // exclusive -> unlocked
-        auto raii = LogRAII_M("UpgradableMutex::unlock");
+        auto raii = LogRAII_M(std::string("unlock ")+this->name);
         this->shared.unlock();
         this->exclusive.unlock();
     }
 
     auto lock_upgrade() -> void { // unlocked -> upgraded
-        auto raii = LogRAII_M("UpgradableMutex::lock_upgrade");
+        auto raii = LogRAII_M(std::string("lock_upgrade ")+this->name);
         this->exclusive.lock();
         this->shared.lock_shared();
     }
 
     auto unlock_upgrade() -> void { // upgraded -> unlocked
-        auto raii = LogRAII_M("UpgradableMutex::unlock_upgrade");
+        auto raii = LogRAII_M(std::string("unlock_upgrade ")+this->name);
         this->shared.unlock_shared();
         this->exclusive.unlock();
     }
 
     auto unlock_upgrade_and_lock() -> void { // upgraded -> exclusive
-        auto raii = LogRAII_M("UpgradableMutex::unlock_upgrade_and_lock");
+        auto raii = LogRAII_M(std::string("unlock_upgrade_and_lock ")+this->name);
         this->shared.unlock_shared();
         this->shared.lock();
     }
 
     auto unlock_and_lock_upgrade() -> void { // exclusive -> upgraded
-        auto raii = LogRAII_M("UpgradableMutex::unlock_and_lock_upgrade");
+        auto raii = LogRAII_M(std::string("unlock_and_lock_upgrade ")+this->name);
         this->shared.unlock();
         this->shared.lock_shared();
     }
 
     auto unlock_and_lock_shared() -> void { // exclusive -> shared
-        auto raii = LogRAII_M("UpgradableMutex::unlock_and_lock_shared");
+        auto raii = LogRAII_M(std::string("unlock_and_lock_shared ")+this->name);
         this->shared.unlock();
         this->shared.lock_shared();
         this->exclusive.unlock();
     }
 
     auto unlock_upgrade_and_lock_shared() -> void { // upgraded -> shared
-        auto raii = LogRAII_M("UpgradableMutex::unlock_upgrade_and_lock_shared");
+        auto raii = LogRAII_M(std::string("unlock_upgrade_and_lock_shared ")+this->name);
         this->exclusive.unlock();
     }
+    std::string name;
 private:
     mutable MutexLog<std::shared_mutex> shared    = MutexLog<std::shared_mutex>("shared");
     mutable MutexLog<std::mutex>        exclusive = MutexLog<std::mutex>       ("exclusive");

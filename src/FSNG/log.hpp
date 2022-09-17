@@ -4,6 +4,7 @@
 #include "spdlog/details/file_helper.h"
 
 #include <stack>
+#include <iostream>
 
 #define LOG(...) {if(auto file = spdlog::get("file")) {file->info(__VA_ARGS__);file->flush();}}
 
@@ -121,8 +122,18 @@ inline std::shared_ptr<spdlog::logger> HTMLLoggerMT (
     return Factory::template create<html_file_sink_mt>(logger_name, filename, truncate, event_handlers);
 }
 
+inline auto SetupHTMLLog() -> void {
+    try {
+        spdlog::drop("file");
+        HTMLLoggerMT("file", "logs/basic-log.html", true)->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
+    } catch (const spdlog::spdlog_ex &ex) {
+        std::cout << "Log init failed: " << ex.what() << std::endl;
+    }
+}
+
 #define LOG_MUTEX
 #define LOG_PATH_SPACE
 #define LOG_CODEX
 #define LOG_FORGE
+#define LOG_LMUTEX
 

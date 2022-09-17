@@ -22,6 +22,12 @@ class PathSpaceTE {
 		virtual auto readBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
 	};
 public:
+	template<typename T>
+	static auto Create() -> PathSpaceTE {
+		PathSpaceTE ps;
+		ps.self = std::make_unique<model<T>>();
+		return ps;
+	}
 	PathSpaceTE() = default;
 	template<typename T>
 	PathSpaceTE(T x)                             : self(std::make_unique<model<T>>(std::move(x))) {}
@@ -82,6 +88,7 @@ public:
 private:
 	template<typename T> 
 	struct model final : concept_t {
+		model() = default;
 		model(T x) : data(std::move(x)) {}
 		auto operator==(const concept_t &rhs) const -> bool override { return this->data==reinterpret_cast<model<T> const&>(rhs).data; }
 

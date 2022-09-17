@@ -9,8 +9,8 @@
 #include <iostream>
 
 #ifdef LOG_FORGE
-#define LOG_F LOG
-#define LogRAII_F LogRAII
+#define LOG_F(...) LOG("<TAG:Forge>" __VA_ARGS__)
+#define LogRAII_F(...) LogRAII("<TAG:Echelon>" __VA_ARGS__)
 #else
 #define LOG_F(...)
 #define LogRAII_F(...) 0
@@ -62,11 +62,18 @@ struct Forge {
                 auto coroutine = task.value().fun();
                 bool shouldGoAgain = false;
                 do {
+                    LOG_F("Task (re)starting");
                     shouldGoAgain = coroutine.next();
-                    if(coroutine.hasValue())
+                    LOG_F("Task finished, restart: {}", shouldGoAgain);
+                    if(coroutine.hasValue()) {
+                        LOG_F("Inserting value");
                         task.value().inserter(coroutine.getValue(), task.value().ticket);
+                        LOG_F("Inserted value");
+                    }
                 } while(shouldGoAgain);
+                LOG_F("deactivating task");
                 this->esprit.deactivate(task.value().ticket);
+                LOG_F("Task done");
             }
         }
     }

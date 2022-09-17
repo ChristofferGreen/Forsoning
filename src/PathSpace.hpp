@@ -27,16 +27,16 @@
 
 namespace FSNG {
 struct PathSpace {
-    PathSpace() = default;
-    PathSpace(const PathSpace &rhs) {
+    PathSpace(std::string const &name="") : mutex(name) {
+        LOG_PS("Creating PathSpace with name {}", name);
+    };
+    PathSpace(const PathSpace &rhs) : mutex(rhs.mutex.name) {
+        LOG_PS("Creating copy of PathSpace with name {}", rhs.mutex.name);
         UnlockedToExclusiveLock lock(this->mutex);
         UnlockedToSharedLock lockRHS(rhs.mutex);
         this->codices = rhs.codices;
     }
-    ~PathSpace() {
-        int a = 0;
-        a++;
-    }
+
 
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
 
@@ -161,7 +161,7 @@ private:
         auto const raii = LogRAII_PS("insertSpaceName "+spaceName);
         UnlockedToExclusiveLock upgraded(this->mutex);
         if(!codices.contains(spaceName)) {
-            codices[spaceName].insertSpace(PathSpaceTE(PathSpace{}));
+            codices[spaceName].insertSpace(PathSpaceTE(PathSpace{spaceName}));
             this->condition.notify_all();
         }
         return codices[spaceName].template visitFirst<PathSpaceTE>([&range, &data, this](auto &space){

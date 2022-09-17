@@ -6,12 +6,12 @@ using namespace FSNG;
 
 TEST_CASE("Forge Upgradable Mutex") {
     SECTION("Basics") {
-        UpgradableMutex mutex;
+        UpgradableMutex mutex("Mutex");
         UnlockedToExclusiveLock upgrade(mutex);
     }
     SECTION("One Reader One Writer") {
         bool startSecond = false;
-        UpgradableMutex mutex;
+        UpgradableMutex mutex("Mutex");
         int val = 0;
         std::thread t1([&startSecond, &mutex, &val](){
             UnlockedToExclusiveLock upgrade(mutex);
@@ -29,7 +29,7 @@ TEST_CASE("Forge Upgradable Mutex") {
     }
     SECTION("Multiple Writers") {
         for(auto j = 0; j < 100; ++j) {
-            UpgradableMutex mutex;
+            UpgradableMutex mutex("Mutex");
             int val = 0;
             auto l = [&mutex, &val](){
                 UnlockedToUpgradedLock lock(mutex);

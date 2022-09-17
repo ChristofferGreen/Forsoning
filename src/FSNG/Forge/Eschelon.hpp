@@ -1,5 +1,6 @@
 #pragma once
 #include "FSNG/Forge/Task.hpp"
+#include "FSNG/Forge/LoggableMutex.hpp"
 
 #include <iostream>
 
@@ -15,21 +16,23 @@
 
 namespace FSNG {
 struct Eschelon {
+    Eschelon() : mutex("Echelon") {}
+    
     auto add(Ticket const &ticket, std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data, Ticket const &ticket)> const &inserter) -> void {
-        auto const writeLock = std::lock_guard<std::shared_mutex>(this->mutex);
+        auto const writeLock = std::lock_guard<LoggableMutex<std::shared_mutex>>(this->mutex);
         this->tasks[ticket] = Task{ticket, coroutineFun, inserter};
         this->condition.notify_one();
         LOG_E("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters.load());
     }
 
     auto remove(Ticket const &ticket) -> bool {
-        auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
+        auto writeLock = std::unique_lock<LoggableMutex<std::shared_mutex>>(this->mutex);
         return this->tasks.erase(ticket)>0;
     }
 
     auto popWait() -> std::optional<Task> {
         auto const raii = LogRAII_E("popWait");
-        auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
+        auto writeLock = std::unique_lock<LoggableMutex<std::shared_mutex>>(this->mutex);
         while(this->isAlive && this->tasks.size()==0) {
             this->waiters++;
             this->condition.wait(writeLock);
@@ -71,7 +74,7 @@ private:
     std::atomic<bool> isAlive = true;
     std::atomic<int> waiters = 0;
     Ticket currentTicket = FirstTicket;
-    mutable std::shared_mutex mutex;
+    mutable LoggableMutex<std::shared_mutex> mutex;
     mutable std::condition_variable_any condition;
 };
 }

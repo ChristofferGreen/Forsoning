@@ -68,7 +68,7 @@ TEST_CASE("DiningPhilosophers") {
 
 TEST_CASE("DP") {
     for(int x = 0; x < 2100; ++x) {
-        PathSpaceTE space = PathSpace();
+        auto space = PathSpaceTE::Create<PathSpace>();
         int const numberOfPhilosophers = 5;
         int const totalLoops = 10;
 
@@ -83,12 +83,8 @@ TEST_CASE("DP") {
             LOG("Philosopher grabbing: {}", i);
             int const ret = space.grabBlock<int>("/philosopher");
             REQUIRE(ret==123);
+            LOG("Philosopher grabbed: {} {}", i, ret);
         }
-        try {
-            spdlog::drop("file");
-            auto logger = HTMLLoggerMT("file", "logs/basic-log.html", true);
-            logger->set_pattern("[%H:%M:%S %z] [%n] [%^---%L---%$] [thread %t] %v");
-        } catch (const spdlog::spdlog_ex &ex) {}
-        std::cout << "." << std::flush;
+        SetupHTMLLog();
     }
 }

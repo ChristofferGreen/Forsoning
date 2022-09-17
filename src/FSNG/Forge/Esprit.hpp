@@ -1,5 +1,6 @@
 #pragma once
 #include "FSNG/Forge/Ticket.hpp"
+#include "FSNG/Forge/LoggableMutex.hpp"
 
 #include <set>
 #include <mutex>
@@ -7,13 +8,15 @@
 
 namespace FSNG {
 struct Esprit {
+    Esprit() : mutex("Esprit") {}
+
     auto activate(Ticket const &ticket) {
-        auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
+        auto writeLock = std::unique_lock<LoggableMutex<std::shared_mutex>>(this->mutex);
         this->active.insert(ticket);
     }
 
     auto deactivate(Ticket const &ticket) {
-        auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
+        auto writeLock = std::unique_lock<LoggableMutex<std::shared_mutex>>(this->mutex);
         this->active.erase(ticket);
         this->deactivated.insert(ticket);
         this->condition.notify_all();
@@ -38,7 +41,7 @@ struct Esprit {
 private:
     std::set<Ticket> active;
     std::set<Ticket> deactivated;
-    mutable std::shared_mutex mutex;
+    mutable LoggableMutex<std::shared_mutex> mutex;
     mutable std::condition_variable_any condition;
 };
 }
