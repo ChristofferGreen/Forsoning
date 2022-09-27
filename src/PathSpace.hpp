@@ -27,7 +27,7 @@
 
 namespace FSNG {
 struct PathSpace {
-    PathSpace(std::string const &name="") : mutex(name) {
+    PathSpace(std::string const &name="/") : mutex(name) {
         LOG_PS("Creating PathSpace with name {}", name);
     };
     PathSpace(const PathSpace &rhs) : mutex(rhs.mutex.name) {
@@ -103,11 +103,16 @@ struct PathSpace {
 private:
     virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
         auto const raii = LogRAII_PS("grabDataName "+dataName);
+        LOG_PS("grabDataName Starting UnlockedToUpgradedLock");
         UnlockedToUpgradedLock lock(this->mutex);
+        LOG_PS("grabDataName Finished UnlockedToUpgradedLock");
         bool found = false;
         if(this->codices.contains(dataName)) {
+            LOG_PS("grabDataName Starting UpgradedToExclusiveLock");
             UpgradedToExclusiveLock upgradedLock(this->mutex);
+            LOG_PS("grabDataName Finished UpgradedToExclusiveLock");
             found = codices.at(dataName).grab(info, data, isTriviallyCopyable);
+            LOG_PS("grabDataName find result {}", found);
             if(!found && shouldWait) {
                 auto const raii = LogRAII_PS("grabDataName starting wait (UpgradedToExclusiveLock)");
                 auto u = UpgradableMutexWaitableWrapper(this->mutex);

@@ -137,6 +137,7 @@ struct Codex {
         auto const iter = std::find_if(this->info.begin(), this->info.end(), [&ticket](CodexInfo const &info){return ticket==info.items.ticket;});
         if(iter == this->info.end())
             return;
+        LOG_C("removeCoroutine erasing one, current infos: {}", this->info.size())
         this->info.erase(iter);
     }
 

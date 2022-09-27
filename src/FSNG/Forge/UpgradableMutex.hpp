@@ -3,7 +3,7 @@
 #include <shared_mutex>
 
 #ifdef LOG_MUTEX
-#define LOG_M(...) LOG("<TAG:Mutex>" __VA_ARGS__)
+#define LOG_M(...) LOG(std::string("<TAG:M_")+this->name+">" __VA_ARGS__)
 #define LogRAII_M(arg) LogRAII("<TAG:Mutex>"+arg)
 #else
 #define LOG_M(...)
@@ -12,19 +12,31 @@
 
 namespace FSNG {
 
+inline auto StatusToString(int const status) -> std::string {
+    if(status==0) return "unlocked";
+    if(status==1) return "locked_shared";
+    return "locked_unique";
+}
+
+#define PTR reinterpret_cast<intptr_t>(this)
+
 template<typename T>
 struct MutexLog {
     MutexLog() {}
-    MutexLog(std::string const &name) : name(name) {}
-    auto lock()          {LOG_M("Starting lock for {} {} current status {}",          this->name, fmt::ptr(this), this->status)this->mutex.lock();         this->status = 2;LOG_M("Lock finished, status for {} {} {}",          this->name, this->status, fmt::ptr(this))}
-    auto unlock()        {LOG_M("Starting unlock for {} {} current status {}",        this->name, fmt::ptr(this), this->status)this->mutex.unlock();       this->status = 0;LOG_M("Unlock finished, status for {} {} {}",        this->name, this->status, fmt::ptr(this))}
-    auto lock_shared()   {LOG_M("Starting lock_shared for {} {} current status {}",   this->name, fmt::ptr(this), this->status)this->mutex.lock_shared();  this->status = 1;LOG_M("Lock_shared finished, status for {} {} {}",   this->name, this->status, fmt::ptr(this))}
-    auto unlock_shared() {LOG_M("Starting unlock_shared for {} {} current status {}", this->name, fmt::ptr(this), this->status)this->mutex.unlock_shared();this->status = 0;LOG_M("Unlock_shared finished, status for {} {} {}", this->name, this->status, fmt::ptr(this))}
+    MutexLog(std::string const &name, std::string const &type) : name(name), type(type) {}
+    auto lock()          {LOG_M("Start lock type {} name {} status {} ptr {}",                   this->type, this->name, StatusToString(this->status), PTR)this->mutex.lock();                                                    this->status = 2;LOG_M("End lock type {} name {} status {} ptr {}",                   this->type, this->name, StatusToString(this->status), PTR)}
+    auto unlock()        {LOG_M("Start unlock type {} name {} status {} ptr {}",                 this->type, this->name, StatusToString(this->status), PTR)this->mutex.unlock();                                                  this->status = 0;LOG_M("End unlock type {} name {} status {} ptr {}",                 this->type, this->name, StatusToString(this->status), PTR)}
+    auto lock_shared()   {LOG_M("Start lock_shared type {} name {} status {} ptr {} locks {}",   this->type, this->name, StatusToString(this->status), PTR, this->shared_locks)this->mutex.lock_shared();   this->shared_locks++; this->status = 1;LOG_M("End lock_shared type {} name {} status {} ptr {} locks {}",   this->type, this->name, StatusToString(this->status), PTR, this->shared_locks)}
+    auto unlock_shared() {LOG_M("Start unlock_shared type {} name {} status {} ptr {} locks {}", this->type, this->name, StatusToString(this->status), PTR, this->shared_locks)this->mutex.unlock_shared(); this->shared_locks--; this->status = 0;LOG_M("End unlock_shared type {} name {} status {} ptr {} locks {}", this->type, this->name, StatusToString(this->status), PTR, this->shared_locks)}
 private:
     T mutex;
     std::atomic<int> status = 0;
+    std::atomic<int> shared_locks = 0;
     std::string name;
+    std::string type;
 };
+
+#undef PTR
 
 /* 
 https://codereview.stackexchange.com/questions/243177/implementing-boostupgrade-mutex-using-only-standard-locks
@@ -43,10 +55,7 @@ https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2012/n3427.html
 
 */
 struct UpgradableMutex {
-    UpgradableMutex(std::string const &name) : name(name) {
-        int a = 0;
-        a++;
-    }
+    UpgradableMutex(std::string const &name) : name(name) {}
 
     auto lock_shared() -> void { // unlocked -> shared
         auto raii = LogRAII_M(std::string("lock_shared ")+this->name);
@@ -107,8 +116,8 @@ struct UpgradableMutex {
     }
     std::string name;
 private:
-    mutable MutexLog<std::shared_mutex> shared    = MutexLog<std::shared_mutex>("shared");
-    mutable MutexLog<std::mutex>        exclusive = MutexLog<std::mutex>       ("exclusive");
+    mutable MutexLog<std::shared_mutex> shared    = MutexLog<std::shared_mutex>(this->name, "shared");
+    mutable MutexLog<std::mutex>        exclusive = MutexLog<std::mutex>       (this->name, "exclusive");
 };
 
 struct UnlockedToSharedLock {
@@ -154,10 +163,10 @@ struct UnlockedToExclusiveLock {
 struct UpgradableMutexWaitableWrapper {
     UpgradableMutexWaitableWrapper(UpgradableMutex &mutex) : mutex(&mutex) {}
     auto lock() -> void {
-        this->mutex->lock_upgrade();
+        this->mutex->lock();
     }
     auto unlock() -> void {
-        this->mutex->unlock_upgrade();
+        this->mutex->unlock();
     }
     UpgradableMutex *mutex;
 };

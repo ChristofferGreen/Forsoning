@@ -31,7 +31,7 @@ public:
         this->writeToFile("</style>\n");
         this->writeToFile("</head>\n");
         this->writeToFile("<body>\n");
-        this->writeToFile("<iframe id=\"frame1\" name=\"frame1\" src=\"javascript.html\" width=\"600\" height=\"50\" frameBorder=\"0\"></iframe>\n");
+        this->writeToFile("<iframe id=\"frame1\" name=\"frame1\" src=\"javascript.html\" width=\"1200\" height=\"50\" frameBorder=\"0\"></iframe>\n");
         this->writeToFile("<table style='font-size:45%' nowrap=\"nowrap\">\n");
 
         this->writeToJavascriptFile("<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js\"></script>\n");
