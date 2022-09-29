@@ -13,19 +13,21 @@ class PathSpaceTE {
 		virtual ~concept_t() = default;
 		virtual auto operator==(const concept_t &rhs) const -> bool = 0;
 		
-		virtual auto copy_()                                                                                  const  -> std::unique_ptr<concept_t> = 0;
-		virtual auto toJSON_()                                                                                const  -> nlohmann::json             = 0;
-		virtual auto insert_(Path const &range, Data const &data)                                                    -> bool                       = 0;
-		virtual auto grab_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       = 0;
+		virtual auto copy_     ()                                                                             const  -> std::unique_ptr<concept_t> = 0;
+		virtual auto toJSON_   ()                                                                             const  -> nlohmann::json             = 0;
+		virtual auto insert_   (Path const &range, Data const &data, Path const &coroResultPath)                     -> bool                       = 0;
+		virtual auto grab_     (Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
 		virtual auto grabBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
-		virtual auto read_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       = 0;
+		virtual auto read_     (Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
 		virtual auto readBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
+		virtual auto setRoot_  (PathSpaceTE *root)                                                                   -> void                       = 0;
 	};
 public:
 	template<typename T>
 	static auto Create() -> PathSpaceTE {
 		PathSpaceTE ps;
 		ps.self = std::make_unique<model<T>>();
+		ps.self->setRoot_(&ps);
 		return ps;
 	}
 	PathSpaceTE() = default;
@@ -46,7 +48,7 @@ public:
 	};
 
 	auto toJSON()                                                                            const -> nlohmann::json      { return this->self->toJSON_(); }
-	auto insert(Path const &range, Data const &data)                                               -> bool                { return this->self->insert_(range, data); }
+	auto insert(Path const &range, Data const &data, Path const &coroResultPath="")                -> bool                { return this->self->insert_(range, data, coroResultPath); }
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                {
 		return this->self->grab_(range, info, data, isTriviallyCopyable);
 	}
@@ -85,6 +87,9 @@ public:
 		this->readBlock(range, &typeid(T), reinterpret_cast<void*>(&data), std::is_trivially_copyable<T>());
 		return data;
 	}
+	auto setRoot(PathSpaceTE *root) -> void {
+		this->self->setRoot_(root);
+	}
 private:
 	template<typename T> 
 	struct model final : concept_t {
@@ -94,11 +99,12 @@ private:
 
 		auto copy_()                                                                                 const   -> std::unique_ptr<concept_t> override {return std::make_unique<model>(*this);}
 		auto toJSON_()                                                                               const   -> nlohmann::json             override {return this->data.toJSON();}
-		auto insert_(Path const &range, Data const &d)                                                       -> bool                       override {return this->data.insert(range, d);}
+		auto insert_(Path const &range, Data const &d, Path const &coroResultPath)                           -> bool                       override {return this->data.insert(range, d, coroResultPath);}
 		auto grab_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       override {return this->data.grab(range, info, data, isTriviallyCopyable);}
 		auto grabBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       override {return this->data.grabBlock(range, info, data, isTriviallyCopyable);}
 		auto read_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       override {return this->data.read(range, info, data, isTriviallyCopyable);}
 		auto readBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       override {return this->data.readBlock(range, info, data, isTriviallyCopyable);}
+		auto setRoot_(PathSpaceTE *root)                                                                     -> void                       override {this->data.setRoot(root);}
 
 		T data;
 	};

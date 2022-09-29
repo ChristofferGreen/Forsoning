@@ -30,15 +30,24 @@ struct PathSpace {
     PathSpace(std::string const &name="/") : mutex(name) {
         LOG_PS("Creating PathSpace with name {}", name);
     };
-    PathSpace(const PathSpace &rhs) : mutex(rhs.mutex.name) {
+    PathSpace(PathSpace const &rhs) : mutex(rhs.mutex.name) {
+        LOG_PS("Creating copy of PathSpace with name {}", rhs.mutex.name);
+        UnlockedToExclusiveLock lock(this->mutex);
+        UnlockedToSharedLock lockRHS(rhs.mutex);
+        this->codices = rhs.codices;
+    }
+    PathSpace(PathSpace const &rhs, PathSpaceTE *root) : mutex(rhs.mutex.name), root(root) {
         LOG_PS("Creating copy of PathSpace with name {}", rhs.mutex.name);
         UnlockedToExclusiveLock lock(this->mutex);
         UnlockedToSharedLock lockRHS(rhs.mutex);
         this->codices = rhs.codices;
     }
 
-
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
+
+    auto setRoot(PathSpaceTE *root) {
+        this->root = root;
+    }
 
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         auto const raii = LogRAII_PS("grab "+range.dataName());
@@ -85,10 +94,10 @@ struct PathSpace {
         }
     }
 
-    virtual auto insert(Path const &range, Data const &data) -> bool {
+    virtual auto insert(Path const &range, Data const &data, Path const &coroResultPath="") -> bool {
         auto const raii = LogRAII_PS("insert "+range.dataName());
-        return range.isAtData() ? this->insertDataName(range.dataName(), data) :
-                                  this->insertSpaceName(range, range.spaceName().value(), data);
+        return range.isAtData() ? this->insertDataName(range.dataName(), data, coroResultPath) :
+                                  this->insertSpaceName(range, range.spaceName().value(), data, coroResultPath);
     }
 
     virtual auto toJSON() const -> nlohmann::json {
@@ -149,10 +158,10 @@ private:
             false;
     }
 
-    virtual auto insertDataName(std::string const &dataName, Data const &data) -> bool {
+    virtual auto insertDataName(std::string const &dataName, Data const &data, Path const &coroResultPath) -> bool {
         auto const raii = LogRAII_PS("insertDataName "+dataName);
         UnlockedToExclusiveLock upgraded(this->mutex);
-        this->codices[dataName].insert(data, [this, dataName](Data const &coroResultData, Ticket const &ticket) { // change this to the codex as param
+        this->codices[dataName].insert(data, [this, dataName](Data const &coroResultData, Ticket const &ticket) { // ToDo: change this to the codex as param
             auto const raii = LogRAII_PS("insertDataName codex insert "+dataName);
             UnlockedToExclusiveLock lock(this->mutex);
             this->codices[dataName].insert(coroResultData);
@@ -162,11 +171,11 @@ private:
         return true;
     }
 
-    virtual auto insertSpaceName(Path const &range, std::string const &spaceName, Data const &data) -> bool {
+    virtual auto insertSpaceName(Path const &range, std::string const &spaceName, Data const &data, Path const &coroResultPath) -> bool {
         auto const raii = LogRAII_PS("insertSpaceName "+spaceName);
         UnlockedToExclusiveLock upgraded(this->mutex);
         if(!codices.contains(spaceName)) {
-            codices[spaceName].insertSpace(PathSpaceTE(PathSpace{spaceName}));
+            codices[spaceName].insertSpace(PathSpaceTE(PathSpace{spaceName, this->root}));
             this->condition.notify_all();
         }
         return codices[spaceName].template visitFirst<PathSpaceTE>([&range, &data, this](auto &space){
@@ -182,5 +191,6 @@ private:
         std::unordered_map<std::string, Codex> codices;
         mutable std::condition_variable_any condition;
         mutable UpgradableMutex mutex;
+        PathSpaceTE *root=nullptr;
 };
 }

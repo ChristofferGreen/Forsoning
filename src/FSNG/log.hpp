@@ -130,10 +130,10 @@ inline auto SetupHTMLLog() -> void {
         std::cout << "Log init failed: " << ex.what() << std::endl;
     }
 }
-
+/*
 #define LOG_MUTEX
 #define LOG_PATH_SPACE
 #define LOG_CODEX
 #define LOG_FORGE
 #define LOG_LMUTEX
-
+*/

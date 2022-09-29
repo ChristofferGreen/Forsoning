@@ -10,8 +10,8 @@
 #define LOG_E(...) LOG("<TAG:Echelon>" __VA_ARGS__)
 #define LogRAII_E(...) LogRAII("<TAG:Echelon>" __VA_ARGS__)
 #else
-#define LOG_F(...)
-#define LogRAII_F(...) 0
+#define LOG_E(...)
+#define LogRAII_E(...) 0
 #endif
 
 namespace FSNG {
