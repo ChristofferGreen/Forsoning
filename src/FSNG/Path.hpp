@@ -18,6 +18,14 @@ struct Path {
     Path(std::string const &str) : Path(std::filesystem::path(str)) {}
     Path(std::filesystem::path::const_iterator const &current, std::filesystem::path::const_iterator const &end) : current(current), end(end) {}
 
+    bool operator==(Path const &rhs) const {
+        return this->path==rhs.path;
+    }
+
+    bool operator!=(Path const &rhs) const {
+        return this->path!=rhs.path;
+    }
+
     auto next() const {
         auto val = *this;
         val.current++;

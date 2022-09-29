@@ -161,13 +161,19 @@ private:
     virtual auto insertDataName(std::string const &dataName, Data const &data, Path const &coroResultPath) -> bool {
         auto const raii = LogRAII_PS("insertDataName "+dataName);
         UnlockedToExclusiveLock upgraded(this->mutex);
-        this->codices[dataName].insert(data, [this, dataName](Data const &coroResultData, Ticket const &ticket) { // ToDo: change this to the codex as param
+        this->codices[dataName].insert(data, [this, dataName, coroResultPath](Data const &coroResultData, Ticket const &ticket) { // ToDo: change this to the codex as param
             auto const raii = LogRAII_PS("insertDataName codex insert "+dataName);
+            bool inserted = false;
+            if(coroResultPath!=Path("") && this->root!=nullptr) {
+                this->root->insert(coroResultPath, coroResultData);
+                inserted=true;
+            }
             UnlockedToExclusiveLock lock(this->mutex);
-            this->codices[dataName].insert(coroResultData);
+            if(!inserted)
+                this->codices[dataName].insert(coroResultData);
             this->codices[dataName].removeCoroutine(ticket);
             this->condition.notify_all();
-        }); // ToDo:: What about recursive coroutines???
+        }); // ToDo: What about recursive coroutines???
         return true;
     }
 

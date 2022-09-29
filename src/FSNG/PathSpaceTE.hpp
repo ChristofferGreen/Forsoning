@@ -32,10 +32,10 @@ public:
 	}
 	PathSpaceTE() = default;
 	template<typename T>
-	PathSpaceTE(T x)                             : self(std::make_unique<model<T>>(std::move(x))) {}
-	PathSpaceTE(PathSpaceTE const &rhs)          : self(rhs.self->copy_())                        {}
-	PathSpaceTE(PathSpaceTE &&rhs)               : self(std::move(rhs.self))                      {}
-	PathSpaceTE(std::unique_ptr<concept_t> self) : self(std::move(self))                          {}
+	PathSpaceTE(T x)                             : self(std::make_unique<model<T>>(std::move(x))) {this->self->setRoot_(this);}
+	PathSpaceTE(PathSpaceTE const &rhs)          : self(rhs.self->copy_())                        {this->self->setRoot_(this);}
+	PathSpaceTE(PathSpaceTE &&rhs)               : self(std::move(rhs.self))                      {this->self->setRoot_(this);}
+	PathSpaceTE(std::unique_ptr<concept_t> self) : self(std::move(self))                          {this->self->setRoot_(this);}
 
 	auto operator= (PathSpaceTE const &rhs)       -> PathSpaceTE& {return *this = PathSpaceTE(rhs);}
 	auto operator= (PathSpaceTE&&) noexcept       -> PathSpaceTE& = default;
