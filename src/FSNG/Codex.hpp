@@ -180,6 +180,11 @@ struct Codex {
         }
         return json;
     }
+
+    auto setRoot(PathSpaceTE *root) -> void {
+        for(auto &space : this->spaces)
+            space.setRoot(root);
+    }
     
 private:
     auto popInfo() -> void {
