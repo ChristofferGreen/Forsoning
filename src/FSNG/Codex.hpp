@@ -86,7 +86,7 @@ struct Codex {
         this->addInfo(1, &typeid(PathSpaceTE));
     }
 
-    auto insert(Data const &data, std::function<void(Data const &coroResultData, Ticket const &ticket)> const &coroResultInserter = [](Data const &coroResultData, Ticket const &ticket){}) -> void {
+    auto insert(Data const &data, std::function<void(Data const &coroResultData, Ticket const &ticket, PathSpaceTE &space)> const &coroResultInserter = [](Data const &coroResultData, Ticket const &ticket, PathSpaceTE &space){}) -> void {
         if(data.is<bool>())                    this->insertBasic<bool>               (data);
         else if(data.is<signed char>())        this->insertBasic<signed char>        (data);
         else if(data.is<unsigned char>())      this->insertBasic<unsigned char>      (data);

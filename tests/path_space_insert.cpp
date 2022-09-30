@@ -7,7 +7,7 @@
 
 using namespace FSNG;
 
-TEST_CASE("PathSpaceInsert") {
+TEST_CASE("PathSpace Insert") {
     PathSpaceTE space = PathSpace{};
     Path const rootTestPath{"/test"};
     Path const rootTestPath2{"/test2"};
@@ -216,7 +216,7 @@ TEST_CASE("PathSpace Insert Multithreaded") {
     Path const rootTestPath3{"/test3"};
 
     Path const rootTestTest2Path{"/test/test2"};
-    SECTION("coroutine") {
+    SECTION("Coroutine") {
         REQUIRE(space.insert(rootTestPath, [&space]() -> Coroutine {
             for(auto i = 0; i < 10; ++i)
                 co_yield i;
@@ -231,7 +231,6 @@ TEST_CASE("PathSpace Insert Multithreaded") {
 
     SECTION("Coroutine Result Path") {
         space.insert("/coro", []()->Coroutine{co_return 123;}, "/res");
-        auto res = space.grabBlock<int>("/res");
-        REQUIRE(res==123);
+        REQUIRE(space.grabBlock<int>("/res")==123);
     }
 }

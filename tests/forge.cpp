@@ -10,7 +10,7 @@ TEST_CASE("Forge") {
     SECTION("Eschelon") {
         Eschelon queue;
         auto ticket = queue.newTicket();
-        queue.add(ticket, []()->Coroutine{co_return 0;}, [](Data const &data, Ticket const &ticket){});
+        queue.add(ticket, []()->Coroutine{co_return 0;}, [](Data const &data, Ticket const &ticket, PathSpaceTE &space){});
         auto const task = queue.popWait();
         REQUIRE(task.has_value()==true);
         REQUIRE(task.value().ticket==FirstTicket);
@@ -21,7 +21,7 @@ TEST_CASE("Forge") {
             Forge forge;
             auto res = 0;
             bool hasRun = false;
-            auto const ticket = forge.add([]()->Coroutine{co_return 345;}, [&res, &hasRun](Data const &data, Ticket const &ticket){
+            auto const ticket = forge.add([]()->Coroutine{co_return 345;}, [&res, &hasRun](Data const &data, Ticket const &ticket, PathSpaceTE &space){
                 REQUIRE(data.is<int>()==true);
                 res=data.as<int>();
                 REQUIRE(res==345);
@@ -40,7 +40,7 @@ TEST_CASE("Forge") {
         std::vector<int> tickets;
         std::shared_mutex mutex;
         for(auto i = 0; i < 128; ++i) {
-            tickets.push_back(forge.add([i]()->Coroutine{co_return i;}, [i, &s, &mutex](Data const &data, Ticket const &ticket){
+            tickets.push_back(forge.add([i]()->Coroutine{co_return i;}, [i, &s, &mutex](Data const &data, Ticket const &ticket, PathSpaceTE &space){
                 REQUIRE(data.is<int>()==true);
                 auto writeLock = std::unique_lock<std::shared_mutex>(mutex);
                 s.insert(i);

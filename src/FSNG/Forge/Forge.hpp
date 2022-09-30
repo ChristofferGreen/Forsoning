@@ -36,7 +36,7 @@ struct Forge {
             thread.join();
     }
 
-    auto add(std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data, Ticket const &ticket)> const &inserter) -> Ticket {
+    auto add(std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> const &inserter) -> Ticket {
         auto const ticket = this->eschelon.newTicket();
         this->esprit.activate(ticket);
         this->eschelon.add(ticket, coroutineFun, inserter);
@@ -67,7 +67,8 @@ struct Forge {
                     LOG_F("Task finished, restart: {}", shouldGoAgain);
                     if(coroutine.hasValue()) {
                         LOG_F("Inserting value");
-                        task.value().inserter(coroutine.getValue(), task.value().ticket);
+                        PathSpaceTE ps;
+                        task.value().inserter(coroutine.getValue(), task.value().ticket, ps);
                         LOG_F("Inserted value");
                     }
                 } while(shouldGoAgain);
