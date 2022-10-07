@@ -7,10 +7,11 @@
 using namespace FSNG;
 
 TEST_CASE("Forge") {
+    PathSpaceTE space;
     SECTION("Eschelon") {
         Eschelon queue;
         auto ticket = queue.newTicket();
-        queue.add(ticket, []()->Coroutine{co_return 0;}, [](Data const &data, Ticket const &ticket, PathSpaceTE &space){});
+        queue.add(ticket, []()->Coroutine{co_return 0;}, [](Data const &data, Ticket const &ticket, PathSpaceTE &space){}, space);
         auto const task = queue.popWait();
         REQUIRE(task.has_value()==true);
         REQUIRE(task.value().ticket==FirstTicket);
@@ -26,7 +27,7 @@ TEST_CASE("Forge") {
                 res=data.as<int>();
                 REQUIRE(res==345);
                 hasRun=true;
-            });
+            }, space);
             forge.wait(ticket);
             REQUIRE(hasRun==true);
             REQUIRE(res==345);
@@ -44,7 +45,7 @@ TEST_CASE("Forge") {
                 REQUIRE(data.is<int>()==true);
                 auto writeLock = std::unique_lock<std::shared_mutex>(mutex);
                 s.insert(i);
-            }));
+            }, space));
         }
         for(auto const &ticket : tickets)
             forge.wait(ticket);

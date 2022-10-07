@@ -86,7 +86,7 @@ struct Codex {
         this->addInfo(1, &typeid(PathSpaceTE));
     }
 
-    auto insert(Data const &data, std::function<void(Data const &coroResultData, Ticket const &ticket, PathSpaceTE &space)> const &coroResultInserter = [](Data const &coroResultData, Ticket const &ticket, PathSpaceTE &space){}) -> void {
+    auto insert(Data const &data, PathSpaceTE &space, std::function<void(Data const &coroResultData, Ticket const &ticket, PathSpaceTE &space)> const &coroResultInserter = [](Data const &coroResultData, Ticket const &ticket, PathSpaceTE &space){}) -> void {
         if(data.is<bool>())                    this->insertBasic<bool>               (data);
         else if(data.is<signed char>())        this->insertBasic<signed char>        (data);
         else if(data.is<unsigned char>())      this->insertBasic<unsigned char>      (data);
@@ -112,7 +112,7 @@ struct Codex {
             auto const dataSizeBytes = info.dataSizeBytes();
             copy_byte_back_insert(d.c_str(), dataSizeBytes, this->codices);
         } else if(data.is<std::unique_ptr<std::function<Coroutine()>>>()) {
-            auto const ticket = Forge::instance()->add(*data.as<std::unique_ptr<std::function<Coroutine()>>>(), coroResultInserter);
+            auto const ticket = Forge::instance()->add(*data.as<std::unique_ptr<std::function<Coroutine()>>>(), coroResultInserter, space);
             this->addInfo(1, &typeid(Coroutine), ticket);
         } else if(data.is<std::unique_ptr<PathSpaceTE>>()) {
             this->addInfo(1, &typeid(PathSpaceTE));
