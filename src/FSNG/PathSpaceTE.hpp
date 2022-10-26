@@ -3,6 +3,7 @@
 
 #include "FSNG/Coroutine.hpp"
 #include "FSNG/Path.hpp"
+#include "FSNG/Forge/Ticket.hpp"
 #include "FSNG/utils.hpp"
 
 #include "nlohmann/json.hpp"
@@ -13,14 +14,15 @@ class PathSpaceTE {
 		virtual ~concept_t() = default;
 		virtual auto operator==(const concept_t &rhs) const -> bool = 0;
 		
-		virtual auto copy_     ()                                                                             const  -> std::unique_ptr<concept_t> = 0;
-		virtual auto toJSON_   ()                                                                             const  -> nlohmann::json             = 0;
-		virtual auto insert_   (Path const &range, Data const &data, Path const &coroResultPath)                     -> bool                       = 0;
-		virtual auto grab_     (Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
-		virtual auto grabBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
-		virtual auto read_     (Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
-		virtual auto readBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
-		virtual auto setRoot_  (PathSpaceTE *root)                                                                   -> void                       = 0;
+		virtual auto copy_           ()                                                                             const  -> std::unique_ptr<concept_t> = 0;
+		virtual auto toJSON_         ()                                                                             const  -> nlohmann::json             = 0;
+		virtual auto insert_         (Path const &range, Data const &data, Path const &coroResultPath)                     -> bool                       = 0;
+		virtual auto grab_           (Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
+		virtual auto grabBlock_      (Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
+		virtual auto read_           (Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
+		virtual auto readBlock_      (Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
+		virtual auto setRoot_        (PathSpaceTE *root)                                                                   -> void                       = 0;
+		virtual auto removeCoroutine_(Path const &path, Ticket const &ticket)                                              -> bool                       = 0;
 	};
 public:
 	template<typename T>
@@ -51,6 +53,10 @@ public:
 	auto insert(Path const &range, Data const &data, Path const &coroResultPath="")                -> bool                { return this->self->insert_(range, data, coroResultPath); }
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                {
 		return this->self->grab_(range, info, data, isTriviallyCopyable);
+	}
+	template<typename T>
+	auto grab(Path const &path, Ticket const &ticket)                   -> bool {
+		return this->self->removeCoroutine_(path, ticket);
 	}
 	template<typename T>
 	auto grab(Path const &range)                                         -> std::optional<T> {
@@ -105,6 +111,7 @@ private:
 		auto read_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       override {return this->data.read(range, info, data, isTriviallyCopyable);}
 		auto readBlock_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       override {return this->data.readBlock(range, info, data, isTriviallyCopyable);}
 		auto setRoot_(PathSpaceTE *root)                                                                     -> void                       override {this->data.setRoot(root);}
+		auto removeCoroutine_(Path const &path, Ticket const &ticket)                                        -> bool                       override {return this->data.removeCoroutine(path, ticket);}
 
 		T data;
 	};

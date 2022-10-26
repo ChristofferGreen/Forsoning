@@ -26,6 +26,10 @@ struct Path {
         return this->path!=rhs.path;
     }
 
+    auto original() const -> Path {
+        return Path(this->path);
+    }
+
     auto next() const {
         auto val = *this;
         val.current++;

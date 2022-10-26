@@ -49,6 +49,22 @@ struct PathSpace {
         this->root = root;
     }
 
+    auto removeCoroutine(Path const &range, Ticket const &ticket) -> bool {
+        if(range.isAtData()) {
+            UnlockedToExclusiveLock upgraded(this->mutex);
+            this->codices[range.dataName()].removeCoroutine(ticket);
+            return true;
+        } else {
+            UnlockedToUpgradedLock lock(this->mutex);
+            auto const spaceName = range.spaceName().value();
+            if(this->codices.contains(spaceName)) {
+                UpgradedToExclusiveLock upgraded(this->mutex);
+                return codices[spaceName].template visitFirst<PathSpaceTE>([&range, ticket](auto &space){return space.template grab<Coroutine>(range.next(), ticket);});
+            }
+        }
+        return false;
+    }
+
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         auto const raii = LogRAII_PS("grab "+range.dataName());
         return range.isAtData() ? this->grabDataName(range.dataName(), info, data, isTriviallyCopyable) :
@@ -96,7 +112,7 @@ struct PathSpace {
 
     virtual auto insert(Path const &range, Data const &data, Path const &coroResultPath="") -> bool {
         auto const raii = LogRAII_PS("insert "+range.dataName());
-        return range.isAtData() ? this->insertDataName(range.dataName(), data, coroResultPath) :
+        return range.isAtData() ? this->insertDataName(range, range.dataName(), data, coroResultPath) :
                                   this->insertSpaceName(range, range.spaceName().value(), data, coroResultPath);
     }
 
@@ -158,11 +174,11 @@ private:
             false;
     }
 
-    virtual auto insertDataName(std::string const &dataName, Data const &data, Path const &coroResultPath) -> bool {
+    virtual auto insertDataName(Path const &range, std::string const &dataName, Data const &data, Path const &coroResultPath) -> bool {
         auto const raii = LogRAII_PS("insertDataName "+dataName);
         assert(this->root!=nullptr);
         UnlockedToExclusiveLock upgraded(this->mutex);
-        this->codices[dataName].insert(data, *this->root, [this, dataName, coroResultPath](Data const &coroResultData, Ticket const &ticket, PathSpaceTE &space) { // ToDo: change this to the codex as param
+        this->codices[dataName].insert(data, *this->root, [this, dataName, coroResultPath, range](Data const &coroResultData, Ticket const &ticket, PathSpaceTE &space) { // ToDo: change this to the codex as param
             auto const raii = LogRAII_PS("insertDataName codex insert "+dataName);
             bool inserted = false;
             if(coroResultPath!=Path("")) {
@@ -172,7 +188,8 @@ private:
             UnlockedToExclusiveLock lock(this->mutex);
             if(!inserted)
                 this->codices[dataName].insert(coroResultData, *this->root);
-            this->codices[dataName].removeCoroutine(ticket);
+            //this->codices[dataName].removeCoroutine(ticket);
+            space.grab<Coroutine>(range.original(), ticket);
             this->condition.notify_all();
         }); // ToDo: What about recursive coroutines???
         return true;
