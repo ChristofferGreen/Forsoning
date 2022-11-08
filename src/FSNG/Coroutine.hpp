@@ -1,12 +1,11 @@
 #pragma once
 #include "FSNG/Data.hpp"
-
-#include <experimental/coroutine>
+#include "FSNG/utils.hpp"
 
 namespace FSNG {
 struct Coroutine {
     struct promise_type;
-    using handle_type = std::experimental::coroutine_handle<promise_type>;
+    using handle_type = STD_EXPERIMENTAL::coroutine_handle<promise_type>;
 
     Coroutine() = default;
     Coroutine(handle_type h) : coro(h) {}
@@ -49,11 +48,11 @@ struct Coroutine {
         ~promise_type() = default;
 
         auto initial_suspend() {
-            return std::experimental::suspend_always{};
+            return STD_EXPERIMENTAL::suspend_always{};
         }
 
         auto final_suspend() noexcept {
-            return std::experimental::suspend_always{};
+            return STD_EXPERIMENTAL::suspend_always{};
         }
 
         auto get_return_object() {
@@ -62,12 +61,12 @@ struct Coroutine {
 
         auto yield_value(Data &&value) {
             currentValue = std::move(value);
-            return std::experimental::suspend_always{};
+            return STD_EXPERIMENTAL::suspend_always{};
         }
 
         auto return_value(Data &&value) {
             currentValue = std::move(value);
-            return std::experimental::suspend_always{};
+            return STD_EXPERIMENTAL::suspend_always{};
         }
 
         void unhandled_exception() {

@@ -97,7 +97,9 @@
         "charconv": "cpp",
         "numbers": "cpp",
         "unordered_set": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "*.tcc": "cpp",
+        "stop_token": "cpp"
     },
     "search.exclude": {
         "**/ext/": true

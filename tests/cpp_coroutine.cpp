@@ -1,8 +1,9 @@
+#include "FSNG/utils.hpp"
+
 #include <catch.hpp>
 
 #include <iostream>
 #include <map>
-#include <experimental/coroutine>
 #include <memory>
 
 namespace CoRet {
@@ -25,10 +26,10 @@ struct MyFuture {
         void return_value(T v) {
             *ptr = v;
         }
-        std::experimental::suspend_never initial_suspend() {
+        STD_EXPERIMENTAL::suspend_never initial_suspend() {
             return {};
         }
-        std::experimental::suspend_never final_suspend() noexcept {
+        STD_EXPERIMENTAL::suspend_never final_suspend() noexcept {
             return {};
         }
         void unhandled_exception() {
@@ -47,7 +48,7 @@ namespace CoYield {
 template<typename T>
 struct Generator {
     struct promise_type;
-    using handle_type = std::experimental::coroutine_handle<promise_type>;
+    using handle_type = STD_EXPERIMENTAL::coroutine_handle<promise_type>;
 
     Generator(handle_type h): coro(h) {}
     handle_type coro;
@@ -77,20 +78,20 @@ struct Generator {
         ~promise_type() = default;
 
         auto initial_suspend() {
-            return std::experimental::suspend_always{};
+            return STD_EXPERIMENTAL::suspend_always{};
         }
         auto final_suspend() noexcept {
-            return std::experimental::suspend_always{};
+            return STD_EXPERIMENTAL::suspend_always{};
         }
         auto get_return_object() {
             return Generator {handle_type::from_promise(*this)};
         }
         auto return_void() {
-            return std::experimental::suspend_never{};
+            return STD_EXPERIMENTAL::suspend_never{};
         }
         auto yield_value(const T value) {
             current_value = value;
-            return std::experimental::suspend_always{};
+            return STD_EXPERIMENTAL::suspend_always{};
         }
         void unhandled_exception() {
             std::exit(1);
@@ -111,7 +112,7 @@ Generator<int> getNext(int start = 0, int step = 1) {
 namespace CoAwait {
 struct Job {
     struct promise_type;
-    using handle_type = std::experimental::coroutine_handle<promise_type>; handle_type coro;
+    using handle_type = STD_EXPERIMENTAL::coroutine_handle<promise_type>; handle_type coro;
     Job(handle_type h): coro(h){}
     ~Job() {
         if ( coro ) coro.destroy(); 
@@ -123,11 +124,11 @@ struct Job {
         auto get_return_object() {
             return Job{handle_type::from_promise(*this)}; 
         }
-        std::experimental::suspend_always initial_suspend() { 
+        STD_EXPERIMENTAL::suspend_always initial_suspend() { 
             std::cout << " Preparing job" << '\n';
             return {};
         }
-        std::experimental::suspend_always final_suspend() noexcept {
+        STD_EXPERIMENTAL::suspend_always final_suspend() noexcept {
             std::cout << " Performing job" << '\n';
             return {}; 
         }
@@ -136,7 +137,7 @@ struct Job {
     };
 };
 Job prepareJob() {
-    co_await std::experimental::suspend_never();
+    co_await STD_EXPERIMENTAL::suspend_never();
 }
 }
 

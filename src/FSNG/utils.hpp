@@ -67,3 +67,11 @@ inline auto printm(std::string const &s) -> void {
 }
 
 }
+
+#ifdef __GNUC__
+#define STD_EXPERIMENTAL std
+#include <coroutine>
+#else
+#define STD_EXPERIMENTAL std::experimental
+#include <experimental/coroutine>
+#endif
