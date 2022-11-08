@@ -236,13 +236,31 @@ TEST_CASE("PathSpace Read") {
 
 TEST_CASE("PathSpace Read Multithreaded") {
     PathSpaceTE space = PathSpace{};
-    Path const rootTestPath{"/test"};
-    Path const rootTestPath2{"/test2"};
-    Path const rootTestPath3{"/test3"};
 
-    Path const rootTestTest2Path{"/test/test2"};
+    SECTION("Minimal Insert") {
+        space.insert("/coro", []() -> Coroutine {co_return 0;});
+    }
+    SECTION("Minimal Insert With insert") {
+        space.insert("/coro", [&space]() -> Coroutine {space.insert("/finished", 1);co_return 0;});
+    }
+    SECTION("Read Coroutine Simple") {
+        REQUIRE(space.insert("/coro", [&space]() -> Coroutine {
+            space.insert("/finished", 1);
+            co_return 0;
+        }) == true);
+        REQUIRE(space.readBlock<int>("/finished")==1);
+    }
 
-    SECTION("Read Coroutine Result") {
+    SECTION("Check Coro Return") {
+        REQUIRE(space.insert("/coro", [&space]() -> Coroutine {
+            space.insert("/finished", 1);
+            co_return 456;
+        }) == true);
+        REQUIRE(space.readBlock<int>("/finished")==1);
+        REQUIRE(space.readBlock<int>("/coro")==456);
+    }
+
+    /*SECTION("Read Coroutine Result") {
         LOG("Read Coroutine Result start");
         REQUIRE(space.insert("/coro", [&space]() -> Coroutine {
             LOG("Starting coro")
@@ -261,13 +279,5 @@ TEST_CASE("PathSpace Read Multithreaded") {
             REQUIRE(space.read<int>("/coro").value_or(-1)==i);
             space.grab<int>("/coro");
         }
-    }
-
-    //SECTION("Read Coroutine") {
-    //    REQUIRE(space.insert("/coro", [&space]() -> Coroutine {
-    //        space.readBlock<int>("/exit_coro");
-    //        co_yield 1;
-    //    }) == true);
-    //    auto coroOpt = space.readBlock<int>("/coro");
-    //}
+    }*/
 }

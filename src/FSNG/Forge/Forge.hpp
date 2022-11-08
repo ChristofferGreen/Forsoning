@@ -38,7 +38,7 @@ struct Forge {
 
     auto add(std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> const &inserter, PathSpaceTE &space) -> Ticket {
         auto const ticket = this->eschelon.newTicket();
-        this->esprit.activate(ticket);
+        this->esprit.activate(ticket, space);
         this->eschelon.add(ticket, coroutineFun, inserter, space);
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
         auto const hasFreeThreads = this->esprit.nbrActive()>this->threads.size();
@@ -54,6 +54,15 @@ struct Forge {
 
     auto wait(Ticket const &ticket) -> void {
         this->esprit.wait(ticket);
+    }
+
+    auto wait(PathSpaceTE &space) -> void {
+        this->esprit.wait(space);
+    }
+    
+    auto removeAndWait(PathSpaceTE &space) -> void {
+        this->eschelon.remove(space);
+        this->esprit.wait(space);
     }
 
     auto executor() -> void {
@@ -72,7 +81,7 @@ struct Forge {
                     }
                 } while(shouldGoAgain);
                 LOG_F("deactivating task");
-                this->esprit.deactivate(task.value().ticket);
+                this->esprit.deactivate(task.value().ticket, *task.value().space);
                 LOG_F("Task done");
             }
         }

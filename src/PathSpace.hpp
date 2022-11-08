@@ -42,6 +42,9 @@ struct PathSpace {
         UnlockedToSharedLock lockRHS(rhs.mutex);
         this->codices = rhs.codices;
     }
+    auto preDestruct() -> void {
+        Forge::instance()->removeAndWait(*this->root);
+    }
 
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
 
@@ -178,19 +181,14 @@ private:
         auto const raii = LogRAII_PS("insertDataName "+dataName);
         assert(this->root!=nullptr);
         UnlockedToExclusiveLock upgraded(this->mutex);
-        this->codices[dataName].insert(data, *this->root, [this, dataName, coroResultPath, range](Data const &coroResultData, Ticket const &ticket, PathSpaceTE &space) { // ToDo: change this to the codex as param
+        this->codices[dataName].insert(data, *this->root, [dataName, coroResultPath, range](Data const &coroResultData, Ticket const &ticket, PathSpaceTE &space) { // ToDo: change this to the codex as param
             auto const raii = LogRAII_PS("insertDataName codex insert "+dataName);
             bool inserted = false;
             if(coroResultPath!=Path("")) {
                 space.insert(coroResultPath, coroResultData);
                 inserted=true;
             }
-            UnlockedToExclusiveLock lock(this->mutex);
-            if(!inserted)
-                this->codices[dataName].insert(coroResultData, *this->root);
-            //this->codices[dataName].removeCoroutine(ticket);
-            space.grab<Coroutine>(range.original(), ticket);
-            this->condition.notify_all();
+            space.insert(range.original(), coroResultData);
         }); // ToDo: What about recursive coroutines???
         return true;
     }

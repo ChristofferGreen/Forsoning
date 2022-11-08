@@ -30,6 +30,16 @@ struct Eschelon {
         return this->tasks.erase(ticket)>0;
     }
 
+    auto remove(PathSpaceTE &space) {
+        auto writeLock = std::unique_lock<LoggableMutex<std::shared_mutex>>(this->mutex);
+        std::vector<Ticket> toBeRemoved;
+        for(auto const &task : this->tasks)
+            if(task.second.space == &space)
+                toBeRemoved.push_back(task.first);
+        for(auto const &ticket : toBeRemoved)
+            this->tasks.erase(ticket);
+    }
+
     auto popWait() -> std::optional<Task> {
         auto const raii = LogRAII_E("popWait");
         auto writeLock = std::unique_lock<LoggableMutex<std::shared_mutex>>(this->mutex);

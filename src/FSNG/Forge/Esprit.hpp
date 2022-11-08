@@ -10,37 +10,43 @@ namespace FSNG {
 struct Esprit {
     Esprit() : mutex("Esprit") {}
 
-    auto activate(Ticket const &ticket) {
+    auto activate(Ticket const &ticket, PathSpaceTE &space) {
         auto writeLock = std::unique_lock<LoggableMutex<std::shared_mutex>>(this->mutex);
-        this->active.insert(ticket);
+        this->active[&space].insert(ticket);
     }
 
-    auto deactivate(Ticket const &ticket) {
+    auto deactivate(Ticket const &ticket, PathSpaceTE &space) {
         auto writeLock = std::unique_lock<LoggableMutex<std::shared_mutex>>(this->mutex);
-        this->active.erase(ticket);
-        this->deactivated.insert(ticket);
+        this->active[&space].erase(ticket);
+        if(this->active.count(&space))
+            if(this->active.at(&space).size()==0)
+                this->active.erase(&space);
         this->condition.notify_all();
     }
 
-    auto isActive(Ticket const &ticket) const -> bool {
+    auto wait(PathSpaceTE &space) const -> void {
         auto readLock = std::shared_lock(this->mutex);
-        return this->active.contains(ticket);
+        while(this->active.count(&space))
+            this->condition.wait(readLock);
     }
 
     auto wait(Ticket const &ticket) const -> void {
         auto readLock = std::shared_lock(this->mutex);
-        while(this->active.contains(ticket))
-            this->condition.wait(readLock);
+        for(auto const &a : this->active)
+            while(a.second.contains(ticket))
+                this->condition.wait(readLock);
     }
 
     auto nbrActive() {
         auto readLock = std::shared_lock(this->mutex);
-        return this->active.size();
+        int nbr = 0;
+        for(auto const &a : this->active)
+            nbr += a.second.size();
+        return nbr;
     }
 
 private:
-    std::set<Ticket> active;
-    std::set<Ticket> deactivated;
+    std::map<PathSpaceTE*, std::set<Ticket>> active;
     mutable LoggableMutex<std::shared_mutex> mutex;
     mutable std::condition_variable_any condition;
 };

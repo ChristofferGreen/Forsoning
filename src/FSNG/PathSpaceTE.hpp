@@ -11,10 +11,11 @@
 namespace FSNG {
 class PathSpaceTE {
 	struct concept_t {
-		virtual ~concept_t() = default;
-		virtual auto operator==(const concept_t &rhs) const -> bool = 0;
+		virtual      ~concept_t  ()                                                         = default;
+		virtual auto operator==  (const concept_t &rhs) const -> bool                       = 0;
+		virtual auto preDestruct_()                           -> void                       = 0;
+		virtual auto copy_       ()                     const -> std::unique_ptr<concept_t> = 0;
 		
-		virtual auto copy_           ()                                                                             const  -> std::unique_ptr<concept_t> = 0;
 		virtual auto toJSON_         ()                                                                             const  -> nlohmann::json             = 0;
 		virtual auto insert_         (Path const &range, Data const &data, Path const &coroResultPath)                     -> bool                       = 0;
 		virtual auto grab_           (Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
@@ -38,6 +39,10 @@ public:
 	PathSpaceTE(PathSpaceTE const &rhs)          : self(rhs.self->copy_())                        {this->self->setRoot_(this);}
 	PathSpaceTE(PathSpaceTE &&rhs)               : self(std::move(rhs.self))                      {this->self->setRoot_(this);}
 	PathSpaceTE(std::unique_ptr<concept_t> self) : self(std::move(self))                          {this->self->setRoot_(this);}
+
+	~PathSpaceTE() {
+		this->self->preDestruct_();
+	}
 
 	auto operator= (PathSpaceTE const &rhs)       -> PathSpaceTE& {return *this = PathSpaceTE(rhs);}
 	auto operator= (PathSpaceTE&&) noexcept       -> PathSpaceTE& = default;
@@ -102,8 +107,9 @@ private:
 		model() = default;
 		model(T x) : data(std::move(x)) {}
 		auto operator==(const concept_t &rhs) const -> bool override { return this->data==reinterpret_cast<model<T> const&>(rhs).data; }
-
 		auto copy_()                                                                                 const   -> std::unique_ptr<concept_t> override {return std::make_unique<model>(*this);}
+		auto preDestruct_()                                                                                  -> void                       override {this->data.preDestruct();}
+		
 		auto toJSON_()                                                                               const   -> nlohmann::json             override {return this->data.toJSON();}
 		auto insert_(Path const &range, Data const &d, Path const &coroResultPath)                           -> bool                       override {return this->data.insert(range, d, coroResultPath);}
 		auto grab_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       override {return this->data.grab(range, info, data, isTriviallyCopyable);}
