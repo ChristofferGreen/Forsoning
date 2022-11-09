@@ -68,10 +68,10 @@ inline auto printm(std::string const &s) -> void {
 
 }
 
-#ifdef __GNUC__
-#define STD_EXPERIMENTAL std
-#include <coroutine>
-#else
+#ifdef __clang__
 #define STD_EXPERIMENTAL std::experimental
 #include <experimental/coroutine>
+#else
+#define STD_EXPERIMENTAL std
+#include <coroutine>
 #endif

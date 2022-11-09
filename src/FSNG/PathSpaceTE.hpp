@@ -41,7 +41,8 @@ public:
 	PathSpaceTE(std::unique_ptr<concept_t> self) : self(std::move(self))                          {this->self->setRoot_(this);}
 
 	~PathSpaceTE() {
-		this->self->preDestruct_();
+		if(this->self)
+			this->self->preDestruct_();
 	}
 
 	auto operator= (PathSpaceTE const &rhs)       -> PathSpaceTE& {return *this = PathSpaceTE(rhs);}

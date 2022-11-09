@@ -7,7 +7,7 @@
 using namespace FSNG;
 
 TEST_CASE("Forge") {
-    PathSpaceTE space;
+    PathSpaceTE space = PathSpace{};
     SECTION("Eschelon") {
         Eschelon queue;
         auto ticket = queue.newTicket();
@@ -22,12 +22,14 @@ TEST_CASE("Forge") {
             Forge forge;
             auto res = 0;
             bool hasRun = false;
-            auto const ticket = forge.add([]()->Coroutine{co_return 345;}, [&res, &hasRun](Data const &data, Ticket const &ticket, PathSpaceTE &space){
-                REQUIRE(data.is<int>()==true);
-                res=data.as<int>();
-                REQUIRE(res==345);
-                hasRun=true;
-            }, space);
+            auto const ticket = forge.add([]()->Coroutine{
+                    co_return 345;
+                }, [&res, &hasRun](Data const &data, Ticket const &ticket, PathSpaceTE &space){
+                    REQUIRE(data.is<int>()==true);
+                    res=data.as<int>();
+                    REQUIRE(res==345);
+                    hasRun=true;
+                }, space);
             forge.wait(ticket);
             REQUIRE(hasRun==true);
             REQUIRE(res==345);
