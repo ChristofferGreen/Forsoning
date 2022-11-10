@@ -253,10 +253,8 @@ TEST_CASE("PathSpace Read Multithreaded") {
 
     SECTION("Check Coro Return") {
         REQUIRE(space.insert("/coro", [&space]() -> Coroutine {
-            space.insert("/finished", 1);
             co_return 456;
         }) == true);
-        REQUIRE(space.readBlock<int>("/finished")==1);
         REQUIRE(space.readBlock<int>("/coro")==456);
     }
 

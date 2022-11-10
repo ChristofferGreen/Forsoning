@@ -10,12 +10,12 @@ namespace FSNG {
 struct Esprit {
     Esprit() : mutex("Esprit") {}
 
-    auto activate(Ticket const &ticket, PathSpaceTE &space) {
+    auto activate(Ticket const &ticket, PathSpaceTE &space) -> void {
         auto writeLock = std::unique_lock<LoggableMutex<std::shared_mutex>>(this->mutex);
         this->active[&space].insert(ticket);
     }
 
-    auto deactivate(Ticket const &ticket, PathSpaceTE &space) {
+    auto deactivate(Ticket const &ticket, PathSpaceTE &space) -> void {
         auto writeLock = std::unique_lock<LoggableMutex<std::shared_mutex>>(this->mutex);
         this->active[&space].erase(ticket);
         if(this->active.count(&space))
@@ -32,12 +32,20 @@ struct Esprit {
 
     auto wait(Ticket const &ticket) const -> void {
         auto readLock = std::shared_lock(this->mutex);
-        for(auto const &a : this->active)
-            while(a.second.contains(ticket))
-                this->condition.wait(readLock);
+        bool shouldTryAgain = false;
+        do {
+            shouldTryAgain = false;
+            for(auto const &a : this->active) {
+                if(a.second.contains(ticket)) {
+                    this->condition.wait(readLock);
+                    shouldTryAgain = true;
+                    break;
+                }
+            }
+        } while(shouldTryAgain);
     }
 
-    auto nbrActive() {
+    auto nbrActive() const -> int {
         auto readLock = std::shared_lock(this->mutex);
         int nbr = 0;
         for(auto const &a : this->active)
