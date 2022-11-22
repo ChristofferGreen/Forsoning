@@ -181,7 +181,7 @@ private:
         auto const raii = LogRAII_PS("insertDataName "+dataName);
         assert(this->root!=nullptr);
         UnlockedToExclusiveLock upgraded(this->mutex);
-        this->codices[dataName].insert(data, *this->root, [dataName, coroResultPath, range](Data const &coroResultData, Ticket const &ticket, PathSpaceTE &space) { // ToDo: change this to the codex as param
+        this->codices[dataName].insert(range.original(), data, *this->root, [dataName, coroResultPath, range](Data const &coroResultData, Ticket const &ticket, PathSpaceTE &space) { // ToDo: change this to the codex as param
             auto const raii = LogRAII_PS("insertDataName codex insert "+dataName);
             bool inserted = false;
             if(coroResultPath!=Path("")) {

@@ -55,11 +55,10 @@ TEST_CASE("DiningPhilosophers Simple") {
     for(int x = 0; x < 2100; ++x) {
         auto space = PathSpaceTE::Create<PathSpace>();
         int const numberOfPhilosophers = 5;
-        int const totalLoops = 10;
 
         for(int i = 0; i < numberOfPhilosophers; ++i) {
             LOG("Philosopher adding: {}", i);
-            space.insert("/philosopher", [&space, i, totalLoops]()->Coroutine{
+            space.insert("/philosopher", [&space, i]()->Coroutine{
                 LOG("Philosopher starting: {}", i);
                 co_return 123;
             });
