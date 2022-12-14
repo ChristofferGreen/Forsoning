@@ -185,6 +185,10 @@ struct Codex {
         for(auto &space : this->spaces)
             space.setRoot(root);
     }
+
+    auto empty() const -> bool {
+        return this->info.size()==0;
+    }
     
 private:
     auto popInfo() -> void {

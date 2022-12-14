@@ -56,6 +56,9 @@ struct PathSpace {
         if(range.isAtData()) {
             UnlockedToExclusiveLock upgraded(this->mutex);
             this->codices[range.dataName()].removeCoroutine(ticket);
+            if(this->codices[range.dataName()].empty())
+                this->codices.erase(range.dataName());
+            this->condition.notify_all();
             return true;
         } else {
             UnlockedToUpgradedLock lock(this->mutex);
@@ -141,6 +144,8 @@ private:
             LOG_PS("grabDataName Finished UpgradedToExclusiveLock");
             found = codices.at(dataName).grab(info, data, isTriviallyCopyable);
             LOG_PS("grabDataName find result {}", found);
+            if(codices.at(dataName).empty())
+                codices.erase(dataName);
             if(!found && shouldWait) {
                 auto const raii = LogRAII_PS("grabDataName starting wait (UpgradedToExclusiveLock)");
                 auto u = UpgradableMutexWaitableWrapper(this->mutex);

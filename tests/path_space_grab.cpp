@@ -257,7 +257,7 @@ TEST_CASE("PathSpace Grab Multithreaded") {
         REQUIRE(space.grabBlock<int>("/finished")==1);
         LOG("Grabbed /finished")
         for(auto i = 0; i < 5; ++i)
-            REQUIRE(space.grab<int>("/coro").value_or(-1)==i);
+            REQUIRE(space.grabBlock<int>("/coro")==i);
     }
 
     //SECTION("Grab Coroutine") {

@@ -221,11 +221,12 @@ TEST_CASE("PathSpace Insert Multithreaded") {
             for(auto i = 0; i < 10; ++i)
                 co_yield i;
             space.insert("/finished", 1);
+            co_return 123;
         }) == true);
         space.grabBlock<int>("/finished");
         nlohmann::json json;
         json["finished"] = nullptr;
-        json["test"] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+        json["test"] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 123};
         REQUIRE(space.toJSON() == json);
     }
 
