@@ -36,7 +36,7 @@ struct Forge {
             thread.join();
     }
 
-    auto add(std::function<Coroutine()> const &coroutineFun, std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> const &inserter, PathSpaceTE &space, Path const &path) -> Ticket {
+    auto add(auto const &coroutineFun, std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> const &inserter, PathSpaceTE &space, Path const &path) -> Ticket {
         auto const ticket = this->eschelon.newTicket();
         this->esprit.activate(ticket, space);
         this->eschelon.add(ticket, coroutineFun, inserter, space, path);
@@ -68,27 +68,32 @@ struct Forge {
     auto executor() -> void {
         while(this->isAlive) {
             if(auto task = this->eschelon.popWait()) {
-                auto coroutine = task.value().fun();
-                bool shouldGoAgain = false;
-                do {
-                    LOG_F("Task (re)starting");
-                    shouldGoAgain = coroutine.next();
-                    LOG_F("Task finished, restart: {}", shouldGoAgain);
-                    if(coroutine.hasValue()) {
-                        LOG_F("Inserting value");
-                        task.value().inserter(coroutine.getValue(), task.value().ticket, *task.value().space);
-                        LOG_F("Inserted value");
-                    }
-                } while(shouldGoAgain);
+                if(task.value().fun)
+                    this->loop(task.value().fun(), task);
+                else
+                    this->loop(task.value().funv(), task);
                 LOG_F("deactivating task");
-                this->esprit.deactivate(task.value().ticket, *task.value().space);
                 task.value().space->grab<void>(task.value().path, task.value().ticket);
+                this->esprit.deactivate(task.value().ticket, *task.value().space);
                 LOG_F("Task done");
             }
         }
     }
 
 private:
+    void loop(auto &&coroutine, auto &task) {
+        bool shouldGoAgain = false;
+        do {
+            LOG_F("Task (re)starting");
+            shouldGoAgain = coroutine.next();
+            LOG_F("Task finished, restart: {}", shouldGoAgain);
+            if(coroutine.hasValue()) {
+                LOG_F("Inserting value");
+                task.value().inserter(coroutine.getValue(), task.value().ticket, *task.value().space);
+                LOG_F("Inserted value");
+            }
+        } while(shouldGoAgain);
+    }
     inline static Forge* instance_;
     std::atomic<bool> isAlive = true;
     mutable std::shared_mutex mutex;

@@ -55,11 +55,13 @@ struct PathSpace {
     auto removeCoroutine(Path const &range, Ticket const &ticket) -> bool {
         if(range.isAtData()) {
             UnlockedToExclusiveLock upgraded(this->mutex);
-            this->codices[range.dataName()].removeCoroutine(ticket);
-            if(this->codices[range.dataName()].empty())
-                this->codices.erase(range.dataName());
-            this->condition.notify_all();
-            return true;
+            if(this->codices.contains(range.dataName())) {
+                this->codices[range.dataName()].removeCoroutine(ticket);
+                if(this->codices[range.dataName()].empty())
+                    this->codices.erase(range.dataName());
+                this->condition.notify_all();
+                return true;
+            }
         } else {
             UnlockedToUpgradedLock lock(this->mutex);
             auto const spaceName = range.spaceName().value();

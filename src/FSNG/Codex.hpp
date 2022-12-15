@@ -114,6 +114,9 @@ struct Codex {
         } else if(data.is<std::unique_ptr<std::function<Coroutine()>>>()) {
             auto const ticket = Forge::instance()->add(*data.as<std::unique_ptr<std::function<Coroutine()>>>(), coroResultInserter, space, path);
             this->addInfo(1, &typeid(Coroutine), ticket);
+        } else if(data.is<std::unique_ptr<std::function<CoroutineVoid()>>>()) {
+            auto const ticket = Forge::instance()->add(*data.as<std::unique_ptr<std::function<CoroutineVoid()>>>(), coroResultInserter, space, path);
+            this->addInfo(1, &typeid(Coroutine), ticket);
         } else if(data.is<std::unique_ptr<PathSpaceTE>>()) {
             this->addInfo(1, &typeid(PathSpaceTE));
             auto const &p = data.as<std::unique_ptr<PathSpaceTE>>();

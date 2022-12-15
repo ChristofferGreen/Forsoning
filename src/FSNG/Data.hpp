@@ -12,6 +12,9 @@
 #include "utils.hpp"
 
 namespace FSNG {
+struct PathSpaceTE;
+struct Coroutine;
+struct CoroutineVoid;
 
 template<typename T>
 concept TriviallyCopyableButNotInvocable = std::is_trivially_copyable<T>::value && !std::is_invocable<T>::value;
@@ -28,13 +31,21 @@ concept HasJSONConversion = requires(typename std::remove_const<T>::type t, nloh
 };
 
 template<typename T>
+concept ReturnsCoroutine = requires(T t) {
+    {t()} -> std::same_as<Coroutine>;
+};
+
+template<typename T>
+concept ReturnsCoroutineVoid = requires(T t) {
+    {t()} -> std::same_as<CoroutineVoid>;
+};
+
+template<typename T>
 concept NotTriviallyCopyable = !std::is_trivially_copyable<T>::value;
 
 template<typename T>
 concept HasJSONConversionNotTriviallyCopyableNoByteVector = HasJSONConversion<T> && NotTriviallyCopyable<T> && !HasByteVectorConversion<T>;
 
-struct PathSpaceTE;
-struct Coroutine;
 struct Data {
     Data() = default;
     Data(bool                    const  b)    : data(b) {}
@@ -55,8 +66,11 @@ struct Data {
     Data(std::string             const &s)    : data(s) {}
     Data(std::unique_ptr<PathSpaceTE> &&up)   : data(std::move(up)) {}
     Data(PathSpaceTE             const &pste) : data(std::make_unique<PathSpaceTE>(pste)) {}
-    Data(std::invocable auto     const &in) {
+    Data(ReturnsCoroutine auto   const &in) {
         data = std::make_unique<std::function<Coroutine()>>(in);
+    }
+    Data(ReturnsCoroutineVoid auto   const &in) {
+        data = std::make_unique<std::function<CoroutineVoid()>>(in);
     }
     Data(TriviallyCopyableButNotInvocable auto const &in) {
         using InT = decltype(in);
@@ -159,6 +173,7 @@ private:
                  std::string,
                  std::unique_ptr<PathSpaceTE>,
                  std::unique_ptr<std::function<Coroutine()>>,
+                 std::unique_ptr<std::function<CoroutineVoid()>>,
                  InReference,
                  std::vector<std::byte>> data;
 };
