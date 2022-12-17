@@ -84,10 +84,10 @@ private:
         while(this->isAlive) {
             if(std::optional<Ticket> ticket = this->launchNewTask()) {
                 auto &task = this->tasks.at(ticket.value());
-                if(task.fun)
-                    this->loop(task.fun(), task);
-                else
-                    this->loop(task.funv(), task);
+                if(auto* fun = std::get_if<std::function<Coroutine()>>(&task.fun))
+                    this->loop((*fun)(), task);
+                else if(auto* fun = std::get_if<std::function<CoroutineVoid()>>(&task.fun))
+                    this->loop((*fun)(), task);
                 task.space->grab<void>(task.path, ticket.value());
                 auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
                 this->tasks.erase(ticket.value());

@@ -5,20 +5,17 @@
 #include "FSNG/Forge/Ticket.hpp"
 
 #include <functional>
+#include <variant>
 
 namespace FSNG {
 struct Task {
     Task() = default;
-    Task(Ticket const &ticket, ReturnsCoroutine auto const &fun, 
+    Task(Ticket const &ticket, auto const &fun, 
          std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> const &inserter, PathSpaceTE *space, Path const &path) :
             ticket(ticket), fun(fun), inserter(inserter), space(space), path(path) {}
-    Task(Ticket const &ticket, ReturnsCoroutineVoid auto const &funv, 
-         std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> const &inserter, PathSpaceTE *space, Path const &path) :
-            ticket(ticket), funv(funv), inserter(inserter), space(space), path(path) {}
 
     Ticket ticket;
-    std::function<Coroutine()> fun; // ToDo:: Make coros into std::variant
-    std::function<CoroutineVoid()> funv;
+    std::variant<std::function<Coroutine()>, std::function<CoroutineVoid()>> fun;
     std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> inserter = [](Data const &data, Ticket const &ticket, PathSpaceTE &space){};
     PathSpaceTE *space = nullptr;
     Path path;
