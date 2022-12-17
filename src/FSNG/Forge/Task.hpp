@@ -22,5 +22,6 @@ struct Task {
     std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> inserter = [](Data const &data, Ticket const &ticket, PathSpaceTE &space){};
     PathSpaceTE *space = nullptr;
     Path path;
+    bool isRunning = false;
 };
 }

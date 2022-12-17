@@ -8,14 +8,6 @@ using namespace FSNG;
 
 TEST_CASE("Forge") {
     PathSpaceTE space = PathSpace{};
-    SECTION("Eschelon") {
-        Eschelon queue;
-        auto ticket = queue.newTicket();
-        queue.add(ticket, []()->Coroutine{co_return 0;}, [](Data const &data, Ticket const &ticket, PathSpaceTE &space){}, space, "/test");
-        auto const task = queue.popWait();
-        REQUIRE(task.has_value()==true);
-        REQUIRE(task.value().ticket==FirstTicket);
-    }
 
     SECTION("Coroutine") {
         for(int i = 0; i < 1; ++i) {

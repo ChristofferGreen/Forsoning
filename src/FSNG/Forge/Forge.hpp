@@ -1,8 +1,7 @@
 #pragma once
-#include "FSNG/Forge/Eschelon.hpp"
-#include "FSNG/Forge/Esprit.hpp"
 #include "FSNG/PathSpaceTE.hpp"
 #include "FSNG/utils.hpp"
+#include "FSNG/Forge/Task.hpp"
 
 #include "spdlog/spdlog.h"
 
@@ -30,86 +29,109 @@ struct Forge {
     }
 
     ~Forge() {
-        auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
-        this->isAlive = false;
-        this->eschelon.shutdown();
+        {
+            auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
+            this->isAlive = false;
+            this->tasksChanged.notify_all();
+            while(this->tasks.size())
+                this->tasksChanged.wait(writeLock);
+        }
         for(auto &thread : this->threads)
             thread.join();
     }
 
     auto add(auto const &coroutineFun, std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> const &inserter, PathSpaceTE &space, Path const &path) -> Ticket {
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
-        auto const ticket = this->eschelon.newTicket();
-        this->esprit.activate(ticket, space);
-        this->eschelon.add(ticket, coroutineFun, inserter, space, path);
-        auto const hasFreeThreads = this->esprit.nbrActive()>this->threads.size();
+        auto const ticket = this->newTicket();
+        this->tasks[ticket] = Task(ticket, coroutineFun, inserter, &space, path);
+        auto const hasFreeThreads = this->threads.size()>this->tasks.size();
         auto const lessAllocatedThreadsThanMaximum = this->threads.size()<(std::thread::hardware_concurrency()*2);
-        if(hasFreeThreads && lessAllocatedThreadsThanMaximum)
+        if(!hasFreeThreads && lessAllocatedThreadsThanMaximum)
             this->threads.emplace_back(std::thread(&Forge::executor, this));
-        this->tasksAdded++;
+        this->tasksChanged.notify_all();
         return ticket;
     }
 
+    auto wait(Ticket const &ticket) const -> void {
+        auto readLock = std::shared_lock(this->mutex);
+        while(this->tasks.contains(ticket))
+            this->tasksChanged.wait(readLock);
+    }
+
     auto remove(Ticket const &ticket) -> void {
-        this->eschelon.remove(ticket);
-    }
-
-    auto wait(Ticket const &ticket) -> void {
-        this->esprit.wait(ticket);
-    }
-
-    auto wait(PathSpaceTE &space) -> void {
-        this->esprit.wait(space);
+        auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
+        this->tasks.erase(ticket);
+        this->tasksChanged.notify_all();
     }
     
-    auto removeAndWait(PathSpaceTE &space) -> void {
-        this->eschelon.remove(space);
-        this->esprit.deactivate(space);
-        this->esprit.wait(space);
+    auto clearBlock(PathSpaceTE &space) -> void {
+        auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
+        std::vector<Ticket> running;
+        for(auto it = this->tasks.cbegin(); it != this->tasks.cend(); ++it) {
+            if(it->second.space==&space) {
+                if(it->second.isRunning)
+                    running.push_back(it->first);
+                else
+                    this->tasks.erase(it);
+            }
+        }
+        for(auto const &ticket : running)
+            while(this->tasks.contains(ticket))
+                this->tasksChanged.wait(writeLock);
     }
-
+private:
     auto executor() -> void {
         while(this->isAlive) {
-            if(auto task = this->eschelon.popWait()) {
-                this->esprit.startedRunning(task.value().ticket, *task.value().space);
-                this->tasksStarted++;
-                if(task.value().fun)
-                    this->loop(task.value().fun(), task);
+            if(std::optional<Ticket> ticket = this->launchNewTask()) {
+                auto &task = this->tasks.at(ticket.value());
+                if(task.fun)
+                    this->loop(task.fun(), task);
                 else
-                    this->loop(task.value().funv(), task);
-                LOG_F("deactivating task");
-                task.value().space->grab<void>(task.value().path, task.value().ticket);
-                this->esprit.deactivate(task.value().ticket, *task.value().space);
-                this->esprit.stoppedRunning(task.value().ticket, *task.value().space);
-                LOG_F("Task done");
-                this->tasksCompleted++;
+                    this->loop(task.funv(), task);
+                task.space->grab<void>(task.path, ticket.value());
+                auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
+                this->tasks.erase(ticket.value());
+                this->tasksChanged.notify_all();
+            } else {
+                return;
             }
         }
     }
 
-private:
+    auto launchNewTask() -> std::optional<Ticket> {
+        auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
+        while(this->isAlive) {
+            for(auto &p : this->tasks) {
+                if(!p.second.isRunning) {
+                    p.second.isRunning=true;
+                    return p.first;
+                }
+            }
+            this->tasksChanged.wait(writeLock);
+        }
+        return std::nullopt;
+    }
+
     auto loop(auto &&coroutine, auto &task) -> void {
         bool shouldGoAgain = false;
         do {
-            LOG_F("Task (re)starting");
             shouldGoAgain = coroutine.next();
-            LOG_F("Task finished, restart: {}", shouldGoAgain);
-            if(coroutine.hasValue()) {
-                LOG_F("Inserting value");
-                task.value().inserter(coroutine.getValue(), task.value().ticket, *task.value().space);
-                LOG_F("Inserted value");
-            }
-        } while(shouldGoAgain);
+            if(coroutine.hasValue())
+                task.inserter(coroutine.getValue(), task.ticket, *task.space);
+        } while(shouldGoAgain && this->isAlive);
     }
-    
+
+    auto newTicket() -> Ticket {
+        return this->currentTicket++;
+    }
+
     inline static std::unique_ptr<Forge> instance_;
     std::atomic<bool> isAlive = true;
     mutable std::shared_mutex mutex;
+    mutable std::condition_variable_any tasksChanged;
     std::vector<std::thread> threads;
-    Eschelon eschelon;
-    Esprit esprit;
-    int tasksAdded = 0;
-    int tasksStarted = 0;
-    int tasksCompleted = 0;
+    std::map<Ticket, Task> tasks;
+    Ticket currentTicket = FirstTicket;
 };
+
 }

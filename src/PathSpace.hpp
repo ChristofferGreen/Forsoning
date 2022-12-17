@@ -5,7 +5,6 @@
 #include "FSNG/Path.hpp"
 #include "FSNG/PathSpaceTE.hpp"
 #include "FSNG/Security.hpp"
-#include "FSNG/Forge/Eschelon.hpp"
 #include "FSNG/Forge/UpgradableMutex.hpp"
 #include "FSNG/utils.hpp"
 
@@ -43,7 +42,7 @@ struct PathSpace {
         this->codices = rhs.codices;
     }
     auto preDestruct() -> void {
-        Forge::instance()->removeAndWait(*this->root);
+        Forge::instance()->clearBlock(*this->root);
     }
 
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
