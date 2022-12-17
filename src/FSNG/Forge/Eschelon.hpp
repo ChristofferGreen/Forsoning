@@ -21,13 +21,18 @@ struct Eschelon {
     auto add(Ticket const &ticket, auto const &coroutineFun, std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> const &inserter, PathSpaceTE &space, Path const &path) -> void {
         auto const writeLock = std::lock_guard<LoggableMutex<std::shared_mutex>>(this->mutex);
         this->tasks[ticket] = Task(ticket, coroutineFun, inserter, &space, path);
-        this->condition.notify_one();
+        this->condition.notify_all();
+        this->tasksAdded++;
         LOG_E("Added task to eschelon with ticket: {}, total tasks: {},  waiters: {}", ticket, this->tasks.size(), this->waiters.load());
     }
 
     auto remove(Ticket const &ticket) -> bool {
         auto writeLock = std::unique_lock<LoggableMutex<std::shared_mutex>>(this->mutex);
-        return this->tasks.erase(ticket)>0;
+        bool const ret = this->tasks.erase(ticket)>0;
+        if(ret)
+            this->tasksRemoved++;
+        this->condition.notify_all();
+        return ret;
     }
 
     auto remove(PathSpaceTE &space) {
@@ -36,8 +41,11 @@ struct Eschelon {
         for(auto const &task : this->tasks)
             if(task.second.space == &space)
                 toBeRemoved.push_back(task.first);
-        for(auto const &ticket : toBeRemoved)
+        for(auto const &ticket : toBeRemoved) {
             this->tasks.erase(ticket);
+            this->tasksRemoved++;
+        }
+        this->condition.notify_all();
     }
 
     auto popWait() -> std::optional<Task> {
@@ -53,6 +61,7 @@ struct Eschelon {
         auto const task = *this->tasks.begin();
         this->tasks.erase(this->tasks.begin());
         this->condition.notify_all();
+        this->tasksPopped++;
         return task.second;
     }
 
@@ -83,6 +92,9 @@ private:
     std::map<Ticket, Task> tasks;
     std::atomic<bool> isAlive = true;
     std::atomic<int> waiters = 0;
+    int tasksAdded = 0;
+    int tasksPopped = 0;
+    int tasksRemoved = 0;
     Ticket currentTicket = FirstTicket;
     mutable LoggableMutex<std::shared_mutex> mutex;
     mutable std::condition_variable_any condition;

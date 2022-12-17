@@ -242,7 +242,7 @@ TEST_CASE("PathSpace Grab Multithreaded") {
 
     SECTION("Grab Coroutine Result") {
         LOG("Grab Coroutine Result start");
-        REQUIRE(space.insert("/coro", [&space]() -> Coroutine {
+        REQUIRE(space.insert("/coro", [&space]() -> CoroutineVoid {
             LOG("Starting coro")
             for(auto i = 0; i < 5; ++i) {
                 LOG("co_yield {}", i)
@@ -251,7 +251,7 @@ TEST_CASE("PathSpace Grab Multithreaded") {
             LOG("Inserting /finished")
             space.insert("/finished", 1);
             LOG("Inserted /finished")
-            co_return 0;
+            co_return;
         }) == true);
         LOG("Trying to grab /finished")
         REQUIRE(space.grabBlock<int>("/finished")==1);
@@ -259,6 +259,18 @@ TEST_CASE("PathSpace Grab Multithreaded") {
         for(auto i = 0; i < 5; ++i)
             REQUIRE(space.grabBlock<int>("/coro")==i);
     }
+
+    /*SECTION("Grab Value From Deleted Space") {
+        space.insert("/a/b/c", 123);
+        REQUIRE(space.insert("/coro", [&space]() -> CoroutineVoid {
+            space.insert("/coro_is_up", 5);
+            REQUIRE(space.grabBlock<int>("/a/b/d") == 321);
+            co_return;
+        }) == true);
+        REQUIRE(space.grabBlock<int>("/coro_is_up")==5);
+        space.grabBlock<PathSpace>("/a/b");
+        space.insert("/a/b/d", 321);
+    }*/
 
     //SECTION("Grab Coroutine") {
     //    REQUIRE(space.insert("/coro", [&space]() -> Coroutine {

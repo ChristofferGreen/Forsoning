@@ -17,7 +17,7 @@ struct Task {
             ticket(ticket), funv(funv), inserter(inserter), space(space), path(path) {}
 
     Ticket ticket;
-    std::function<Coroutine()> fun;
+    std::function<Coroutine()> fun; // ToDo:: Make coros into std::variant
     std::function<CoroutineVoid()> funv;
     std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> inserter = [](Data const &data, Ticket const &ticket, PathSpaceTE &space){};
     PathSpaceTE *space = nullptr;

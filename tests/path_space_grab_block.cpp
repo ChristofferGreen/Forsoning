@@ -201,17 +201,18 @@ TEST_CASE("PathSpace Grab Block") {
         REQUIRE(space.grabBlock<int>("/test")==8);
     }
 
-    //SECTION("Grab Block space") {
-    //    PathSpaceTE space2 = PathSpace{};
-    //    REQUIRE(space.insert("/space", space2) == true);
-    //    nlohmann::json json;
-    //    json["space"] = nlohmann::json::array({nlohmann::json()});
-    //    REQUIRE(space.toJSON() == json);
-//
-    //    REQUIRE(space.insert("/space/val", 34) == true);
-    //    json["space"][0]["val"] = {34};
-    //    REQUIRE(space.toJSON() == json);
-    //}
+    SECTION("Grab Block space") {
+        REQUIRE(space.insert("/space", PathSpaceTE{PathSpace{}}) == true);
+        nlohmann::json json;
+        json["space"] = nlohmann::json::array({nlohmann::json()});
+        REQUIRE(space.toJSON() == json);
+
+        REQUIRE(space.insert("/space/val", 34) == true);
+        json["space"][0]["val"] = {34};
+        REQUIRE(space.toJSON() == json);
+        auto const s = space.grabBlock<PathSpaceTE>("/space");
+        REQUIRE(s.toJSON() == json["space"][0]);
+    }
 //
     //SECTION("Grab Block coroutine") {
     //    REQUIRE(space.insert(rootTestPath, [&space]() -> Coroutine {

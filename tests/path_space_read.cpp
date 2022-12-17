@@ -240,6 +240,13 @@ TEST_CASE("PathSpace Read Multithreaded") {
     SECTION("Minimal Insert") {
         space.insert("/coro", []() -> Coroutine {co_return 0;});
     }
+/*    SECTION("Minimal Insert Loop") {
+        for(auto i = 0; i < 100; ++i) {
+            Forge::CreateSingleton();
+            PathSpaceTE space2 = PathSpace{};
+            space2.insert("/coro", []() -> Coroutine {co_return 0;});
+        }
+    }*/
     SECTION("Minimal Insert With insert") {
         space.insert("/coro", [&space]() -> Coroutine {space.insert("/finished", 1);co_return 0;});
     }
