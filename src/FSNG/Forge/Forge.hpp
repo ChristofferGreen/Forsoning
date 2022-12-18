@@ -40,10 +40,10 @@ struct Forge {
             thread.join();
     }
 
-    auto add(auto const &coroutineFun, std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> const &inserter, PathSpaceTE &space, Path const &path) -> Ticket {
+    auto add(auto const &coroutineFun, PathSpaceTE &space, Path const &path, Path const &coroResultPath="") -> Ticket {
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
         auto const ticket = this->newTicket();
-        this->tasks[ticket] = Task(ticket, coroutineFun, inserter, &space, path);
+        this->tasks[ticket] = Task(ticket, coroutineFun, &space, path, coroResultPath);
         auto const hasFreeThreads = this->threads.size()>this->tasks.size();
         auto const lessAllocatedThreadsThanMaximum = this->threads.size()<(std::thread::hardware_concurrency()*2);
         if(!hasFreeThreads && lessAllocatedThreadsThanMaximum)
@@ -117,7 +117,8 @@ private:
         do {
             shouldGoAgain = coroutine.next();
             if(coroutine.hasValue())
-                task.inserter(coroutine.getValue(), task.ticket, *task.space);
+                //task.inserter(coroutine.getValue(), task.ticket, *task.space);
+                task.space->insert(task.coroResultPath!="" ? task.coroResultPath : task.path, coroutine.getValue());
         } while(shouldGoAgain && this->isAlive);
     }
 

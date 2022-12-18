@@ -185,15 +185,7 @@ private:
         auto const raii = LogRAII_PS("insertDataName "+dataName);
         assert(this->root!=nullptr);
         UnlockedToExclusiveLock upgraded(this->mutex);
-        this->codices[dataName].insert(range.original(), data, *this->root, [dataName, coroResultPath, range](Data const &coroResultData, Ticket const &ticket, PathSpaceTE &space) { // ToDo: change this to the codex as param
-            auto const raii = LogRAII_PS("insertDataName codex insert "+dataName);
-            bool inserted = false;
-            if(coroResultPath!=Path("")) {
-                space.insert(coroResultPath, coroResultData);
-                inserted=true;
-            }
-            space.insert(range.original(), coroResultData);
-        }); // ToDo: What about recursive coroutines???
+        this->codices[dataName].insert(range.original(), coroResultPath, data, *this->root); // ToDo: What about recursive coroutines???
         return true;
     }
 

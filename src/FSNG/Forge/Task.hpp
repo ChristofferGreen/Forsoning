@@ -10,15 +10,13 @@
 namespace FSNG {
 struct Task {
     Task() = default;
-    Task(Ticket const &ticket, auto const &fun, 
-         std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> const &inserter, PathSpaceTE *space, Path const &path) :
-            ticket(ticket), fun(fun), inserter(inserter), space(space), path(path) {}
+    Task(Ticket const &ticket, auto const &fun, PathSpaceTE *space, Path const &path, Path const &coroResultPath="") :
+            ticket(ticket), fun(fun), space(space), path(path), coroResultPath(coroResultPath) {}
 
     Ticket ticket;
     std::variant<std::function<Coroutine()>, std::function<CoroutineVoid()>> fun;
-    std::function<void(Data const &data, Ticket const &ticket, PathSpaceTE &space)> inserter = [](Data const &data, Ticket const &ticket, PathSpaceTE &space){};
     PathSpaceTE *space = nullptr;
-    Path path;
+    Path path, coroResultPath;
     bool isRunning = false;
 };
 }
