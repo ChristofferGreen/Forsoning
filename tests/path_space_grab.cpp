@@ -260,7 +260,7 @@ TEST_CASE("PathSpace Grab Multithreaded") {
             REQUIRE(space.grabBlock<int>("/coro")==i);
     }
 
-    /*SECTION("Grab Value From Deleted Space") {
+    SECTION("Grab Value From Deleted Space") {
         space.insert("/a/b/c", 123);
         REQUIRE(space.insert("/coro", [&space]() -> CoroutineVoid {
             space.insert("/coro_is_up", 5);
@@ -268,9 +268,9 @@ TEST_CASE("PathSpace Grab Multithreaded") {
             co_return;
         }) == true);
         REQUIRE(space.grabBlock<int>("/coro_is_up")==5);
-        space.grabBlock<PathSpace>("/a/b");
+        space.grabBlock<PathSpaceTE>("/a/b");
         space.insert("/a/b/d", 321);
-    }*/
+    }
 
     //SECTION("Grab Coroutine") {
     //    REQUIRE(space.insert("/coro", [&space]() -> Coroutine {
