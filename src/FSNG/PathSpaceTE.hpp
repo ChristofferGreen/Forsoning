@@ -114,7 +114,7 @@ private:
 		auto operator==(const concept_t &rhs) const -> bool override { return this->data==reinterpret_cast<model<T> const&>(rhs).data; }
 		auto copy_()                                                                                 const   -> std::unique_ptr<concept_t> override {return std::make_unique<model>(*this);}
 		auto preDestruct_()                                                                                  -> void                       override {this->data.preDestruct();}
-		auto hasListeners_()                                                                         const   -> bool                       override {this->data.hasListeners();}
+		auto hasListeners_()                                                                         const   -> bool                       override {return this->data.hasListeners();}
 
 		auto toJSON_()                                                                               const   -> nlohmann::json             override {return this->data.toJSON();}
 		auto insert_(Path const &range, Data const &d, Path const &coroResultPath)                           -> bool                       override {return this->data.insert(range, d, coroResultPath);}
