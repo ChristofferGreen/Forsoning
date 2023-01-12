@@ -66,6 +66,16 @@ inline auto printm(std::string const &s) -> void {
     std::cout << s << std::endl;
 }
 
+inline auto sleep_thread_ms(int const ms) {
+    auto const secondInNanoseconds = 1000000000;
+    std::this_thread::sleep_for(std::chrono::nanoseconds(secondInNanoseconds*ms));
+}
+
+inline auto sleep_thread(float from=0.05, float to=0.3) {
+    auto const time_ms = random_number(from, to);
+    sleep_thread_ms(time_ms);
+}
+
 }
 
 #ifdef __clang__

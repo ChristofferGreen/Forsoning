@@ -11,10 +11,11 @@
 namespace FSNG {
 class PathSpaceTE {
 	struct concept_t {
-		virtual      ~concept_t  ()                                                         = default;
-		virtual auto operator==  (const concept_t &rhs) const -> bool                       = 0;
-		virtual auto preDestruct_()                           -> void                       = 0;
-		virtual auto copy_       ()                     const -> std::unique_ptr<concept_t> = 0;
+		virtual      ~concept_t   ()                                                         = default;
+		virtual auto operator==   (const concept_t &rhs) const -> bool                       = 0;
+		virtual auto preDestruct_ ()                           -> void                       = 0;
+		virtual auto copy_        ()                     const -> std::unique_ptr<concept_t> = 0;
+		virtual auto hasListeners_()                     const -> bool                       = 0;
 		
 		virtual auto toJSON_         ()                                                                             const  -> nlohmann::json             = 0;
 		virtual auto insert_         (Path const &range, Data const &data, Path const &coroResultPath)                     -> bool                       = 0;
@@ -99,6 +100,9 @@ public:
 		this->readBlock(range, &typeid(T), reinterpret_cast<void*>(&data), std::is_trivially_copyable<T>());
 		return data;
 	}
+	auto hasListeners() const -> bool {
+			return this->self->hasListeners_();
+	}
 	auto setRoot(PathSpaceTE *root) -> void {
 		this->self->setRoot_(root);
 	}
@@ -110,7 +114,8 @@ private:
 		auto operator==(const concept_t &rhs) const -> bool override { return this->data==reinterpret_cast<model<T> const&>(rhs).data; }
 		auto copy_()                                                                                 const   -> std::unique_ptr<concept_t> override {return std::make_unique<model>(*this);}
 		auto preDestruct_()                                                                                  -> void                       override {this->data.preDestruct();}
-		
+		auto hasListeners_()                                                                         const   -> bool                       override {this->data.hasListeners();}
+
 		auto toJSON_()                                                                               const   -> nlohmann::json             override {return this->data.toJSON();}
 		auto insert_(Path const &range, Data const &d, Path const &coroResultPath)                           -> bool                       override {return this->data.insert(range, d, coroResultPath);}
 		auto grab_(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool                       override {return this->data.grab(range, info, data, isTriviallyCopyable);}

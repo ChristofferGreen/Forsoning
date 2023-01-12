@@ -80,16 +80,16 @@ struct PathSpace {
 
     auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         auto const raii = LogRAII_PS("grabBlock "+range.dataName());
+        bool const shouldWait = true;
         if(range.isAtRoot()) {
             bool found = false;
-            bool const shouldWait = true;
             while(!found)
                 found = range.isAtData() ? this->grabDataName(range.dataName(), info, data, isTriviallyCopyable, shouldWait) :
                                            this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, shouldWait);
             return found;
         } else
             return range.isAtData() ? this->grabDataName(range.dataName(), info, data, isTriviallyCopyable) :
-                                      this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
+                                      this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, shouldWait);
     }
 
     auto read(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
@@ -132,6 +132,10 @@ struct PathSpace {
         return json;
     }
 
+    auto hasListeners() const -> bool {
+        return this->listeners>0;
+    }
+
 private:
     virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
         auto const raii = LogRAII_PS("grabDataName "+dataName);
@@ -146,9 +150,10 @@ private:
             found = codices.at(dataName).grab(info, data, isTriviallyCopyable);
             LOG_PS("grabDataName find result {}", found);
             if(!found && shouldWait) {
-                auto const raii = LogRAII_PS("grabDataName starting wait (UpgradedToExclusiveLock)");
                 auto u = UpgradableMutexWaitableWrapper(this->mutex);
+                this->listeners++;
                 this->condition.wait(u);
+                this->listeners--;
             }
         }
         return found;
@@ -158,11 +163,17 @@ private:
         auto const raii = LogRAII_PS("grabSpaceName "+spaceName);
         UnlockedToUpgradedLock lock(this->mutex);
         if(this->codices.contains(spaceName)) {
-            UpgradedToExclusiveLock upgraded(this->mutex);
-            bool const found = codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable](auto &space){return space.grab(range.next(), info, data, isTriviallyCopyable);});
+            bool const found = codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable, shouldWait](auto &space){
+                if(shouldWait)
+                    return space.grabBlock(range.next(), info, data, isTriviallyCopyable);
+                else
+                    return space.grab(range.next(), info, data, isTriviallyCopyable);
+            });
             if(!found && shouldWait) {
                 auto u = UpgradableMutexWaitableWrapper(this->mutex);
+                this->listeners++;
                 this->condition.wait(u);
+                this->listeners--;
             }
             return found;
         }
@@ -208,6 +219,7 @@ private:
     private:
         std::unordered_map<std::string, Codex> codices;
         mutable std::condition_variable_any condition;
+        mutable int listeners = 0;
         mutable UpgradableMutex mutex;
         PathSpaceTE *root=nullptr;
 };

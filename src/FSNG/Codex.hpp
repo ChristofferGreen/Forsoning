@@ -43,6 +43,8 @@ struct Codex {
         } else if(*info==typeid(PathSpaceTE)) {
             if(this->spaces.size()==0)
                 return false;
+            if(this->spaces.front().hasListeners())
+                return false;
             *reinterpret_cast<PathSpaceTE*>(data) = this->spaces.front();
             this->spaces.erase(this->spaces.begin());
             ret = true;

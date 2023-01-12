@@ -268,7 +268,8 @@ TEST_CASE("PathSpace Grab Multithreaded") {
             co_return;
         }) == true);
         REQUIRE(space.grabBlock<int>("/coro_is_up")==5);
-        space.grabBlock<PathSpaceTE>("/a/b");
+        sleep_thread_ms(200);
+        REQUIRE(!space.grab<PathSpaceTE>("/a/b").has_value());
         space.insert("/a/b/d", 321);
     }
 

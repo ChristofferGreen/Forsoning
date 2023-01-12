@@ -9,18 +9,12 @@
 
 using namespace FSNG;
 
-inline auto sleepThread(float from=0.05, float to=0.3) {
-    auto const secondInNanoseconds = 1000000000;
-    auto const number = random_number(secondInNanoseconds*from, secondInNanoseconds*to);
-    std::this_thread::sleep_for(std::chrono::nanoseconds(number));
-}
-
 TEST_CASE("DiningPhilosophers") {
     PathSpaceTE space = PathSpace();
     int const numberOfPhilosophers = 5;
     int const totalLoops = 10;
-    auto think = [](auto i){LOG("Philosopher {} thinking", i)sleepThread();LOG("Philosopher {} woke up", i)};
-    auto eat   = [](auto i){LOG("Philosopher {} eating", i)sleepThread();LOG("Philosopher {} finished eating", i)};
+    auto think = [](auto i){LOG("Philosopher {} thinking", i)sleep_thread();LOG("Philosopher {} woke up", i)};
+    auto eat   = [](auto i){LOG("Philosopher {} eating", i)sleep_thread();LOG("Philosopher {} finished eating", i)};
     
     for(int i = 0; i < numberOfPhilosophers; ++i) {
         space.insert("/chopstick/"+std::to_string(i), 0);
