@@ -26,6 +26,14 @@ struct Path {
         return this->path!=rhs.path;
     }
 
+    bool operator<(Path const &rhs) const {
+        return this->path<rhs.path;
+    }
+    
+    bool operator>(Path const &rhs) const {
+        return this->path>rhs.path;
+    }
+
     auto original() const -> Path {
         return Path(this->path);
     }

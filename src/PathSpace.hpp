@@ -78,23 +78,8 @@ struct PathSpace {
                                   this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
     }
 
-    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        auto const raii = LogRAII_PS("grabBlock "+range.dataName());
-        bool const shouldWait = true;
-        if(range.isAtRoot()) {
-            bool found = false;
-            while(!found)
-                found = range.isAtData() ? this->grabDataName(range.dataName(), info, data, isTriviallyCopyable, shouldWait) :
-                                           this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, shouldWait);
-            return found;
-        } else
-            return range.isAtData() ? this->grabDataName(range.dataName(), info, data, isTriviallyCopyable) :
-                                      this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, shouldWait);
-    }
-
     auto read(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         auto const raii = LogRAII_PS("read "+range.dataName());
-        UnlockedToSharedLock lock(this->mutex);
         return range.isAtData() ?  this->readDataName(range.dataName(), info, data, isTriviallyCopyable) :
                                    this->readSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
     }
@@ -104,14 +89,12 @@ struct PathSpace {
         if(range.isAtRoot()) {
             bool found = false;
             while(!found) {
-                UnlockedToSharedLock lock(this->mutex);
                 bool const shouldWait = true;
                 found = range.isAtData() ? this->readDataName(range.dataName(), info, data, isTriviallyCopyable, shouldWait) :
                                            this->readSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, shouldWait);
             }
             return found;
         } else {
-            UnlockedToSharedLock lock(this->mutex);
             return range.isAtData() ? this->readDataName(range.dataName(), info, data, isTriviallyCopyable) :
                                       this->readSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
         }
@@ -159,22 +142,13 @@ private:
         return found;
     }
 
-    virtual auto grabSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
+    virtual auto grabSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         auto const raii = LogRAII_PS("grabSpaceName "+spaceName);
         UnlockedToUpgradedLock lock(this->mutex);
         if(this->codices.contains(spaceName)) {
-            bool const found = codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable, shouldWait](auto &space){
-                if(shouldWait)
-                    return space.grabBlock(range.next(), info, data, isTriviallyCopyable);
-                else
-                    return space.grab(range.next(), info, data, isTriviallyCopyable);
+            bool const found = codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable](auto &space){
+                return space.grab(range.next(), info, data, isTriviallyCopyable);
             });
-            if(!found && shouldWait) {
-                auto u = UpgradableMutexWaitableWrapper(this->mutex);
-                this->listeners++;
-                this->condition.wait(u);
-                this->listeners--;
-            }
             return found;
         }
         return false;
@@ -182,11 +156,13 @@ private:
 
     virtual auto readDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
         auto const raii = LogRAII_PS("readDataName "+dataName);
+        UnlockedToSharedLock lock(this->mutex);
         return this->codices.contains(dataName) ? codices.at(dataName).read(info, data, isTriviallyCopyable) : false;
     }
 
     virtual auto readSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
         auto const raii = LogRAII_PS("readSpaceName "+spaceName);
+        UnlockedToSharedLock lock(this->mutex);
         return this->codices.contains(spaceName) ?
             codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable](auto &space){return space.read(range.next(), info, data, isTriviallyCopyable);}) :
             false;

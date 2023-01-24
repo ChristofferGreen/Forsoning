@@ -265,12 +265,14 @@ TEST_CASE("PathSpace Grab Multithreaded") {
         REQUIRE(space.insert("/coro", [&space]() -> CoroutineVoid {
             space.insert("/coro_is_up", 5);
             REQUIRE(space.grabBlock<int>("/a/b/d") == 321);
+            space.insert("/coro_is_done", 6);
             co_return;
         }) == true);
         REQUIRE(space.grabBlock<int>("/coro_is_up")==5);
         sleep_thread_ms(200);
-        REQUIRE(!space.grab<PathSpaceTE>("/a/b").has_value());
+        REQUIRE(space.grab<PathSpaceTE>("/a/b").has_value());
         space.insert("/a/b/d", 321);
+        REQUIRE(space.grabBlock<int>("/coro_is_done")==6);
     }
 
     //SECTION("Grab Coroutine") {
