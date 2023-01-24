@@ -221,6 +221,7 @@ private:
         mutable std::condition_variable_any condition;
         mutable int listeners = 0;
         mutable UpgradableMutex mutex;
+        mutable std::shared_mutex visiting;
         PathSpaceTE *root=nullptr;
 };
 }

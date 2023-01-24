@@ -67,14 +67,18 @@ struct Forge {
     auto clearBlock(PathSpaceTE &space) -> void {
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
         std::vector<Ticket> running;
+        std::vector<Ticket> toDelete;
         for(auto it = this->tasks.cbegin(); it != this->tasks.cend(); ++it) {
             if(it->second.space==&space) {
                 if(it->second.isRunning)
                     running.push_back(it->first);
                 else
-                    this->tasks.erase(it);
+                    toDelete.push_back(it->first);
+                    
             }
         }
+        for(auto const &ticket : toDelete)
+            this->tasks.erase(ticket);
         for(auto const &ticket : running)
             while(this->tasks.contains(ticket))
                 this->tasksChanged.wait(writeLock);
