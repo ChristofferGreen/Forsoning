@@ -58,7 +58,6 @@ struct PathSpace {
                 this->codices[range.dataName()].removeCoroutine(ticket);
                 if(this->codices[range.dataName()].empty())
                     this->codices.erase(range.dataName());
-                this->condition.notify_all();
                 return true;
             }
         } else {
@@ -115,10 +114,6 @@ struct PathSpace {
         return json;
     }
 
-    auto hasListeners() const -> bool {
-        return this->listeners>0;
-    }
-
 private:
     virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
         auto const raii = LogRAII_PS("grabDataName "+dataName);
@@ -132,12 +127,6 @@ private:
             LOG_PS("grabDataName Finished UpgradedToExclusiveLock");
             found = codices.at(dataName).grab(info, data, isTriviallyCopyable);
             LOG_PS("grabDataName find result {}", found);
-            if(!found && shouldWait) {
-                auto u = UpgradableMutexWaitableWrapper(this->mutex);
-                this->listeners++;
-                this->condition.wait(u);
-                this->listeners--;
-            }
         }
         return found;
     }
@@ -179,23 +168,17 @@ private:
     virtual auto insertSpaceName(Path const &range, std::string const &spaceName, Data const &data, Path const &coroResultPath) -> bool {
         auto const raii = LogRAII_PS("insertSpaceName "+spaceName);
         UnlockedToExclusiveLock upgraded(this->mutex);
-        if(!codices.contains(spaceName)) {
+        if(!codices.contains(spaceName))
             codices[spaceName].insertSpace(PathSpaceTE(PathSpace{spaceName, this->root}));
-            this->condition.notify_all();
-        }
         return codices[spaceName].template visitFirst<PathSpaceTE>([&range, &data, this](auto &space){
-            if(space.insert(range.next(), data)) {
-                this->condition.notify_all();
+            if(space.insert(range.next(), data))
                 return true;
-            }
             return false;
         });
     }
 
     private:
         std::unordered_map<std::string, Codex> codices;
-        mutable std::condition_variable_any condition;
-        mutable int listeners = 0;
         mutable UpgradableMutex mutex;
         mutable std::shared_mutex visiting;
         PathSpaceTE *root=nullptr;
