@@ -21,6 +21,17 @@
 
 namespace FSNG {
 struct Codex {
+    Codex() = default;
+
+    Codex(const Codex &other) {
+        this->currentByte = other.currentByte;
+        this->codices = other.codices;
+        for(auto const &info : other.info)
+            if(info.info!=&typeid(Coroutine) && info.info!=&typeid(CoroutineVoid))
+                this->info.push_back(info);
+        this->spaces = other.spaces;
+    }
+
     auto operator==(Codex const &rhs) const -> bool { 
         return (std::equal(this->codices.begin()+this->currentByte, this->codices.end(), rhs.codices.begin()+rhs.currentByte)) &&
                (this->info==rhs.info) &&

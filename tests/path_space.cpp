@@ -54,4 +54,14 @@ TEST_CASE("PathSpace") {
             space4.insert("/test", i);
         REQUIRE(space==space4);
     }
+
+    SECTION("Duplicate With Coro") {
+        PathSpaceTE space = PathSpace{};
+        PathSpaceTE space2;
+        space.insert("/coro", [&space]()->Coroutine{co_return space.grabBlock<int>("/res");});
+        space2 = space;
+        space2.insert("/coro", 5);
+        REQUIRE(space2.grabBlock<int>("/coro")==5);
+        space.insert("/res", 44);
+    }
 }
