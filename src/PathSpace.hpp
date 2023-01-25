@@ -71,6 +71,9 @@ struct PathSpace {
         return false;
     }
 
+    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+    }
+
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         auto const raii = LogRAII_PS("grab "+range.dataName());
         return range.isAtData() ? this->grabDataName(range.dataName(), info, data, isTriviallyCopyable) :
@@ -175,7 +178,8 @@ private:
     private:
         std::unordered_map<std::string, Codex> codices;
         mutable UpgradableMutex mutex;
-        mutable std::shared_mutex visiting;
         PathSpaceTE *root=nullptr;
+        std::map<Path, std::pair<int, std::condition_variable_any>> grabWaiters;
+        std::shared_mutex grabWaitersMutex;
 };
 }
