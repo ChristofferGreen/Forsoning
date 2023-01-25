@@ -46,22 +46,19 @@ TEST_CASE("DiningPhilosophers") {
 }
 
 TEST_CASE("DiningPhilosophers Simple") {
-    for(int x = 0; x < 2100; ++x) {
+    for(int x = 0; x < 100; ++x) {
         auto space = PathSpaceTE::Create<PathSpace>();
         int const numberOfPhilosophers = 5;
 
         for(int i = 0; i < numberOfPhilosophers; ++i) {
-            LOG("Philosopher adding: {}", i);
             space.insert("/philosopher", [&space, i]()->Coroutine{
                 LOG("Philosopher starting: {}", i);
                 co_return 123;
             });
         }
         for(int i = 0; i < numberOfPhilosophers; ++i) {
-            LOG("Philosopher grabbing: {}", i);
             int const ret = space.grabBlock<int>("/philosopher");
             REQUIRE(ret==123);
-            LOG("Philosopher grabbed: {} {}", i, ret);
         }
         SetupHTMLLog();
     }

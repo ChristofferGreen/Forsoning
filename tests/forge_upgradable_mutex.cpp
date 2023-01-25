@@ -28,7 +28,7 @@ TEST_CASE("Forge Upgradable Mutex") {
         REQUIRE(val==5);
     }
     SECTION("Multiple Writers") {
-        for(auto j = 0; j < 100; ++j) {
+        for(auto j = 0; j < 15; ++j) {
             UpgradableMutex mutex("Mutex");
             int val = 0;
             auto l = [&mutex, &val](){

@@ -76,7 +76,12 @@ public:
 	}
 	template<typename T>
 	auto grab(Path const &path, Ticket const &ticket)                   -> bool {
-		return this->self->removeCoroutine_(path, ticket);
+		auto ret = this->self->removeCoroutine_(path, ticket);
+		this->grabWaitersMutex.lock_shared();
+		if(this->grabWaiters.count(path))
+			this->grabWaiters.at(path).second.notify_all();
+		this->grabWaitersMutex.unlock_shared();
+		return ret;
 	}
 	template<typename T>
 	auto grab(Path const &range)                                         -> std::optional<T> {

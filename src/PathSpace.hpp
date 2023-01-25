@@ -168,9 +168,7 @@ private:
         if(!codices.contains(spaceName))
             codices[spaceName].insertSpace(PathSpaceTE(PathSpace{spaceName, this->root}));
         return codices[spaceName].template visitFirst<PathSpaceTE>([&range, &data, this](auto &space){
-            if(space.insert(range.next(), data))
-                return true;
-            return false;
+            return space.insert(range.next(), data);
         });
     }
 

@@ -136,7 +136,7 @@ struct Codex {
         }
     }
 
-    auto removeCoroutine(Ticket const &ticket) {
+    auto removeCoroutine(Ticket const &ticket) -> void {
         auto const iter = std::find_if(this->info.begin(), this->info.end(), [&ticket](CodexInfo const &info){
             if(info.info == &typeid(Coroutine) || info.info == &typeid(CoroutineVoid))
                 return ticket==info.items.ticket;
