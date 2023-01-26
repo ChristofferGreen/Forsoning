@@ -41,37 +41,51 @@ struct PathSpace {
         UnlockedToSharedLock lockRHS(rhs.mutex);
         this->codices = rhs.codices;
     }
-    auto preDestruct() -> void {
+    ~PathSpace() {
         Forge::instance()->clearBlock(*this->root);
     }
 
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
 
-    auto setRoot(PathSpaceTE *root) {
-        this->root = root;
-    }
-
     auto removeCoroutine(Path const &range, Ticket const &ticket) -> bool {
+        bool ret = false;
         if(range.isAtData()) {
             UnlockedToExclusiveLock upgraded(this->mutex);
             if(this->codices.contains(range.dataName())) {
                 this->codices[range.dataName()].removeCoroutine(ticket);
                 if(this->codices[range.dataName()].empty())
                     this->codices.erase(range.dataName());
-                return true;
+                ret = true;
             }
         } else {
             UnlockedToUpgradedLock lock(this->mutex);
             auto const spaceName = range.spaceName().value();
             if(this->codices.contains(spaceName)) {
                 UpgradedToExclusiveLock upgraded(this->mutex);
-                return codices[spaceName].template visitFirst<PathSpaceTE>([&range, ticket](auto &space){return space.template grab<Coroutine>(range.next(), ticket);});
+                ret = codices[spaceName].template visitFirst<PathSpaceTE>([&range, ticket](auto &space){return space.template grab<Coroutine>(range.next(), ticket);});
             }
         }
-        return false;
+		this->grabWaitersMutex.lock_shared();
+		if(this->grabWaiters.count(range))
+			this->grabWaiters.at(range).second.notify_all();
+		this->grabWaitersMutex.unlock_shared();
+		return ret;
     }
 
     auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+		bool ret = false;
+		while(!ret) {
+			this->grabWaitersMutex.lock();
+			if(ret = this->grab(range, info, data, isTriviallyCopyable); !ret) {
+				this->grabWaiters[range].first++;
+				this->grabWaiters[range].second.wait(this->grabWaitersMutex);
+				this->grabWaiters[range].first--;
+				if(this->grabWaiters[range].first==0)
+					this->grabWaiters.erase(range);
+			}
+			this->grabWaitersMutex.unlock();
+		}
+		return ret;
     }
 
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
@@ -104,8 +118,19 @@ struct PathSpace {
 
     virtual auto insert(Path const &range, Data const &data, Path const &coroResultPath="") -> bool {
         auto const raii = LogRAII_PS("insert "+range.dataName());
-        return range.isAtData() ? this->insertDataName(range, range.dataName(), data, coroResultPath) :
-                                  this->insertSpaceName(range, range.spaceName().value(), data, coroResultPath);
+        if(range==coroResultPath && range==Path("")) {
+            this->root = data.as<PathSpaceTE*>();
+            return false;
+        }
+        auto const ret = range.isAtData() ? this->insertDataName(range, range.dataName(), data, coroResultPath) :
+                                            this->insertSpaceName(range, range.spaceName().value(), data, coroResultPath);
+		if(ret) {
+			this->grabWaitersMutex.lock_shared();
+			if(this->grabWaiters.count(range))
+				this->grabWaiters.at(range).second.notify_all();
+			this->grabWaitersMutex.unlock_shared();
+		}
+		return ret;
     }
 
     virtual auto toJSON() const -> nlohmann::json {

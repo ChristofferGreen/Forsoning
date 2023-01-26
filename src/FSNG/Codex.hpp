@@ -201,7 +201,7 @@ struct Codex {
 
     auto setRoot(PathSpaceTE *root) -> void {
         for(auto &space : this->spaces)
-            space.setRoot(root);
+            space.insert("", root);
     }
 
     auto empty() const -> bool {

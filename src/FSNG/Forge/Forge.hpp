@@ -66,6 +66,7 @@ struct Forge {
     
     auto clearBlock(PathSpaceTE &space) -> void {
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
+        this->currentlyDeleting.insert(&space);
         std::vector<Ticket> running;
         std::vector<Ticket> toDelete;
         for(auto it = this->tasks.cbegin(); it != this->tasks.cend(); ++it) {
@@ -82,6 +83,7 @@ struct Forge {
         for(auto const &ticket : running)
             while(this->tasks.contains(ticket))
                 this->tasksChanged.wait(writeLock);
+        this->currentlyDeleting.erase(&space);
     }
 private:
     auto executor() -> void {
@@ -92,7 +94,8 @@ private:
                     this->loop((*fun)(), task);
                 else if(auto* fun = std::get_if<std::function<CoroutineVoid()>>(&task.fun))
                     this->loop((*fun)(), task);
-                task.space->grab<void>(task.path, ticket.value());
+                if(!this->currentlyDeleting.contains(task.space))
+                    task.space->grab<void>(task.path, ticket.value());
                 auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
                 this->tasks.erase(ticket.value());
                 this->tasksChanged.notify_all();
@@ -120,8 +123,7 @@ private:
         bool shouldGoAgain = false;
         do {
             shouldGoAgain = coroutine.next();
-            if(coroutine.hasValue())
-                //task.inserter(coroutine.getValue(), task.ticket, *task.space);
+            if(coroutine.hasValue() && !this->currentlyDeleting.contains(task.space))
                 task.space->insert(task.coroResultPath!="" ? task.coroResultPath : task.path, coroutine.getValue());
         } while(shouldGoAgain && this->isAlive);
     }
@@ -137,6 +139,7 @@ private:
     std::vector<std::thread> threads;
     std::map<Ticket, Task> tasks;
     Ticket currentTicket = FirstTicket;
+    std::set<PathSpaceTE*> currentlyDeleting;
 };
 
 }

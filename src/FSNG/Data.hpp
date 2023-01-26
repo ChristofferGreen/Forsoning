@@ -66,6 +66,7 @@ struct Data {
     Data(std::string             const &s)    : data(s) {}
     Data(std::unique_ptr<PathSpaceTE> &&up)   : data(std::move(up)) {}
     Data(PathSpaceTE             const &pste) : data(std::make_unique<PathSpaceTE>(pste)) {}
+    Data(PathSpaceTE                   *pste) : data(pste) {}
     Data(ReturnsCoroutine auto   const &in) {
         data = std::make_unique<std::function<Coroutine()>>(in);
     }
@@ -171,6 +172,7 @@ private:
                  long double,
                  char const *,
                  std::string,
+                 PathSpaceTE*,
                  std::unique_ptr<PathSpaceTE>,
                  std::unique_ptr<std::function<Coroutine()>>,
                  std::unique_ptr<std::function<CoroutineVoid()>>,
