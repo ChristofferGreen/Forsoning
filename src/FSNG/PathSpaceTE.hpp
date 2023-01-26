@@ -24,7 +24,6 @@ class PathSpaceTE {
 		virtual auto grabBlock_      (Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
 		virtual auto read_           (Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
 		virtual auto readBlock_      (Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                       = 0;
-		virtual auto removeCoroutine_(Path const &path, Ticket const &ticket)                                              -> bool                       = 0;
 	};
 public:
 	template<typename T>
@@ -63,10 +62,6 @@ public:
 	}
     auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool                {
 		return this->self->grab_(range, info, data, isTriviallyCopyable);
-	}
-	template<typename T>
-	auto grab(Path const &path, Ticket const &ticket)                   -> bool {
-		return this->self->removeCoroutine_(path, ticket);
 	}
 	template<typename T>
 	auto grab(Path const &range)                                         -> std::optional<T> {
@@ -108,7 +103,6 @@ private:
 		auto operator==(const concept_t &rhs) const -> bool override { return this->data==reinterpret_cast<model<T> const&>(rhs).data; }
 		auto copy_()                                                                                         const -> std::unique_ptr<concept_t> override {return std::make_unique<model>(*this);}
 		
-		auto removeCoroutine_(Path const &path, Ticket const &ticket)                                              -> bool           override {return this->data.removeCoroutine(path, ticket);}
 		auto toJSON_         ()                                                                              const -> nlohmann::json override {return this->data.toJSON         ();}
 		auto insert_         (Path const &range, Data const &d, Path const &coroResultPath)                        -> bool           override {return this->data.insert         (range, d, coroResultPath);}
 		auto grab_           (Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool           override {return this->data.grab           (range, info, data, isTriviallyCopyable);}

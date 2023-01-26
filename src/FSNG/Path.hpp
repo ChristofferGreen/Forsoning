@@ -69,6 +69,10 @@ struct Path {
         return start==this->current;
     }
 
+    auto empty() const -> bool {
+        return this->path.empty();
+    }
+
     auto isValid() -> bool {
         return this->valid;
     }

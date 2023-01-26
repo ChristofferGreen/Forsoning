@@ -95,7 +95,7 @@ private:
                 else if(auto* fun = std::get_if<std::function<CoroutineVoid()>>(&task.fun))
                     this->loop((*fun)(), task);
                 if(!this->currentlyDeleting.contains(task.space))
-                    task.space->grab<void>(task.path, ticket.value());
+                    task.space->insert("", ticket.value(), task.path); // remove coroutine
                 auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
                 this->tasks.erase(ticket.value());
                 this->tasksChanged.notify_all();

@@ -47,32 +47,7 @@ struct PathSpace {
 
     auto operator==(PathSpace const &rhs) const -> bool { return this->codices==rhs.codices; }
 
-    auto removeCoroutine(Path const &range, Ticket const &ticket) -> bool {
-        bool ret = false;
-        if(range.isAtData()) {
-            UnlockedToExclusiveLock upgraded(this->mutex);
-            if(this->codices.contains(range.dataName())) {
-                this->codices[range.dataName()].removeCoroutine(ticket);
-                if(this->codices[range.dataName()].empty())
-                    this->codices.erase(range.dataName());
-                ret = true;
-            }
-        } else {
-            UnlockedToUpgradedLock lock(this->mutex);
-            auto const spaceName = range.spaceName().value();
-            if(this->codices.contains(spaceName)) {
-                UpgradedToExclusiveLock upgraded(this->mutex);
-                ret = codices[spaceName].template visitFirst<PathSpaceTE>([&range, ticket](auto &space){return space.template grab<Coroutine>(range.next(), ticket);});
-            }
-        }
-		this->grabWaitersMutex.lock_shared();
-		if(this->grabWaiters.count(range))
-			this->grabWaiters.at(range).second.notify_all();
-		this->grabWaitersMutex.unlock_shared();
-		return ret;
-    }
-
-    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+    virtual auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
 		bool ret = false;
 		while(!ret) {
 			this->grabWaitersMutex.lock();
@@ -88,19 +63,19 @@ struct PathSpace {
 		return ret;
     }
 
-    auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+    virtual auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         auto const raii = LogRAII_PS("grab "+range.dataName());
         return range.isAtData() ? this->grabDataName(range.dataName(), info, data, isTriviallyCopyable) :
                                   this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
     }
 
-    auto read(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+    virtual auto read(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         auto const raii = LogRAII_PS("read "+range.dataName());
         return range.isAtData() ?  this->readDataName(range.dataName(), info, data, isTriviallyCopyable) :
                                    this->readSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
     }
 
-    auto readBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
+    virtual auto readBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         auto const raii = LogRAII_PS("readBlock "+range.dataName());
         if(range.isAtRoot()) {
             bool found = false;
@@ -118,9 +93,13 @@ struct PathSpace {
 
     virtual auto insert(Path const &range, Data const &data, Path const &coroResultPath="") -> bool {
         auto const raii = LogRAII_PS("insert "+range.dataName());
-        if(range==coroResultPath && range==Path("")) {
-            this->root = data.as<PathSpaceTE*>();
-            return false;
+        if(range.empty()) {
+            if(coroResultPath.empty()) {
+                this->root = data.as<PathSpaceTE*>();
+            } else {
+                this->removeCoroutine(coroResultPath, data.as<Ticket>());
+            }
+            return true;
         }
         auto const ret = range.isAtData() ? this->insertDataName(range, range.dataName(), data, coroResultPath) :
                                             this->insertSpaceName(range, range.spaceName().value(), data, coroResultPath);
@@ -143,6 +122,31 @@ struct PathSpace {
     }
 
 private:
+    auto removeCoroutine(Path const &range, Ticket const &ticket) -> bool {
+        bool ret = false;
+        if(range.isAtData()) {
+            UnlockedToExclusiveLock upgraded(this->mutex);
+            if(this->codices.contains(range.dataName())) {
+                this->codices[range.dataName()].removeCoroutine(ticket);
+                if(this->codices[range.dataName()].empty())
+                    this->codices.erase(range.dataName());
+                ret = true;
+            }
+        } else {
+            UnlockedToUpgradedLock lock(this->mutex);
+            auto const spaceName = range.spaceName().value();
+            if(this->codices.contains(spaceName)) {
+                UpgradedToExclusiveLock upgraded(this->mutex);
+                ret = codices[spaceName].template visitFirst<PathSpaceTE>([&range, ticket](auto &space){return space.insert("", ticket, range.next());});
+            }
+        }
+		this->grabWaitersMutex.lock_shared();
+		if(this->grabWaiters.count(range))
+			this->grabWaiters.at(range).second.notify_all();
+		this->grabWaitersMutex.unlock_shared();
+		return ret;
+    }
+    
     virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
         auto const raii = LogRAII_PS("grabDataName "+dataName);
         UnlockedToUpgradedLock lock(this->mutex);
