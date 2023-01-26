@@ -133,10 +133,9 @@ private:
                 ret = true;
             }
         } else {
-            UnlockedToUpgradedLock lock(this->mutex);
+            UnlockedToExclusiveLock exclusive(this->mutex);
             auto const spaceName = range.spaceName().value();
             if(this->codices.contains(spaceName)) {
-                UpgradedToExclusiveLock upgraded(this->mutex);
                 ret = codices[spaceName].template visitFirst<PathSpaceTE>([&range, ticket](auto &space){return space.insert("", ticket, range.next());});
             }
         }
@@ -149,10 +148,9 @@ private:
     
     virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
         auto const raii = LogRAII_PS("grabDataName "+dataName);
-        UnlockedToUpgradedLock lock(this->mutex);
+        UnlockedToExclusiveLock exclusive(this->mutex);
         bool found = false;
         if(this->codices.contains(dataName)) {
-            UpgradedToExclusiveLock upgradedLock(this->mutex);
             found = codices.at(dataName).grab(info, data, isTriviallyCopyable);
             if(codices.at(dataName).empty())
                 codices.erase(dataName);
