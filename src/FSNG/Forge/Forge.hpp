@@ -57,47 +57,29 @@ struct Forge {
         while(this->tasks.contains(ticket))
             this->tasksChanged.wait(readLock);
     }
-
-    auto remove(Ticket const &ticket) -> void {
-        auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
-        this->tasks.erase(ticket);
-        this->tasksChanged.notify_all();
-    }
     
     auto clearBlock(PathSpaceTE &space) -> void {
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
         this->currentlyDeleting.insert(&space);
-        std::vector<Ticket> running;
-        std::vector<Ticket> toDelete;
-        for(auto it = this->tasks.cbegin(); it != this->tasks.cend(); ++it) {
-            if(it->second.space==&space) {
-                if(it->second.isRunning)
-                    running.push_back(it->first);
-                else
-                    toDelete.push_back(it->first);
-                    
-            }
-        }
-        for(auto const &ticket : toDelete)
-            this->tasks.erase(ticket);
-        for(auto const &ticket : running)
-            while(this->tasks.contains(ticket))
-                this->tasksChanged.wait(writeLock);
+        while(this->currentlyRunning.contains(&space))
+            this->tasksChanged.wait(writeLock);
         this->currentlyDeleting.erase(&space);
     }
 private:
     auto executor() -> void {
         while(this->isAlive) {
-            if(std::optional<Ticket> ticket = this->launchNewTask()) {
-                auto &task = this->tasks.at(ticket.value());
+            if(std::optional<Task> taskOpt = this->grabNewTask()) {
+                Task &task = *taskOpt;
                 if(auto* fun = std::get_if<std::function<Coroutine()>>(&task.fun))
                     this->loop((*fun)(), task);
                 else if(auto* fun = std::get_if<std::function<CoroutineVoid()>>(&task.fun))
                     this->loop((*fun)(), task);
                 if(!this->currentlyDeleting.contains(task.space))
-                    task.space->insert("", ticket.value(), task.path); // remove coroutine
+                    task.space->insert("", task.ticket, task.path); // remove coroutine
                 auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
-                this->tasks.erase(ticket.value());
+                this->currentlyRunning[task.space]--;
+                if(this->currentlyRunning[task.space]==0)
+                    this->currentlyRunning.erase(task.space);
                 this->tasksChanged.notify_all();
             } else {
                 return;
@@ -105,14 +87,14 @@ private:
         }
     }
 
-    auto launchNewTask() -> std::optional<Ticket> {
+    auto grabNewTask() -> std::optional<Task> {
         auto writeLock = std::unique_lock<std::shared_mutex>(this->mutex);
         while(this->isAlive) {
-            for(auto &p : this->tasks) {
-                if(!p.second.isRunning) {
-                    p.second.isRunning=true;
-                    return p.first;
-                }
+            if(this->tasks.size()>0) {
+                auto const task = this->tasks.begin()->second;
+                this->tasks.erase(task.ticket);
+                this->currentlyRunning[task.space]++;
+                return task;
             }
             this->tasksChanged.wait(writeLock);
         }
@@ -123,7 +105,12 @@ private:
         bool shouldGoAgain = false;
         do {
             shouldGoAgain = coroutine.next();
-            if(coroutine.hasValue() && !this->currentlyDeleting.contains(task.space))
+            bool shouldInsert = false;
+            {
+                auto readLock = std::shared_lock(this->mutex);
+                shouldInsert = coroutine.hasValue() && !this->currentlyDeleting.contains(task.space);
+            }
+            if(shouldInsert)
                 task.space->insert(task.coroResultPath!="" ? task.coroResultPath : task.path, coroutine.getValue());
         } while(shouldGoAgain && this->isAlive);
     }
@@ -140,6 +127,7 @@ private:
     std::map<Ticket, Task> tasks;
     Ticket currentTicket = FirstTicket;
     std::set<PathSpaceTE*> currentlyDeleting;
+    std::map<PathSpaceTE*, int> currentlyRunning;
 };
 
 }

@@ -17,6 +17,5 @@ struct Task {
     std::variant<std::function<Coroutine()>, std::function<CoroutineVoid()>> fun;
     PathSpaceTE *space = nullptr;
     Path path, coroResultPath;
-    bool isRunning = false;
 };
 }
