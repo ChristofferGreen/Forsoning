@@ -8,7 +8,6 @@ add_executable(ForsoningTest
   cpp_random_string.cpp
   multithreaded_problems.cpp
   forge.cpp
-  forge_upgradable_mutex.cpp
   path.cpp
   path_space.cpp
   path_space_insert.cpp

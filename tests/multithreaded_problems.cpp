@@ -46,7 +46,7 @@ TEST_CASE("DiningPhilosophers") {
 }
 
 TEST_CASE("DiningPhilosophers Simple") {
-    for(int x = 0; x < 100; ++x) {
+    for(int x = 0; x < 30000; ++x) {
         auto space = PathSpaceTE::Create<PathSpace>();
         int const numberOfPhilosophers = 5;
 

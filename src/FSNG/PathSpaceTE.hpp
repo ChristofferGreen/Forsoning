@@ -48,12 +48,12 @@ public:
 		return *this->self == *rhs.self;
 	};
 
-	auto toJSON()                                                                            const      -> nlohmann::json { return this->self->toJSON_(); }
-	auto insert(Path const &range, Data const &data, Path const &coroResultPath="")                     -> bool           { return this->self->insert_(range, data, coroResultPath); }
-    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool           { return this->self->grabBlock_(range, info, data, isTriviallyCopyable); }
-    auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool           { return this->self->grab_(range, info, data, isTriviallyCopyable); }
-    auto read(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool           { return this->self->read_(range, info, data, isTriviallyCopyable); }
-    auto readBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool           { return this->self->readBlock_(range, info, data, isTriviallyCopyable); }
+	auto toJSON()                                                                            const      -> nlohmann::json { return this->self ? this->self->toJSON_   ()                                       : nlohmann::json(); }
+	auto insert(Path const &range, Data const &data, Path const &coroResultPath="")                     -> bool           { return this->self ? this->self->insert_   (range, data, coroResultPath)            : false; }
+    auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool           { return this->self ? this->self->grabBlock_(range, info, data, isTriviallyCopyable) : false; }
+    auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool           { return this->self ? this->self->grab_     (range, info, data, isTriviallyCopyable) : false; }
+    auto read(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable)      -> bool           { return this->self ? this->self->read_     (range, info, data, isTriviallyCopyable) : false; }
+    auto readBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool           { return this->self ? this->self->readBlock_(range, info, data, isTriviallyCopyable) : false; }
 	template<typename T>     
 	auto grab(Path const &range) -> std::optional<T> {
 		T data;
