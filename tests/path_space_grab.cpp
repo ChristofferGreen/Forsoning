@@ -241,21 +241,14 @@ TEST_CASE("PathSpace Grab Multithreaded") {
     Path const rootTestTest2Path{"/test/test2"};
 
     SECTION("Grab Coroutine Result") {
-        LOG("Grab Coroutine Result start");
         REQUIRE(space.insert("/coro", [&space]() -> CoroutineVoid {
-            LOG("Starting coro")
             for(auto i = 0; i < 5; ++i) {
-                LOG("co_yield {}", i)
                 co_yield i;
             }
-            LOG("Inserting /finished")
             space.insert("/finished", 1);
-            LOG("Inserted /finished")
             co_return;
         }) == true);
-        LOG("Trying to grab /finished")
         REQUIRE(space.grabBlock<int>("/finished")==1);
-        LOG("Grabbed /finished")
         for(auto i = 0; i < 5; ++i)
             REQUIRE(space.grabBlock<int>("/coro")==i);
     }

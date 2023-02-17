@@ -13,8 +13,8 @@ TEST_CASE("DiningPhilosophers") {
     PathSpaceTE space = PathSpace();
     int const numberOfPhilosophers = 5;
     int const totalLoops = 10;
-    auto think = [](auto i){LOG("Philosopher {} thinking", i)sleep_thread();LOG("Philosopher {} woke up", i)};
-    auto eat   = [](auto i){LOG("Philosopher {} eating", i)sleep_thread();LOG("Philosopher {} finished eating", i)};
+    auto think = [](auto i){sleep_thread();};
+    auto eat   = [](auto i){sleep_thread();};
     
     for(int i = 0; i < numberOfPhilosophers; ++i) {
         space.insert("/chopstick/"+std::to_string(i), 0);
@@ -52,7 +52,6 @@ TEST_CASE("DiningPhilosophers Simple") {
 
         for(int i = 0; i < numberOfPhilosophers; ++i) {
             space.insert("/philosopher", [&space, i]()->Coroutine{
-                LOG("Philosopher starting: {}", i);
                 co_return 123;
             });
         }
@@ -60,6 +59,5 @@ TEST_CASE("DiningPhilosophers Simple") {
             int const ret = space.grabBlock<int>("/philosopher");
             REQUIRE(ret==123);
         }
-        SetupHTMLLog();
     }
 }

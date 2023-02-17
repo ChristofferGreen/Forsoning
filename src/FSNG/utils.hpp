@@ -1,11 +1,10 @@
 #pragma once
-#include "FSNG/log.hpp"
-
 #include <functional>
 #include <random>
 #include <string>
 #include <iostream>
 #include <mutex>
+#include <thread>
 #include <shared_mutex>
 
 namespace FSNG {

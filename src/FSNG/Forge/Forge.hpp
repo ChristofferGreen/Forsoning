@@ -3,18 +3,8 @@
 #include "FSNG/utils.hpp"
 #include "FSNG/Forge/Task.hpp"
 
-#include "spdlog/spdlog.h"
-
 #include <iostream>
-
-#ifdef LOG_FORGE
-#define LOG_F(...) LOG("<TAG:Forge>" __VA_ARGS__)
-#define LogRAII_F(...) LogRAII("<TAG:Echelon>" __VA_ARGS__)
-#else
-#define LOG_F(...)
-#define LogRAII_F(...) 0
-#endif
-
+#include <condition_variable>
 namespace FSNG {
 struct Forge {
     auto static CreateSingleton() -> void {

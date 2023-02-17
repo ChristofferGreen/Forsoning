@@ -4,7 +4,6 @@
 #include "FSNG/Data.hpp"
 #include "FSNG/Path.hpp"
 #include "FSNG/PathSpaceTE.hpp"
-#include "FSNG/Security.hpp"
 #include "FSNG/utils.hpp"
 
 #include "nlohmann/json.hpp"
@@ -14,14 +13,6 @@
 #include <string>
 #include <unordered_map>
 #include <variant>
-
-#ifdef LOG_PATH_SPACE
-#define LOG_PS(...) LOG("<TAG:PathSpace>" __VA_ARGS__)
-#define LogRAII_PS(...) LogRAII("<TAG:PathSpace>" __VA_ARGS__)
-#else
-#define LOG_PS(...)
-#define LogRAII_PS(...) 0
-#endif
 
 namespace FSNG {
 struct PathSpace {
@@ -59,19 +50,16 @@ struct PathSpace {
     }
 
     virtual auto grab(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        auto const raii = LogRAII_PS("grab "+range.dataName());
         return range.isAtData() ? this->grabDataName(range.dataName(), info, data, isTriviallyCopyable) :
                                   this->grabSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
     }
 
     virtual auto read(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        auto const raii = LogRAII_PS("read "+range.dataName());
         return range.isAtData() ?  this->readDataName(range.dataName(), info, data, isTriviallyCopyable) :
                                    this->readSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
     }
 
     virtual auto readBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        auto const raii = LogRAII_PS("readBlock "+range.dataName());
         if(range.isAtRoot()) {
             bool found = false;
             while(!found) {
@@ -87,7 +75,6 @@ struct PathSpace {
     }
 
     virtual auto insert(Path const &range, Data const &data, Path const &coroResultPath="") -> bool {
-        auto const raii = LogRAII_PS("insert "+range.dataName());
         if(range.empty()) {
             if(coroResultPath.empty()) {
                 this->root = data.as<PathSpaceTE*>();
@@ -108,7 +95,6 @@ struct PathSpace {
     }
 
     virtual auto toJSON() const -> nlohmann::json {
-        auto const raii = LogRAII_PS("toJSON");
         nlohmann::json json;
         std::shared_lock<std::shared_mutex> sharedLock(this->mutex);
         for(auto const &p : codices)
@@ -142,7 +128,6 @@ private:
     }
     
     virtual auto grabDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
-        auto const raii = LogRAII_PS("grabDataName "+dataName);
         std::lock_guard<std::shared_mutex> lockGuard(this->mutex);
         bool found = false;
         if(this->codices.contains(dataName)) {
@@ -154,7 +139,6 @@ private:
     }
 
     virtual auto grabSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        auto const raii = LogRAII_PS("grabSpaceName "+spaceName);
         std::shared_lock<std::shared_mutex> sharedLock(this->mutex);
         if(this->codices.contains(spaceName)) {
             bool const found = codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable](auto &space){
@@ -166,13 +150,11 @@ private:
     }
 
     virtual auto readDataName(std::string const &dataName, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
-        auto const raii = LogRAII_PS("readDataName "+dataName);
         std::shared_lock<std::shared_mutex> sharedLock(this->mutex);
         return this->codices.contains(dataName) ? codices.at(dataName).read(info, data, isTriviallyCopyable) : false;
     }
 
     virtual auto readSpaceName(std::string const &spaceName, Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable, bool const shouldWait = false) -> bool {
-        auto const raii = LogRAII_PS("readSpaceName "+spaceName);
         std::shared_lock<std::shared_mutex> sharedLock(this->mutex);
         return this->codices.contains(spaceName) ?
             codices[spaceName].template visitFirst<PathSpaceTE>([&range, info, data, isTriviallyCopyable](auto &space){return space.read(range.next(), info, data, isTriviallyCopyable);}) :
@@ -180,7 +162,6 @@ private:
     }
 
     virtual auto insertDataName(Path const &range, std::string const &dataName, Data const &data, Path const &coroResultPath) -> bool {
-        auto const raii = LogRAII_PS("insertDataName "+dataName);
         assert(this->root!=nullptr);
         std::lock_guard<std::shared_mutex> lockGuard(this->mutex);
         this->codices[dataName].insert(range.original(), coroResultPath, data, *this->root); // ToDo: What about recursive coroutines???
@@ -188,7 +169,6 @@ private:
     }
 
     virtual auto insertSpaceName(Path const &range, std::string const &spaceName, Data const &data, Path const &coroResultPath) -> bool {
-        auto const raii = LogRAII_PS("insertSpaceName "+spaceName);
         std::lock_guard<std::shared_mutex> lockGuard(this->mutex);
         if(!codices.contains(spaceName))
             codices[spaceName].insertSpace(PathSpaceTE(PathSpace{spaceName, this->root}));

@@ -11,14 +11,6 @@
     Single type: |Data|Data|Data
 */
 
-#ifdef LOG_CODEX
-#define LOG_C(...) LOG("<TAG:Codex>" __VA_ARGS__)
-#define LogRAII_C(...) LogRAII("<TAG:Codex>" __VA_ARGS__)
-#else
-#define LOG_C(...)
-#define LogRAII_C(...) 0
-#endif
-
 namespace FSNG {
 struct Codex {
     Codex() = default;
@@ -155,7 +147,6 @@ struct Codex {
         });
         if(iter == this->info.end())
             return;
-        LOG_C("removeCoroutine erasing one, current infos: {}", this->info.size())
         this->info.erase(iter);
     }
 
@@ -215,7 +206,6 @@ private:
             return;
         }
         assert(this->info.begin()->nbrItems()!=0);
-        LOG_C("PopInfo erasing info")
         this->info.erase(this->info.begin());
     }
 
@@ -233,13 +223,11 @@ private:
 
     auto addInfo(int const nbrItems, std::type_info const *ptr) -> CodexInfo {
         if(this->info.size()==0) {
-            LOG_C("addInfo creating info")
             this->info.emplace_back(nbrItems, ptr);
         }
         else if(*this->info.rbegin()->info==*ptr && (*ptr!=typeid(std::string) && *ptr!=typeid(char const*)))
             this->info.rbegin()->items.nbr++;
         else {
-            LOG_C("addInfo creating info")
             this->info.emplace_back(nbrItems, ptr);
         }
 
@@ -247,7 +235,6 @@ private:
     }
 
     auto addInfo(int const nbrItems, std::type_info const *ptr, Ticket const &ticket) -> CodexInfo {
-        LOG_C("addInfo creating info ticket")
         this->info.emplace_back(ticket, ptr);
         return *this->info.rbegin();
     }
