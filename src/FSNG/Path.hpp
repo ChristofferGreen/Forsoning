@@ -41,6 +41,7 @@ struct Path {
     auto next() const {
         auto val = *this;
         val.current++;
+        val.level++;
         return val;
     }
 
@@ -63,10 +64,7 @@ struct Path {
     }
 
     auto isAtRoot() const -> bool {
-        auto start = this->path.begin();
-        if(*start=="/")
-            start++;
-        return start==this->current;
+        return this->level==0;
     }
 
     auto empty() const -> bool {
@@ -80,5 +78,6 @@ private:
     std::filesystem::path path;
     bool valid = true;
     std::filesystem::path::const_iterator current, end;
+    int level = 0;
 };
 }

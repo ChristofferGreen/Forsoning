@@ -98,7 +98,7 @@ private:
             bool shouldInsert = false;
             {
                 auto readLock = std::shared_lock(this->mutex);
-                shouldInsert = coroutine.hasValue() && !this->currentlyDeleting.contains(task.space);
+                shouldInsert = task.space && coroutine.hasValue() && !this->currentlyDeleting.contains(task.space);
             }
             if(shouldInsert)
                 task.space->insert(task.coroResultPath!="" ? task.coroResultPath : task.path, coroutine.getValue());

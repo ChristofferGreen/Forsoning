@@ -60,18 +60,19 @@ struct PathSpace {
     }
 
     virtual auto readBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
-        if(range.isAtRoot()) {
-            bool found = false;
-            while(!found) {
-                bool const shouldWait = true;
-                found = range.isAtData() ? this->readDataName(range.dataName(), info, data, isTriviallyCopyable, shouldWait) :
-                                           this->readSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable, shouldWait);
-            }
-            return found;
-        } else {
-            return range.isAtData() ? this->readDataName(range.dataName(), info, data, isTriviallyCopyable) :
-                                      this->readSpaceName(range.spaceName().value(), range, info, data, isTriviallyCopyable);
-        }
+		bool ret = false;
+		while(!ret) {
+			this->grabWaitersMutex.lock();
+			if(ret = this->read(range, info, data, isTriviallyCopyable); !ret) {
+				this->grabWaiters[range].first++;
+				this->grabWaiters[range].second.wait(this->grabWaitersMutex);
+				this->grabWaiters[range].first--;
+				if(this->grabWaiters[range].first==0)
+					this->grabWaiters.erase(range);
+			}
+			this->grabWaitersMutex.unlock();
+		}
+		return ret;
     }
 
     virtual auto insert(Path const &range, Data const &data, Path const &coroResultPath="") -> bool {
@@ -85,7 +86,9 @@ struct PathSpace {
         }
         auto const ret = range.isAtData() ? this->insertDataName(range, range.dataName(), data, coroResultPath) :
                                             this->insertSpaceName(range, range.spaceName().value(), data, coroResultPath);
-		if(ret) {
+        if(!range.isAtRoot() && this->grabWaiters.count(range))
+            assert(this->grabWaiters.at(range).first==0);
+		if(ret && range.isAtRoot()) {
 			this->grabWaitersMutex.lock_shared();
 			if(this->grabWaiters.count(range))
 				this->grabWaiters.at(range).second.notify_all();
@@ -120,10 +123,12 @@ private:
                 ret = codices[spaceName].template visitFirst<PathSpaceTE>([&range, ticket](auto &space){return space.insert("", ticket, range.next());});
             }
         }
-		this->grabWaitersMutex.lock_shared();
-		if(this->grabWaiters.count(range))
-			this->grabWaiters.at(range).second.notify_all();
-		this->grabWaitersMutex.unlock_shared();
+        if(range.isAtRoot()) {
+            this->grabWaitersMutex.lock_shared();
+            if(this->grabWaiters.count(range))
+                this->grabWaiters.at(range).second.notify_all();
+            this->grabWaitersMutex.unlock_shared();
+        }
 		return ret;
     }
     
