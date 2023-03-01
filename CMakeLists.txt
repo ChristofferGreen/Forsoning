@@ -9,3 +9,4 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_VERBOSE_MAKEFILE ON CACHE BOOL "ON")
 
 add_subdirectory("tests")
+add_subdirectory("src")
