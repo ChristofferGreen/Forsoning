@@ -1,19 +1,22 @@
 add_executable(ForsoningTest
   main.cpp
   catch.cpp
-  cpp_concepts.cpp
-  cpp_coroutine.cpp
-  cpp_json.cpp
-  cpp_asio.cpp
-  cpp_random_string.cpp
-  multithreaded_problems.cpp
-  forge.cpp
-  path.cpp
-  path_space.cpp
-  path_space_insert.cpp
-  path_space_grab.cpp
-  path_space_grab_block.cpp
-  path_space_read.cpp
+
+  path_space/cpp_concepts.cpp
+  path_space/cpp_coroutine.cpp
+  path_space/cpp_json.cpp
+  path_space/cpp_asio.cpp
+  path_space/cpp_random_string.cpp
+  path_space/multithreaded_problems.cpp
+  path_space/forge.cpp
+  path_space/path.cpp
+  path_space/path_space.cpp
+  path_space/path_space_insert.cpp
+  path_space/path_space_grab.cpp
+  path_space/path_space_grab_block.cpp
+  path_space/path_space_read.cpp
+
+  renderer/basic_vulkan.cpp
 )
 
 target_include_directories(ForsoningTest 
@@ -25,22 +28,20 @@ target_include_directories(ForsoningTest
 target_include_directories(ForsoningTest 
   SYSTEM
   PUBLIC
-    ${DepIncludesPublic}
+    ${GLFW_SOURCE_DIR}/include
+    ${Vulkan_INCLUDE_DIRS}
   PRIVATE
     ${DepIncludes}
 )
 
 target_compile_definitions(ForsoningTest
   PUBLIC
-    ${DepDefines}
     CATCH_AMALGAMATED_CUSTOM_MAIN
 )
 
 target_link_libraries(ForsoningTest
   PUBLIC
-    ${DepLibraries}
+    glfw
+    Vulkan::Vulkan
 )
 
-#enable_testing()
-#include(${doctest_SOURCE_DIR}/scripts/cmake/doctest.cmake)
-#doctest_discover_tests(ForsoningTest)
