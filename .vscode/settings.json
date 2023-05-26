@@ -99,7 +99,18 @@
         "unordered_set": "cpp",
         "regex": "cpp",
         "*.tcc": "cpp",
-        "stop_token": "cpp"
+        "stop_token": "cpp",
+        "__std_stream": "cpp",
+        "barrier": "cpp",
+        "cfenv": "cpp",
+        "cinttypes": "cpp",
+        "csetjmp": "cpp",
+        "propagate_const": "cpp",
+        "latch": "cpp",
+        "ranges": "cpp",
+        "scoped_allocator": "cpp",
+        "strstream": "cpp",
+        "typeindex": "cpp"
     },
     "search.exclude": {
         "**/ext/": true

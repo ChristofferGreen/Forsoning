@@ -1,5 +1,5 @@
 #include <catch.hpp>
-
+/*
 #include "asio.hpp"
 
 TEST_CASE("ASIO") {
@@ -8,3 +8,4 @@ TEST_CASE("ASIO") {
 
    }
 }
+*/

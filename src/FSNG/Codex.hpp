@@ -4,6 +4,7 @@
 #include "utils.hpp"
 
 #include <algorithm>
+#include <deque>
 #include <string.h>
 
 /* Potential future implementation
@@ -90,7 +91,11 @@ struct Codex {
     }
 
     auto insert(Path const &path, Path const &coroResultPath, Data const &data, PathSpaceTE &space) -> void {
-        if(data.is<bool>())                    this->insertBasic<bool>               (data);
+        if(data.isTriviallyCopyable()) {
+            this->addInfo(1, data.info);
+            copy_byte_back_insert(data.ptr, data.size, this->codices);
+        }
+        else if(data.is<bool>())               this->insertBasic<bool>               (data);
         else if(data.is<signed char>())        this->insertBasic<signed char>        (data);
         else if(data.is<unsigned char>())      this->insertBasic<unsigned char>      (data);
         else if(data.is<wchar_t>())            this->insertBasic<wchar_t>            (data);
@@ -216,9 +221,9 @@ private:
 
     template<typename T>
     auto insertBasic(auto const &data) -> void {
-        this->addInfo(1, &typeid(T));
+        this->addInfo(1, data.info);
         auto const d = data.template as<T>();
-        copy_byte_back_insert(&d, sizeof(T), this->codices);
+        copy_byte_back_insert(&d, data.size, this->codices);
     }
 
     auto addInfo(int const nbrItems, std::type_info const *ptr) -> CodexInfo {
@@ -248,4 +253,51 @@ private:
     std::vector<CodexInfo> info;
     std::vector<PathSpaceTE> spaces;
 };
+
+struct PathSpace2;
+struct Scroll {
+    auto insert(InReference const &inref) {
+        if(inref.isStandardLayout) {
+            std::copy(static_cast<std::byte const*>(inref.data), static_cast<std::byte const*>(inref.data)+inref.size, std::back_inserter(this->data));
+            return true;
+        }
+        return false;
+    } 
+    std::deque<std::byte> data; // Could be Ticket if type is Coroutine
+    std::deque<std::unique_ptr<PathSpace2>> spaces;
+};
+
+inline std::unordered_map<std::type_info const *, std::function<void(nlohmann::json&, Scroll const&)>> fundamentalTypesToJSON;
+
+template<typename T>
+auto FundamentalTypeToJSON(nlohmann::json &json, Scroll const &scroll) {
+    
+}
+
+inline auto FillFundamentalTypes() -> void {
+    fundamentalTypesToJSON[&typeid(bool)] = &FundamentalTypeToJSON<bool>;
+    fundamentalTypesToJSON[&typeid(int)] = &FundamentalTypeToJSON<int>;
+}
+
+struct Codex2 {
+    Codex2() = default;
+
+    auto insert(InReference const &data) {
+        return this->scrolls[data.info].insert(data);
+    }
+
+    virtual auto toJSON() const -> nlohmann::json {
+        if(fundamentalTypesToJSON.size()==0)
+            FillFundamentalTypes();
+        nlohmann::json json;
+        for(auto const &[type, scroll] : this->scrolls) {
+            if(fundamentalTypesToJSON.contains(type))
+                fundamentalTypesToJSON[type](json, scroll);
+        }
+        return json;
+    }
+
+    std::unordered_map<std::type_info const *, Scroll> scrolls;
+};
+
 }

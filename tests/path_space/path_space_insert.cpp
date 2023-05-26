@@ -7,6 +7,17 @@
 
 using namespace FSNG;
 
+TEST_CASE("PathSpace2 Insert") {
+    PathSpace2 space;
+
+    SECTION("Basic") {
+        REQUIRE(space.insert("/test", 5) == true);
+        nlohmann::json json;
+        json["test"] = {5};
+        REQUIRE(space.toJSON() == json);
+    }
+}
+
 TEST_CASE("PathSpace Insert") {
     PathSpaceTE space = PathSpace{};
     Path const rootTestPath{"/test"};

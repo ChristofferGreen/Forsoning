@@ -77,10 +77,5 @@ inline auto sleep_thread(float from=0.05, float to=0.3) {
 
 }
 
-#ifdef __clang__
-#define STD_EXPERIMENTAL std::experimental
-#include <experimental/coroutine>
-#else
 #define STD_EXPERIMENTAL std
 #include <coroutine>
-#endif

@@ -48,30 +48,32 @@ concept HasJSONConversionNotTriviallyCopyableNoByteVector = HasJSONConversion<T>
 
 struct Data {
     Data() = default;
-    Data(bool                    const  b)    : data(b) {}
-    Data(signed char             const  c)    : data(c) {}
-    Data(unsigned char           const  c)    : data(c) {}
-    Data(wchar_t                 const  c)    : data(c) {}
-    Data(short                   const  s)    : data(s) {}
-    Data(unsigned short          const  s)    : data(s) {}
-    Data(int                     const  i)    : data(i) {}
-    Data(unsigned int            const  i)    : data(i) {}
-    Data(long                    const  l)    : data(l) {}
-    Data(unsigned long           const  l)    : data(l) {}
-    Data(long long               const  l)    : data(l) {}
-    Data(unsigned long long      const  l)    : data(l) {}
-    Data(double                  const  d)    : data(d) {}
-    Data(long double             const  d)    : data(d) {}
-    Data(char const *            const  s)    : data(s) {}
-    Data(std::string             const &s)    : data(s) {}
-    Data(std::unique_ptr<PathSpaceTE> &&up)   : data(std::move(up)) {}
-    Data(PathSpaceTE             const &pste) : data(std::make_unique<PathSpaceTE>(pste)) {}
-    Data(PathSpaceTE                   *pste) : data(pste) {}
+    Data(bool                    const &b)    : data(b), isTriviallyCopyable_(false) {this->eat(b);}
+    Data(signed char             const &c)    : data(c), isTriviallyCopyable_(false) {this->eat(c);}
+    Data(unsigned char           const &c)    : data(c), isTriviallyCopyable_(false) {this->eat(c);}
+    Data(wchar_t                 const &c)    : data(c), isTriviallyCopyable_(false) {this->eat(c);}
+    Data(short                   const &s)    : data(s), isTriviallyCopyable_(false) {this->eat(s);}
+    Data(unsigned short          const &s)    : data(s), isTriviallyCopyable_(false) {this->eat(s);}
+    Data(int                     const &i)    : data(i), isTriviallyCopyable_(true) {this->eat(i);}
+    Data(unsigned int            const &i)    : data(i), isTriviallyCopyable_(false) {this->eat(i);}
+    Data(long                    const &l)    : data(l), isTriviallyCopyable_(false) {this->eat(l);}
+    Data(unsigned long           const &l)    : data(l), isTriviallyCopyable_(false) {this->eat(l);}
+    Data(long long               const &l)    : data(l), isTriviallyCopyable_(false) {this->eat(l);}
+    Data(unsigned long long      const &l)    : data(l), isTriviallyCopyable_(false) {this->eat(l);}
+    Data(double                  const &d)    : data(d), isTriviallyCopyable_(false) {this->eat(d);}
+    Data(long double             const &d)    : data(d), isTriviallyCopyable_(false) {this->eat(d);}
+    Data(char const *            const s)     : data(s), isTriviallyCopyable_(false) {this->eat(s);}
+    Data(std::string             const &s)    : data(s) {this->eat(s);}
+    Data(std::unique_ptr<PathSpaceTE> &&up)   : data(std::move(up)) {this->eat(up);}
+    Data(PathSpaceTE             const &pste) : data(std::make_unique<PathSpaceTE>(pste)) {this->eat(pste);}
+    Data(PathSpaceTE                   *pste) : data(pste) {this->eat(pste);}
     Data(ReturnsCoroutine auto   const &in) {
         data = std::make_unique<std::function<Coroutine()>>(in);
+        this->eat(in);
     }
     Data(ReturnsCoroutineVoid auto   const &in) {
         data = std::make_unique<std::function<CoroutineVoid()>>(in);
+        this->eat(in);
     }
     Data(TriviallyCopyableButNotInvocable auto const &in) {
         using InT = decltype(in);
@@ -83,6 +85,7 @@ struct Data {
                 return out;
             };
         }
+        this->eat(in);
     }
     Data(HasByteVectorConversion auto const &in) {
         using InT = decltype(in);
@@ -113,6 +116,7 @@ struct Data {
                 return true;
             };
         }
+        this->eat(in);
     }
     Data(HasJSONConversionNotTriviallyCopyableNoByteVector auto const &in) {
         using InT = decltype(in);
@@ -143,6 +147,7 @@ struct Data {
                 copy_byte_back_insert(v_bson.data(), v_bson.size(), vec);
             };
         }
+        this->eat(in);
     }
 
     template<typename T>
@@ -155,6 +160,20 @@ struct Data {
         return std::get<T>(this->data);
     }
 
+    bool isTriviallyCopyable() const {
+        return this->isTriviallyCopyable_;
+    }
+
+    template<typename T>
+    auto eat(T const &in) -> void {
+        this->ptr = &in;
+        this->size = sizeof(in);
+        this->info = &typeid(in);
+    }
+
+    void const *ptr = nullptr;
+    int size = 0;
+    std::type_info const *info = nullptr;
 private:
     std::variant<bool,
                  signed char,
@@ -178,5 +197,6 @@ private:
                  std::unique_ptr<std::function<CoroutineVoid()>>,
                  InReference,
                  std::vector<std::byte>> data;
+    bool isTriviallyCopyable_ = false;
 };
 }
