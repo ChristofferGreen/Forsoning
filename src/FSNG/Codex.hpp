@@ -254,30 +254,64 @@ private:
     std::vector<PathSpaceTE> spaces;
 };
 
+template<typename T>
+inline auto copy_arithmetic_json(const auto &data, auto &json) {
+    T const *ptr = reinterpret_cast<T const*>(data.data());
+    unsigned int amount = data.size()/sizeof(T);
+    for(unsigned int i = 0; i < amount; ++i)
+        json += ptr[i];
+}
+
+inline auto copy_char_array_json(const auto &data, auto &json) {
+    json += reinterpret_cast<char const*>(data.data());
+}
+
 struct PathSpace2;
 struct Scroll {
     auto insert(InReference const &inref) {
         if(inref.isStandardLayout) {
             std::copy(static_cast<std::byte const*>(inref.data), static_cast<std::byte const*>(inref.data)+inref.size, std::back_inserter(this->data));
             return true;
+        } else if(inref.isStdVector) {
+
         }
         return false;
-    } 
-    std::deque<std::byte> data; // Could be Ticket if type is Coroutine
-    std::deque<std::unique_ptr<PathSpace2>> spaces;
+    }
+
+    auto toJSON(std::type_info const *type) const -> nlohmann::json {
+        nlohmann::json json;
+        // Arithmetic Types
+        if(*type==typeid(char))                      copy_arithmetic_json<char>                (this->data, json);
+        else if(*type==typeid(signed char))          copy_arithmetic_json<signed char>         (this->data, json);
+        else if(*type==typeid(unsigned char))        copy_arithmetic_json<unsigned char>       (this->data, json);
+        else if(*type==typeid(short))                copy_arithmetic_json<short>               (this->data, json);
+        else if(*type==typeid(short int))            copy_arithmetic_json<short int>           (this->data, json);
+        else if(*type==typeid(signed short))         copy_arithmetic_json<signed short>        (this->data, json);
+        else if(*type==typeid(signed short int))     copy_arithmetic_json<signed short int>    (this->data, json);
+        else if(*type==typeid(int))                  copy_arithmetic_json<int>                 (this->data, json);
+        else if(*type==typeid(signed))               copy_arithmetic_json<signed>              (this->data, json);
+        else if(*type==typeid(signed int))           copy_arithmetic_json<signed int>          (this->data, json);
+        else if(*type==typeid(unsigned))             copy_arithmetic_json<unsigned>            (this->data, json);
+        else if(*type==typeid(unsigned int))         copy_arithmetic_json<unsigned int>        (this->data, json);
+        else if(*type==typeid(long))                 copy_arithmetic_json<long>                (this->data, json);
+        else if(*type==typeid(long int))             copy_arithmetic_json<long int>            (this->data, json);
+        else if(*type==typeid(signed long))          copy_arithmetic_json<signed long>         (this->data, json);
+        else if(*type==typeid(signed long int))      copy_arithmetic_json<signed long int>     (this->data, json);
+        else if(*type==typeid(unsigned long))        copy_arithmetic_json<unsigned long>       (this->data, json);
+        else if(*type==typeid(unsigned long int))    copy_arithmetic_json<unsigned long int>   (this->data, json);
+        else if(*type==typeid(long long))            copy_arithmetic_json<long long>           (this->data, json);
+        else if(*type==typeid(long long int))        copy_arithmetic_json<long long int>       (this->data, json);
+        else if(*type==typeid(signed long long int)) copy_arithmetic_json<signed long long int>(this->data, json);
+        else if(*type==typeid(unsigned long long))   copy_arithmetic_json<unsigned long long>  (this->data, json);
+        // Containers
+        else if(*type==typeid(std::string))          copy_char_array_json           (this->data, json);
+        else if(*type==typeid(char*))                copy_char_array_json           (this->data, json);
+        return json;
+    }
+
+    std::vector<std::byte> data; // Could be Ticket if type is Coroutine
+    std::vector<std::unique_ptr<PathSpace2>> spaces;
 };
-
-inline std::unordered_map<std::type_info const *, std::function<void(nlohmann::json&, Scroll const&)>> fundamentalTypesToJSON;
-
-template<typename T>
-auto FundamentalTypeToJSON(nlohmann::json &json, Scroll const &scroll) {
-    
-}
-
-inline auto FillFundamentalTypes() -> void {
-    fundamentalTypesToJSON[&typeid(bool)] = &FundamentalTypeToJSON<bool>;
-    fundamentalTypesToJSON[&typeid(int)] = &FundamentalTypeToJSON<int>;
-}
 
 struct Codex2 {
     Codex2() = default;
@@ -287,13 +321,9 @@ struct Codex2 {
     }
 
     virtual auto toJSON() const -> nlohmann::json {
-        if(fundamentalTypesToJSON.size()==0)
-            FillFundamentalTypes();
         nlohmann::json json;
-        for(auto const &[type, scroll] : this->scrolls) {
-            if(fundamentalTypesToJSON.contains(type))
-                fundamentalTypesToJSON[type](json, scroll);
-        }
+        for(auto const &[type, scroll] : this->scrolls)
+            json += scroll.toJSON(type);
         return json;
     }
 

@@ -13,8 +13,19 @@ TEST_CASE("PathSpace2 Insert") {
     SECTION("Basic") {
         REQUIRE(space.insert("/test", 5) == true);
         nlohmann::json json;
-        json["test"] = {5};
+        json["test"] += {5};
         REQUIRE(space.toJSON() == json);
+
+        REQUIRE(space.insert("/test2", "hello") == true);
+        json["test2"] += {"hello"};
+        REQUIRE(space.toJSON() == json);
+
+        REQUIRE(space.insert("/test", 234) == true);
+        json["test"][0] += 234;
+        REQUIRE(space.toJSON() == json);
+
+        json["test"][0] += 2345;
+        REQUIRE(space.toJSON() != json);
     }
 }
 

@@ -248,7 +248,7 @@ struct GLFWVulkanSpace {
         Forge::instance()->clearBlock(*this->root);
     }
 
-    auto operator==(GLFWVulkanSpace const &rhs) const -> bool { }
+    auto operator==(GLFWVulkanSpace const &rhs) const -> bool { return false; }
 
     virtual auto grabBlock(Path const &range, std::type_info const *info, void *data, bool isTriviallyCopyable) -> bool {
         return false;

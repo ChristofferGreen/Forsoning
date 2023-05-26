@@ -110,7 +110,25 @@
         "ranges": "cpp",
         "scoped_allocator": "cpp",
         "strstream": "cpp",
-        "typeindex": "cpp"
+        "typeindex": "cpp",
+        "source_location": "cpp",
+        "xfacet": "cpp",
+        "xhash": "cpp",
+        "xiosbase": "cpp",
+        "xlocale": "cpp",
+        "xlocbuf": "cpp",
+        "xlocinfo": "cpp",
+        "xlocmes": "cpp",
+        "xlocmon": "cpp",
+        "xlocnum": "cpp",
+        "xloctime": "cpp",
+        "xmemory": "cpp",
+        "xstddef": "cpp",
+        "xstring": "cpp",
+        "xtr1common": "cpp",
+        "xtree": "cpp",
+        "xutility": "cpp",
+        "resumable": "cpp"
     },
     "search.exclude": {
         "**/ext/": true

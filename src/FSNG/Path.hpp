@@ -8,7 +8,8 @@ struct Path {
     Path(std::filesystem::path const &path) : path(path) {
         this->current = this->path.begin();
         this->end   = this->path.end();
-        this->end--; // now at data component
+        if(this->current!=this->end)
+            this->end--; // now at data component
         if(*this->end=="/") // we only had '/'
             this->valid = false;
         if(*this->current=="/") // Sometimes we get a / in the start, remove it
@@ -48,7 +49,7 @@ struct Path {
     auto spaceName() const -> std::optional<std::string> {
         if(*this->current=="")
             return std::nullopt;
-        return *this->current;
+        return (*this->current).string();
     }
 
     auto string() const -> std::string {
@@ -56,7 +57,7 @@ struct Path {
     }
 
     auto dataName() const -> std::string {
-        return *this->end;
+        return (*this->end).string();
     }
 
     auto isAtData() const -> bool {
