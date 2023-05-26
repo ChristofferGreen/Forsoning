@@ -2,9 +2,9 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "CLang LLDB Debug",
             "type": "lldb",
             "request": "launch",
-            "name": "CLang LLDB Debug",
             "program": "${workspaceRoot}/build/tests/ForsoningTest",
             "args": [],
             "cwd": "${workspaceRoot}/build/tests/"

@@ -199,8 +199,8 @@ struct PathSpace2 {
         return *this;
     }*/
 
-    virtual auto insert(Path const &range, InReference const &data) -> bool {
-        return this->codices[range.dataName()].insert(data);
+    virtual auto insert(Path const &range, InReference const &inref) -> bool {
+        return this->codices[range.dataName()].insert(inref);
     }
 
     virtual auto toJSON() const -> nlohmann::json {

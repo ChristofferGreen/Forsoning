@@ -11,8 +11,8 @@ TEST_CASE("PathSpace2 Insert") {
     PathSpace2 space;
 
     SECTION("Basic") {
-        REQUIRE(space.insert("/test", 5) == true);
         nlohmann::json json;
+        REQUIRE(space.insert("/test", 5) == true);
         json["test"] += {5};
         REQUIRE(space.toJSON() == json);
 
@@ -22,6 +22,10 @@ TEST_CASE("PathSpace2 Insert") {
 
         REQUIRE(space.insert("/test", 234) == true);
         json["test"][0] += 234;
+        REQUIRE(space.toJSON() == json);
+
+        REQUIRE(space.insert("/test2", std::string("moo")) == true);
+        json["test2"][0] += "moo";
         REQUIRE(space.toJSON() == json);
 
         json["test"][0] += 2345;
