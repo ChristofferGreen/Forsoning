@@ -28,6 +28,15 @@ TEST_CASE("PathSpace2 Insert") {
         json["test2"][0] += "moo";
         REQUIRE(space.toJSON() == json);
 
+        /*int ia[4] = {0, 2, 3, 6};
+        REQUIRE(space.insert("/test_int_array", ia) == true);
+        json["test2"][0] += "moo";
+        REQUIRE(space.toJSON() == json);*/
+
+        /*REQUIRE(space.insert("/test3", std::vector<int>({0, 1, 2, 4})) == true);
+        json["test3"] += std::vector<int>({0, 1, 2, 4});
+        REQUIRE(space.toJSON() == json);*/
+
         json["test"][0] += 2345;
         REQUIRE(space.toJSON() != json);
     }

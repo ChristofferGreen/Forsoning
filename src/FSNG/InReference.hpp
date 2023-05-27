@@ -16,8 +16,8 @@ template<typename T>    struct is_char_array                : std::false_type {}
 template<std::size_t N> struct is_char_array<char const[N]> : std::true_type  {};
 
 // Standard Layout
-template<typename T>inline bool is_standard_layout             (const T& value)           {return std::is_standard_layout<T>::value;}
-template<>          inline bool is_standard_layout<std::string>(const std::string& value) {return true;}
+template<typename T> struct is_standard_layout              {static constexpr bool value = std::is_standard_layout<T>::value;};
+template<>           struct is_standard_layout<std::string> {static constexpr bool value = true;};
 
 // Data
 template<typename T> inline auto data_pointer(T const &t)                        -> void const*;
@@ -31,10 +31,14 @@ template<size_t N>   inline auto data_size(char const (&t)[N])                ->
 template<typename T> inline auto data_size(T const &t)                        -> unsigned int {return sizeof(T);}
 
 // Type
-template<typename T> inline auto type_id(T const &t)                        -> std::type_info const*;
-template<>           inline auto type_id<std::string>(std::string const &t) -> std::type_info const* {return &typeid(char*);}
-template<size_t N>   inline auto type_id(char const (&t)[N])                -> std::type_info const* {return &typeid(char*);}
-template<typename T> inline auto type_id(T const &t)                        -> std::type_info const* {return &typeid(T);}
+template <typename T> constexpr bool is_array_of_char = std::is_same_v<std::remove_all_extents_t<T>, char>;
+template <typename T>
+constexpr auto type_id() {
+    if constexpr (std::is_same_v<T, std::string> || is_array_of_char<T>) {
+        return &typeid(char*);
+    }
+    return &typeid(T);
+}
 
 struct InReference {
     InReference() = default;
@@ -42,8 +46,8 @@ struct InReference {
     template<typename T>
     InReference(T const &t) : data(data_pointer(t)),
                               size(data_size(t)),
-                              info(type_id(t)),
-                              isStandardLayout(is_standard_layout(t)),
+                              info(type_id<T>()),
+                              isStandardLayout(is_standard_layout<T>::value),
                               isStdVector(is_std_vector<T>::value),
                               isFundamentalType(std::is_fundamental<T>::value) {};
 
