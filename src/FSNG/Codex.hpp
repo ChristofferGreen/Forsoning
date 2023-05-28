@@ -262,8 +262,6 @@ struct Scroll {
             if(*inref.info==typeid(char*))
                 this->itemSizes.push_back(inref.size);
             return true;
-        } else if(inref.isStdVector) {
-
         }
         return false;
     }
