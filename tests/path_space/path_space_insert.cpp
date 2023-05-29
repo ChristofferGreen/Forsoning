@@ -40,6 +40,14 @@ TEST_CASE("PathSpace2 Insert") {
         json["test"][0] += 2345;
         REQUIRE(space.toJSON() != json);
     }
+
+    SECTION("POD") {
+        REQUIRE(space.insert("/test", POD()) == true);
+
+        nlohmann::json json;
+        json["test"] += nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", 44.0} }) });
+        REQUIRE(space.toJSON() == json);
+    }
 }
 
 TEST_CASE("PathSpace Insert") {

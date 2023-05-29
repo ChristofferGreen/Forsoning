@@ -2,6 +2,8 @@
 #include <functional>
 #include <unordered_map>
 
+#include "nlohmann/json.hpp"
+
 namespace FSNG {
 namespace Converters {
 inline std::unordered_map<std::type_info const*, std::function<nlohmann::json(std::byte const *fromBytes, int size)>> toJSONConverters;

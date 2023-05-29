@@ -261,6 +261,8 @@ struct Scroll {
             std::copy(static_cast<std::byte const*>(inref.data), static_cast<std::byte const*>(inref.data)+inref.size, std::back_inserter(this->data));
             if(*inref.info==typeid(char*))
                 this->itemSizes.push_back(inref.size);
+            if(!inref.isFundamental && this->itemSizes.empty())
+                this->itemSizes.push_back(inref.size);
             return true;
         }
         return false;
@@ -292,6 +294,8 @@ struct Scroll {
         else if(*type==typeid(unsigned long long))   return this->copyArithmeticJSON<unsigned long long>  ();
         // Containers
         else if(*type==typeid(char*))                return this->copyCharArrayJSON                       (); // Also used for std::string
+        // To JSON
+        else if(Converters::toJSONConverters.contains(type)) return this->copyConverterJSON               (type);
         return {};
     }
 
@@ -300,6 +304,16 @@ struct Scroll {
     std::vector<std::unique_ptr<PathSpace2>> spaces;
 
 private:
+    auto copyConverterJSON(std::type_info const *type) const -> nlohmann::json {
+        nlohmann::json json;
+        std::byte const *ptr = reinterpret_cast<std::byte const*>(this->data.data());
+        unsigned int itemSize = this->itemSizes[0];
+        unsigned int items = this->data.size()/itemSize;
+        for(unsigned int i = 0; i < items; ++i)
+            json += Converters::toJSONConverters.at(type)(ptr+i*itemSize, itemSize);
+        return json;
+    }
+
     auto copyCharArrayJSON() const -> nlohmann::json {
         nlohmann::json json;
         char const *p = reinterpret_cast<char const*>(this->data.data());
