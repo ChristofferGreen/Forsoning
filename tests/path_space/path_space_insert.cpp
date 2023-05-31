@@ -48,6 +48,26 @@ TEST_CASE("PathSpace2 Insert") {
         json["test"] += nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", 44.0} }) });
         REQUIRE(space.toJSON() == json);
     }
+
+    SECTION("NonTrivial Class") {
+        NonTrivial nt;
+        nt.b = {1, 2, 3};
+        REQUIRE(space.insert("/test", nt) == true);
+
+        nlohmann::json json;
+        json["test"] += nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", {1, 2, 3}} }) });
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("NonTrivial Class JS") {
+        NonTrivialJS nt;
+        nt.b = {1, 2, 3};
+        REQUIRE(space.insert("/test", nt) == true);
+
+        nlohmann::json json;
+        json["test"] += nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", {1, 2, 3}} }) });
+        REQUIRE(space.toJSON() == json);
+    }
 }
 
 TEST_CASE("PathSpace Insert") {

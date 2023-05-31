@@ -78,8 +78,8 @@ struct Data {
     Data(TriviallyCopyableButNotInvocable auto const &in) {
         using InT = decltype(in);
         this->data = InReference{&in, sizeof(InT), &typeid(in)};
-        if(!Converters::toJSONConverters.contains(&typeid(in))) {
-            Converters::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size){
+        if(!Converters::toJSON.contains(&typeid(in))) {
+            Converters::toJSON[&typeid(in)] = [](std::byte const *data, int const size){
                 nlohmann::json out;
                 to_json(out, reinterpret_cast<InT>(*data));
                 return out;
@@ -92,8 +92,8 @@ struct Data {
         using InTRR = typename std::remove_reference<InT>::type;
         using InTRRRC = typename std::remove_const<InTRR>::type;
         this->data = InReference{&in, sizeof(InT), &typeid(in)};
-        if(!Converters::toJSONConverters.contains(&typeid(in))) {
-            Converters::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size) {
+        if(!Converters::toJSON.contains(&typeid(in))) {
+            Converters::toJSON[&typeid(in)] = [](std::byte const *data, int const size) {
                 nlohmann::json out;
                 InTRRRC value;
                 from_bytevec(data, value);
@@ -101,13 +101,13 @@ struct Data {
                 return out;
             };
         }
-        if(!Converters::toByteArrayConverters.contains(&typeid(in))) {
-            Converters::toByteArrayConverters[&typeid(in)] = [](std::vector<std::byte> &vec, void const *obj) {
+        if(!Converters::toByteArray.contains(&typeid(in))) {
+            Converters::toByteArray[&typeid(in)] = [](std::vector<std::byte> &vec, void const *obj) {
                 to_bytevec(vec, *static_cast<InTRR*>(obj));
             };
         }
-        if(!Converters::fromByteArrayConverters.contains(&typeid(in))) {
-            Converters::fromByteArrayConverters[&typeid(in)] = [](std::byte const *fromBytes, void *toObj) {
+        if(!Converters::fromByteArray.contains(&typeid(in))) {
+            Converters::fromByteArray[&typeid(in)] = [](std::byte const *fromBytes, void *toObj) {
                 try {
                     from_bytevec(fromBytes, *static_cast<InTRRRC*>(toObj));
                 } catch(std::exception const &e) {
@@ -123,13 +123,13 @@ struct Data {
         using InTRR = typename std::remove_reference<InT>::type;
         using InTRRRC = typename std::remove_const<InTRR>::type;
         this->data = InReference{&in, sizeof(InT), &typeid(in)};
-        if(!Converters::toJSONConverters.contains(&typeid(in))) {
-            Converters::toJSONConverters[&typeid(in)] = [](std::byte const *data, int const size) {
+        if(!Converters::toJSON.contains(&typeid(in))) {
+            Converters::toJSON[&typeid(in)] = [](std::byte const *data, int const size) {
                 return nlohmann::json::from_bson(std::vector<std::byte>(data, data+size));
             };
         }
-        if(!Converters::fromJSONConverters.contains(&typeid(in))) {
-            Converters::fromJSONConverters[&typeid(in)] = [](std::byte const *fromBytes, int const size, void *toObject) {
+        if(!Converters::fromJSON.contains(&typeid(in))) {
+            Converters::fromJSON[&typeid(in)] = [](std::byte const *fromBytes, int const size, void *toObject) {
                 try {
                     auto json = nlohmann::json::from_bson(std::vector<std::byte>(fromBytes, fromBytes+size));
                     *static_cast<InTRRRC*>(toObject) = json.get<InTRRRC>();
@@ -139,8 +139,8 @@ struct Data {
                 return true;
             };
         }
-        if(!Converters::toByteArrayConverters.contains(&typeid(in))) {
-            Converters::toByteArrayConverters[&typeid(in)] = [](std::vector<std::byte> &vec, void const *obj) {
+        if(!Converters::toByteArray.contains(&typeid(in))) {
+            Converters::toByteArray[&typeid(in)] = [](std::vector<std::byte> &vec, void const *obj) {
                 nlohmann::json out;
                 to_json(out, *static_cast<InTRR*>(obj));
                 std::vector<std::uint8_t> v_bson = nlohmann::json::to_bson(out);

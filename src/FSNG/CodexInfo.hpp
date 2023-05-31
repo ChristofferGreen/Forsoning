@@ -13,7 +13,7 @@ struct CodexInfo {
         if(*this->info==typeid(std::string) ||
            *this->info==typeid(char const*) ||
            *this->info==typeid(PathSpaceTE) ||
-           Converters::toJSONConverters.contains(this->info))
+           Converters::toJSON.contains(this->info))
            return 1;
         return this->items.nbr;
     }
@@ -47,7 +47,7 @@ struct CodexInfo {
         else if(*this->info==typeid(std::string))                  return sizeof(char)*this->items.nbr;
         else if(*this->info==typeid(PathSpaceTE))                  return 0;
         else if(*this->info==typeid(Coroutine))                    return 0;
-        else if(Converters::toJSONConverters.contains(this->info)) return this->items.size;
+        else if(Converters::toJSON.contains(this->info)) return this->items.size;
         return -1;
     }
 

@@ -50,10 +50,10 @@ struct Codex {
             *reinterpret_cast<PathSpaceTE*>(data) = this->spaces.front();
             this->spaces.erase(this->spaces.begin());
             ret = true;
-        } else if(Converters::fromByteArrayConverters.contains(info))
-            ret = Converters::fromByteArrayConverters.at(info)(this->codices.data()+this->currentByte, data);
-        else if(Converters::fromJSONConverters.contains(info))
-            ret = Converters::fromJSONConverters.at(info)(this->codices.data()+this->currentByte, this->info.begin()->dataSizeBytesSingleItem(), data);
+        } else if(Converters::fromByteArray.contains(info))
+            ret = Converters::fromByteArray.at(info)(this->codices.data()+this->currentByte, data);
+        else if(Converters::fromJSON.contains(info))
+            ret = Converters::fromJSON.at(info)(this->codices.data()+this->currentByte, this->info.begin()->dataSizeBytesSingleItem(), data);
         this->currentByte += this->info.begin()->dataSizeBytesSingleItem();
         this->popInfo();
         return ret;
@@ -77,10 +77,10 @@ struct Codex {
                 return false;
             *reinterpret_cast<PathSpaceTE*>(data) = this->spaces.front();
             ret = true;
-        } else if(Converters::fromByteArrayConverters.contains(info))
-            ret = Converters::fromByteArrayConverters.at(info)(this->codices.data()+this->currentByte, data);
-        else if(Converters::fromJSONConverters.contains(info))
-            ret = Converters::fromJSONConverters.at(info)(this->codices.data()+this->currentByte, this->info.begin()->dataSizeBytesSingleItem(), data);
+        } else if(Converters::fromByteArray.contains(info))
+            ret = Converters::fromByteArray.at(info)(this->codices.data()+this->currentByte, data);
+        else if(Converters::fromJSON.contains(info))
+            ret = Converters::fromJSON.at(info)(this->codices.data()+this->currentByte, this->info.begin()->dataSizeBytesSingleItem(), data);
         return ret;
     }
  
@@ -133,9 +133,9 @@ struct Codex {
             auto const dataRef = data.as<InReference>();
             auto const itemSize = dataRef.size;
             this->addInfo(itemSize, dataRef.info);
-            if(Converters::toByteArrayConverters.contains(dataRef.info)) {
+            if(Converters::toByteArray.contains(dataRef.info)) {
                 int const preSize = this->codices.size();
-                Converters::toByteArrayConverters[dataRef.info](this->codices, dataRef.data);
+                Converters::toByteArray[dataRef.info](this->codices, dataRef.data);
                 int const postSize = this->codices.size();
                 this->lastInfo().items.size = postSize-preSize;
             } else {
@@ -188,7 +188,7 @@ struct Codex {
                     json.push_back(std::string(reinterpret_cast<char const * const>(&this->codices[currentByte]), info.nbrChars()));
                 else if(*info.info==typeid(std::string))                  json.push_back(std::string(reinterpret_cast<char const * const>(&this->codices[currentByte]), info.nbrChars()));
                 else if(*info.info==typeid(PathSpaceTE))                  json.push_back(this->spaces[currentSpace++].toJSON());
-                else if(Converters::toJSONConverters.contains(info.info)) json.push_back(Converters::toJSONConverters[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
+                else if(Converters::toJSON.contains(info.info)) json.push_back(Converters::toJSON[info.info](reinterpret_cast<std::byte const *>(&this->codices[currentByte]), info.dataSizeBytesSingleItem()));
                 currentByte += info.dataSizeBytesSingleItem();
             }
         }
@@ -257,12 +257,17 @@ private:
 struct PathSpace2;
 struct Scroll {
     auto insert(InReference const &inref) {
-        if(inref.isStandardLayout) {
+        if(inref.isTriviallyCopyable) {
             std::copy(static_cast<std::byte const*>(inref.data), static_cast<std::byte const*>(inref.data)+inref.size, std::back_inserter(this->data));
             if(*inref.info==typeid(char*))
                 this->itemSizes.push_back(inref.size);
             if(!inref.isFundamental && this->itemSizes.empty())
                 this->itemSizes.push_back(inref.size);
+            return true;
+        } else if(Converters::toByteArray.contains(inref.info)) {
+            auto const pre = this->data.size();
+            Converters::toByteArray.at(inref.info)(this->data, inref.data);
+            this->itemSizes.push_back(this->data.size()-pre);
             return true;
         }
         return false;
@@ -295,7 +300,8 @@ struct Scroll {
         // Containers
         else if(*type==typeid(char*))                return this->copyCharArrayJSON                       (); // Also used for std::string
         // To JSON
-        else if(Converters::toJSONConverters.contains(type)) return this->copyConverterJSON               (type);
+        else if(Converters::triviallyCopyableToJSON.contains(type)) return this->triviallyCopyableToJSON(type);
+        else if(Converters::toJSON.contains(type))                  return this->toNonTriviallJSON(type);
         return {};
     }
 
@@ -304,13 +310,23 @@ struct Scroll {
     std::vector<std::unique_ptr<PathSpace2>> spaces;
 
 private:
-    auto copyConverterJSON(std::type_info const *type) const -> nlohmann::json {
+    auto triviallyCopyableToJSON(std::type_info const *type) const -> nlohmann::json {
         nlohmann::json json;
         std::byte const *ptr = reinterpret_cast<std::byte const*>(this->data.data());
         unsigned int itemSize = this->itemSizes[0];
         unsigned int items = this->data.size()/itemSize;
         for(unsigned int i = 0; i < items; ++i)
-            json += Converters::toJSONConverters.at(type)(ptr+i*itemSize, itemSize);
+            json += Converters::triviallyCopyableToJSON.at(type)(ptr+i*itemSize);
+        return json;
+    }
+    
+    auto toNonTriviallJSON(std::type_info const *type) const -> nlohmann::json {
+        nlohmann::json json;
+        std::byte const *ptr = this->data.data();
+        unsigned int itemSize = this->itemSizes[0];
+        unsigned int items = this->data.size()/itemSize;
+        for(unsigned int i = 0; i < items; ++i)
+            json += Converters::toJSON.at(type)(ptr+i*itemSize, itemSize);
         return json;
     }
 
