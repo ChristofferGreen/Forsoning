@@ -264,9 +264,15 @@ struct Scroll {
             if(!inref.isFundamental && this->itemSizes.empty())
                 this->itemSizes.push_back(inref.size);
             return true;
-        } else if(Converters::toByteArray.contains(inref.info)) {
+        } else if(Converters::toCompressedByteArray.contains(inref.info)) {
+            auto const pre = this->data.size();
+            Converters::toCompressedByteArray.at(inref.info)(this->data, inref.data);
+            this->itemSizes.push_back(this->data.size()-pre);
+            return true;
+        }else if(Converters::toByteArray.contains(inref.info)) {
             auto const pre = this->data.size();
             Converters::toByteArray.at(inref.info)(this->data, inref.data);
+            //if(this->itemSizes.empty()) // for uncompressed we only need one item size
             this->itemSizes.push_back(this->data.size()-pre);
             return true;
         }
@@ -275,33 +281,38 @@ struct Scroll {
 
     auto toJSON(std::type_info const *type) const -> nlohmann::json {
         // Arithmetic Types
-        if(*type==typeid(char))                      return this->copyArithmeticJSON<char>                ();
-        else if(*type==typeid(signed char))          return this->copyArithmeticJSON<signed char>         ();
-        else if(*type==typeid(unsigned char))        return this->copyArithmeticJSON<unsigned char>       ();
-        else if(*type==typeid(short))                return this->copyArithmeticJSON<short>               ();
-        else if(*type==typeid(short int))            return this->copyArithmeticJSON<short int>           ();
-        else if(*type==typeid(signed short))         return this->copyArithmeticJSON<signed short>        ();
-        else if(*type==typeid(signed short int))     return this->copyArithmeticJSON<signed short int>    ();
-        else if(*type==typeid(int))                  return this->copyArithmeticJSON<int>                 ();
-        else if(*type==typeid(signed))               return this->copyArithmeticJSON<signed>              ();
-        else if(*type==typeid(signed int))           return this->copyArithmeticJSON<signed int>          ();
-        else if(*type==typeid(unsigned))             return this->copyArithmeticJSON<unsigned>            ();
-        else if(*type==typeid(unsigned int))         return this->copyArithmeticJSON<unsigned int>        ();
-        else if(*type==typeid(long))                 return this->copyArithmeticJSON<long>                ();
-        else if(*type==typeid(long int))             return this->copyArithmeticJSON<long int>            ();
-        else if(*type==typeid(signed long))          return this->copyArithmeticJSON<signed long>         ();
-        else if(*type==typeid(signed long int))      return this->copyArithmeticJSON<signed long int>     ();
-        else if(*type==typeid(unsigned long))        return this->copyArithmeticJSON<unsigned long>       ();
-        else if(*type==typeid(unsigned long int))    return this->copyArithmeticJSON<unsigned long int>   ();
-        else if(*type==typeid(long long))            return this->copyArithmeticJSON<long long>           ();
-        else if(*type==typeid(long long int))        return this->copyArithmeticJSON<long long int>       ();
-        else if(*type==typeid(signed long long int)) return this->copyArithmeticJSON<signed long long int>();
-        else if(*type==typeid(unsigned long long))   return this->copyArithmeticJSON<unsigned long long>  ();
+        if(*type==typeid(char))                      return this->scalarToJSON<char>                ();
+        else if(*type==typeid(signed char))          return this->scalarToJSON<signed char>         ();
+        else if(*type==typeid(unsigned char))        return this->scalarToJSON<unsigned char>       ();
+        else if(*type==typeid(short))                return this->scalarToJSON<short>               ();
+        else if(*type==typeid(short int))            return this->scalarToJSON<short int>           ();
+        else if(*type==typeid(signed short))         return this->scalarToJSON<signed short>        ();
+        else if(*type==typeid(unsigned short))       return this->scalarToJSON<unsigned short>      ();
+        else if(*type==typeid(signed short int))     return this->scalarToJSON<signed short int>    ();
+        else if(*type==typeid(int))                  return this->scalarToJSON<int>                 ();
+        else if(*type==typeid(signed))               return this->scalarToJSON<signed>              ();
+        else if(*type==typeid(signed int))           return this->scalarToJSON<signed int>          ();
+        else if(*type==typeid(unsigned))             return this->scalarToJSON<unsigned>            ();
+        else if(*type==typeid(unsigned int))         return this->scalarToJSON<unsigned int>        ();
+        else if(*type==typeid(long))                 return this->scalarToJSON<long>                ();
+        else if(*type==typeid(long int))             return this->scalarToJSON<long int>            ();
+        else if(*type==typeid(signed long))          return this->scalarToJSON<signed long>         ();
+        else if(*type==typeid(signed long int))      return this->scalarToJSON<signed long int>     ();
+        else if(*type==typeid(unsigned long))        return this->scalarToJSON<unsigned long>       ();
+        else if(*type==typeid(unsigned long int))    return this->scalarToJSON<unsigned long int>   ();
+        else if(*type==typeid(long long))            return this->scalarToJSON<long long>           ();
+        else if(*type==typeid(long long int))        return this->scalarToJSON<long long int>       ();
+        else if(*type==typeid(signed long long int)) return this->scalarToJSON<signed long long int>();
+        else if(*type==typeid(unsigned long long))   return this->scalarToJSON<unsigned long long>  ();
+        else if(*type==typeid(double))               return this->scalarToJSON<double>              ();
+        else if(*type==typeid(long double))          return this->scalarToJSON<long double>         ();
+        else if(*type==typeid(bool))                 return this->scalarToJSON<bool>                ();
+        else if(*type==typeid(wchar_t))              return this->scalarToJSON<wchar_t>             ();
         // Containers
-        else if(*type==typeid(char*))                return this->copyCharArrayJSON                       (); // Also used for std::string
+        else if(*type==typeid(char*))                return this->charArrayToJSON                   (); // Also used for std::string
         // To JSON
         else if(Converters::triviallyCopyableToJSON.contains(type)) return this->triviallyCopyableToJSON(type);
-        else if(Converters::toJSON.contains(type))                  return this->toNonTriviallJSON(type);
+        else if(Converters::toJSON.contains(type))                  return this->nonTriviallToJSON(type);
         return {};
     }
 
@@ -320,7 +331,7 @@ private:
         return json;
     }
     
-    auto toNonTriviallJSON(std::type_info const *type) const -> nlohmann::json {
+    auto nonTriviallToJSON(std::type_info const *type) const -> nlohmann::json {
         nlohmann::json json;
         std::byte const *ptr = this->data.data();
         unsigned int itemSize = this->itemSizes[0];
@@ -330,7 +341,7 @@ private:
         return json;
     }
 
-    auto copyCharArrayJSON() const -> nlohmann::json {
+    auto charArrayToJSON() const -> nlohmann::json {
         nlohmann::json json;
         char const *p = reinterpret_cast<char const*>(this->data.data());
         for(auto const i : this->itemSizes) {
@@ -341,7 +352,7 @@ private:
     }
 
     template<typename T>
-    auto copyArithmeticJSON() const -> nlohmann::json {
+    auto scalarToJSON() const -> nlohmann::json {
         nlohmann::json json;
         T const *ptr = reinterpret_cast<T const*>(this->data.data());
         unsigned int amount = this->data.size()/sizeof(T);

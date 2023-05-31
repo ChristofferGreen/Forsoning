@@ -43,9 +43,11 @@ TEST_CASE("PathSpace2 Insert") {
 
     SECTION("POD") {
         REQUIRE(space.insert("/test", POD()) == true);
+        REQUIRE(space.insert("/test", POD()) == true);
 
         nlohmann::json json;
         json["test"] += nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", 44.0} }) });
+        json["test"][0] += nlohmann::json::object({ {"a", 13}, {"b", 44.0} });
         REQUIRE(space.toJSON() == json);
     }
 
@@ -53,9 +55,11 @@ TEST_CASE("PathSpace2 Insert") {
         NonTrivial nt;
         nt.b = {1, 2, 3};
         REQUIRE(space.insert("/test", nt) == true);
+        REQUIRE(space.insert("/test", nt) == true);
 
         nlohmann::json json;
         json["test"] += nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", {1, 2, 3}} }) });
+        json["test"][0] += nlohmann::json::object({ {"a", 13}, {"b", {1, 2, 3}} });
         REQUIRE(space.toJSON() == json);
     }
 
@@ -63,9 +67,120 @@ TEST_CASE("PathSpace2 Insert") {
         NonTrivialJS nt;
         nt.b = {1, 2, 3};
         REQUIRE(space.insert("/test", nt) == true);
+        REQUIRE(space.insert("/test", nt) == true);
 
         nlohmann::json json;
         json["test"] += nlohmann::json::array({ nlohmann::json::object({ {"a", 13}, {"b", {1, 2, 3}} }) });
+        json["test"][0] += nlohmann::json::object({ {"a", 13}, {"b", {1, 2, 3}} });
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Bool") {
+        REQUIRE(space.insert("/test", static_cast<bool>(true)) == true);
+        REQUIRE(space.insert("/test", static_cast<bool>(false)) == true);
+        REQUIRE(space.insert("/test", static_cast<bool>(true)) == true);
+        nlohmann::json json;
+        json["test"] += {static_cast<bool>(true), static_cast<bool>(false), static_cast<bool>(true)};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Char*") {
+        REQUIRE(space.insert("/test", "Test String") == true);
+        REQUIRE(space.insert("/test", "Test String2") == true);
+        REQUIRE(space.insert("/test", "Test String3") == true);
+        nlohmann::json json;
+        json["test"] += {"Test String", "Test String2", "Test String3"};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Signed Char") {
+        REQUIRE(space.insert("/test", static_cast<signed char>('C')) == true);
+        nlohmann::json json;
+        json["test"] += {static_cast<signed char>('C')};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Unsigned Char") {
+        REQUIRE(space.insert("/test", static_cast<unsigned char>('C')) == true);
+        nlohmann::json json;
+        json["test"] += {static_cast<unsigned char>('C')};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("wchar_t") {
+        REQUIRE(space.insert("/test", static_cast<wchar_t>('C')) == true);
+        nlohmann::json json;
+        json["test"] += {static_cast<wchar_t>('C')};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Short") {
+        REQUIRE(space.insert("/test", static_cast<short>(43)) == true);
+        nlohmann::json json;
+        json["test"] += {static_cast<short>(43)};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Unsigned Short") {
+        REQUIRE(space.insert("/test", static_cast<unsigned short>(-43)) == true);
+        nlohmann::json json;
+        json["test"] += {static_cast<unsigned short>(-43)};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Int") {
+        REQUIRE(space.insert("/test", static_cast<int>(43)) == true);
+        nlohmann::json json;
+        json["test"] += {static_cast<int>(43)};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Unsigned Int") {
+        REQUIRE(space.insert("/test", static_cast<unsigned int>(-43)) == true);
+        nlohmann::json json;
+        json["test"] += {static_cast<unsigned int>(-43)};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Long") {
+        REQUIRE(space.insert("/test", static_cast<long>(43)) == true);
+        nlohmann::json json;
+        json["test"] += {static_cast<long>(43)};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Unsigned Long") {
+        REQUIRE(space.insert("/test", static_cast<unsigned long>(-43)) == true);
+        nlohmann::json json;
+        json["test"] += {static_cast<unsigned long>(-43)};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Long Long") {
+        REQUIRE(space.insert("/test", static_cast<long long>(43)) == true);
+        nlohmann::json json;
+        json["test"] += {static_cast<long long>(43)};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Unsigned Long Long") {
+        REQUIRE(space.insert("/test", static_cast<unsigned long long>(-43)) == true);
+        nlohmann::json json;
+        json["test"] += {static_cast<unsigned long long>(-43)};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Double") {
+        REQUIRE(space.insert("/test", 5.45) == true);
+        nlohmann::json json;
+        json["test"] += {5.45};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Long Double") {
+        REQUIRE(space.insert("/test", static_cast<long double>(5.45)) == true);
+        nlohmann::json json;
+        json["test"] += {static_cast<long double>(5.45)};
         REQUIRE(space.toJSON() == json);
     }
 }

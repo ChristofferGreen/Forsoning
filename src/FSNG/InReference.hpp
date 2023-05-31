@@ -26,12 +26,23 @@ struct InReference {
     InReference() = default;
     InReference(void const *data, int const size, std::type_info const *info) : data(data), size(size), info(info) {};
 
-    // std::vector
+    // std::vector<scalar>
     template<typename T>
-    requires std::same_as<T, std::vector<typename T::value_type>> && std::is_fundamental<typename T::value_type>::value
+    requires std::same_as<T, std::vector<typename T::value_type>> && std::is_scalar<typename T::value_type>::value
     InReference(T const &t) : data(static_cast<void const*>(t.data())),
                               size(t.size()*sizeof(typename T::value_type)),
                               info(&typeid(int)),
+                              isTriviallyCopyable(true),
+                              isFundamental(true) {
+                                int a = 0;
+                                a++;
+                              }
+    // Scalar
+    template<typename T>
+    requires std::is_scalar<T>::value
+    InReference(T const &t) : data(static_cast<void const*>(&t)),
+                              size(sizeof(T)),
+                              info(&typeid(T)),
                               isTriviallyCopyable(true),
                               isFundamental(true) {
                                 int a = 0;
@@ -120,7 +131,7 @@ struct InReference {
             };
         }
     }
-      // Non-fundamental types that are JSON convertable and not trivially copyable but does not have byte vector conversion
+    // Non-fundamental types that are JSON convertable and not trivially copyable but does not have byte vector conversion
     template<typename T>
     requires has_json_conversion<T> && (!std::is_fundamental_v<T>) && (!std::is_trivially_copyable<T>::value) && (!has_byte_vector_conversion<T>)
     InReference(T const &t) : data(static_cast<void const*>(&t)),
@@ -144,8 +155,8 @@ struct InReference {
                 return true;
             };
         }
-        if(!Converters::toByteArray.contains(this->info)) {
-            Converters::toByteArray[this->info] = [](std::vector<std::byte> &vec, void const *obj) {
+        if(!Converters::toCompressedByteArray.contains(this->info)) {
+            Converters::toCompressedByteArray[this->info] = [](std::vector<std::byte> &vec, void const *obj) {
                 nlohmann::json out;
                 to_json(out, *static_cast<T const*>(obj));
                 std::vector<std::uint8_t> v_bson = nlohmann::json::to_bson(out);
@@ -153,7 +164,7 @@ struct InReference {
             };
         }
     }
-    // Other Non-fundamental types
+    // Other types
     template<typename T>
     InReference(T const &t) : data(static_cast<void const*>(&t)),
                               size(sizeof(T)),
