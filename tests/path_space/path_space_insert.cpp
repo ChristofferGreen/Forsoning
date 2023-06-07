@@ -1,6 +1,7 @@
 #include <catch.hpp>
 
 #include "PathSpace.hpp"
+#include "PathSpace2.hpp"
 #include "test_utils.hpp"
 
 #include <iostream>
@@ -181,6 +182,44 @@ TEST_CASE("PathSpace2 Insert") {
         REQUIRE(space.insert("/test", static_cast<long double>(5.45)) == true);
         nlohmann::json json;
         json["test"] += {static_cast<long double>(5.45)};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Multiple Types") { // implement via get due to random order
+        /*nlohmann::json json;
+        REQUIRE(space.insert("/test", 5) == true);
+        json["test"] += {5};
+        REQUIRE(space.toJSON() == json);
+
+        REQUIRE(space.insert("/test", "hello") == true);
+        json["test"].push_back("hello");
+        REQUIRE(space.toJSON() == json);
+
+        REQUIRE(space.insert("/test", "hello2") == true);
+        json["test"].push_back("hello2");
+        REQUIRE(space.toJSON() == json);    
+
+        REQUIRE(space.insert("/test", 34) == true);
+        json["test"].push_back(34);
+        REQUIRE(space.toJSON() == json);*/
+    }
+
+    SECTION("deep") {
+        REQUIRE(space.insert("/test/test2", 5) == true);
+        nlohmann::json json;
+        json["test"] += nlohmann::json::array({ nlohmann::json::object({ {"test2", {5}} }) });
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("space") {
+        PathSpace2 space2;
+        REQUIRE(space.insert("/space", space2) == true);
+        nlohmann::json json;
+        json["space"] += nlohmann::json::array({nlohmann::json()});
+        REQUIRE(space.toJSON() == json);
+
+        REQUIRE(space.insert("/space/val", 34) == true);
+        json["space"][0]["val"] = {34};
         REQUIRE(space.toJSON() == json);
     }
 }

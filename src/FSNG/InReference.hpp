@@ -22,6 +22,9 @@ concept has_json_conversion = requires(typename std::remove_const<T>::type t, nl
     to_json(json, t);
 };
 
+template <typename T>
+concept IsPathSpace2 = requires { typename T::IsPathSpace2Type; };
+
 struct InReference {
     InReference() = default;
     InReference(void const *data, int const size, std::type_info const *info) : data(data), size(size), info(info) {};
@@ -164,6 +167,17 @@ struct InReference {
             };
         }
     }
+    // PathSpace
+    template<IsPathSpace2 T>
+    InReference(T const &t) : data(static_cast<void const*>(&t)),
+                              size(sizeof(T)),
+                              info(&typeid(T)),
+                              isTriviallyCopyable(false),
+                              isFundamental(false),
+                              isPathSpace(true) {
+                                int a = 0;
+                                a++;
+                              }
     // Other types
     template<typename T>
     InReference(T const &t) : data(static_cast<void const*>(&t)),
@@ -180,5 +194,6 @@ struct InReference {
     std::type_info const *info = nullptr;
     bool isTriviallyCopyable = false;
     bool isFundamental = false;
+    bool isPathSpace = false;
 };
 } 
