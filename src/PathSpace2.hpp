@@ -27,8 +27,10 @@ struct PathSpace2 {
     virtual auto insert(Path const &range, InReference const &inref) -> bool {
         if(!range.isAtData() && range.spaceName()) {
             if(!this->codices.contains(range.spaceName().value())) {
-                this->codices[range.spaceName().value()].insert(PathSpace2{});
+                if(!this->codices[range.spaceName().value()].insert(PathSpace2{}))
+                    return false;
             }
+            return this->codices[range.spaceName().value()].insert(range.next(), inref);
         }
         return this->codices[range.dataName()].insert(inref);
     }
@@ -47,5 +49,8 @@ protected:
     PathSpace2 *root = nullptr;
     mutable std::shared_mutex mutex;
 };
+
+#include "FSNG/Codex2Impl.hpp"
+#include "FSNG/ScrollImpl.hpp"
 
 }

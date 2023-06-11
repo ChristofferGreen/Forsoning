@@ -207,7 +207,7 @@ TEST_CASE("PathSpace2 Insert") {
     SECTION("deep") {
         REQUIRE(space.insert("/test/test2", 5) == true);
         nlohmann::json json;
-        json["test"] += nlohmann::json::array({ nlohmann::json::object({ {"test2", {5}} }) });
+        json["test"] += nlohmann::json::array({ nlohmann::json::object({ {"test2", {{5}}} }) });
         REQUIRE(space.toJSON() == json);
     }
 
@@ -219,7 +219,7 @@ TEST_CASE("PathSpace2 Insert") {
         REQUIRE(space.toJSON() == json);
 
         REQUIRE(space.insert("/space/val", 34) == true);
-        json["space"][0]["val"] = {34};
+        json["space"][0][0]["val"] += {34};
         REQUIRE(space.toJSON() == json);
     }
 }

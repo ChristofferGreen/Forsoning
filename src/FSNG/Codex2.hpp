@@ -21,6 +21,8 @@ struct PathSpace2;
 struct Codex2 {
     Codex2() = default;
 
+    auto insert(Path const &range, InReference const &inref) -> bool;
+
     auto insert(InReference const &inref) {
         return this->scrolls[inref.info].insert(inref);
     }

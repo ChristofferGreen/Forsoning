@@ -34,6 +34,10 @@ target_include_directories(ForsoningTest
     ${DepIncludes}
 )
 
+target_compile_options(ForsoningTest PRIVATE
+  -Wno-deprecated-declarations
+)
+
 target_compile_definitions(ForsoningTest
   PUBLIC
     CATCH_AMALGAMATED_CUSTOM_MAIN

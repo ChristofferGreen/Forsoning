@@ -17,6 +17,8 @@ namespace FSNG {
 
 struct PathSpace2;
 struct Scroll {
+    auto insert(Path const &range, InReference const &inref) -> bool;
+
     auto insert(InReference const &inref) {
         if(inref.isTriviallyCopyable) {
             std::copy(static_cast<std::byte const*>(inref.data), static_cast<std::byte const*>(inref.data)+inref.size, std::back_inserter(this->data));
@@ -74,6 +76,7 @@ struct Scroll {
         else if(*type==typeid(wchar_t))              return this->scalarToJSON<wchar_t>             ();
         // Containers
         else if(*type==typeid(char*))                return this->charArrayToJSON                   (); // Also used for std::string
+        else if(!this->spaces.empty())               return this->spacesToJSON                      ();
         // To JSON
         else if(Converters::triviallyCopyableToJSON.contains(type)) return this->triviallyCopyableToJSON(type);
         else if(Converters::toJSON.contains(type))                  return this->nonTriviallToJSON(type);
@@ -85,6 +88,8 @@ struct Scroll {
     std::vector<std::unique_ptr<PathSpace2>> spaces;
 
 private:
+    auto spacesToJSON() const -> nlohmann::json;
+
     auto triviallyCopyableToJSON(std::type_info const *type) const -> nlohmann::json {
         nlohmann::json json;
         std::byte const *ptr = reinterpret_cast<std::byte const*>(this->data.data());
