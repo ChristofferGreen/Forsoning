@@ -17,6 +17,20 @@ namespace FSNG {
 
 struct PathSpace2;
 struct Scroll {
+    Scroll() = default;
+
+    Scroll& operator=(const Scroll& other) {
+        this->data = other.data;
+        this->itemSizes = other.itemSizes;
+        return *this;
+    }
+
+    Scroll(Scroll const &other) {
+        this->data = other.data;
+        this->itemSizes = other.itemSizes;
+    }
+
+    auto grab(Path const &range, void *obj, std::type_info const *info) -> bool;
     auto insert(Path const &range, InReference const &inref) -> bool;
 
     auto insert(InReference const &inref) {

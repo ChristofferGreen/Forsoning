@@ -64,6 +64,10 @@ struct Path {
         return current==end;
     }
 
+    auto isAtSpace() const -> bool {
+        return current!=end;
+    }
+
     auto isAtRoot() const -> bool {
         return this->level==0;
     }

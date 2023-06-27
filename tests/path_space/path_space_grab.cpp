@@ -1,6 +1,7 @@
 #include <catch.hpp>
 
 #include "PathSpace.hpp"
+#include "PathSpace2.hpp"
 #include "test_utils.hpp"
 
 using namespace FSNG;
@@ -12,6 +13,19 @@ auto check_grab(auto &space, auto const &path, auto const &testValue) {
     auto const val = space.template grab<InTRRRC>(path);
     REQUIRE(val.has_value());
     REQUIRE(val.value()==testValue);
+}
+
+TEST_CASE("PathSpace2 Grab") {
+    PathSpace2 space;
+
+    SECTION("Grab Simple") {
+        REQUIRE(space.insert("/test", 5) == true);
+        REQUIRE(space.insert("/test", 6) == true);
+        auto const val = space.grab<int>("/test");
+        REQUIRE(val.value() == 5);
+        auto const val2 = space.grab<int>("/test");
+        REQUIRE(val2.value() == 6);
+    }
 }
 
 TEST_CASE("PathSpace Grab") {

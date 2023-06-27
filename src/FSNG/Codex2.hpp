@@ -21,12 +21,19 @@ struct PathSpace2;
 struct Codex2 {
     Codex2() = default;
 
+    Codex2& operator=(const Codex2& other) {
+        this->scrolls = other.scrolls;
+        return *this;
+    }
+
     auto insert(Path const &range, InReference const &inref) -> bool;
 
     auto insert(InReference const &inref) {
         return this->scrolls[inref.info].insert(inref);
     }
-
+    
+    auto grab(Path const &range, void *obj, std::type_info const *info) -> bool;
+    
     virtual auto toJSON() const -> nlohmann::json {
         nlohmann::json json;
         for(auto const &[type, scroll] : this->scrolls)
