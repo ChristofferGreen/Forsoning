@@ -26,6 +26,10 @@ struct Codex2 {
         return *this;
     }
 
+    Codex2(Codex2 const &other) {
+        *this = other;
+    }
+
     auto insert(Path const &range, InReference const &inref) -> bool;
 
     auto insert(InReference const &inref) {

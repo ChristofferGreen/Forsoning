@@ -22,12 +22,13 @@ struct Scroll {
     Scroll& operator=(const Scroll& other) {
         this->data = other.data;
         this->itemSizes = other.itemSizes;
+        for(auto const &space : other.spaces)
+            this->spaces.push_back(std::make_unique<PathSpace2>(*space.get()));
         return *this;
     }
 
     Scroll(Scroll const &other) {
-        this->data = other.data;
-        this->itemSizes = other.itemSizes;
+        *this = other;
     }
 
     auto grab(Path const &range, void *obj, std::type_info const *info) -> bool;

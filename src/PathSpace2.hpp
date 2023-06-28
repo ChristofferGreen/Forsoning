@@ -17,7 +17,9 @@ namespace FSNG {
 struct PathSpace2 {
     PathSpace2() = default;
 
-    PathSpace2(PathSpace2 const &other) {}
+    PathSpace2(PathSpace2 const &other) {
+        *this = other;
+    }
  
     PathSpace2& operator=(const PathSpace2& other) {
         this->codices = other.codices;
