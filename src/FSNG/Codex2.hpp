@@ -33,7 +33,9 @@ struct Codex2 {
     auto insert(Path const &range, InReference const &inref) -> bool;
 
     auto insert(InReference const &inref) {
-        return this->scrolls[inref.info].insert(inref);
+        if(!this->scrolls.contains(inref.info))
+            this->scrolls.emplace(inref.info, Scroll(inref));
+        return this->scrolls.at(inref.info).insert(inref);
     }
     
     auto grab(Path const &range, void *obj, std::type_info const *info) -> bool;

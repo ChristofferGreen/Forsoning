@@ -14,5 +14,6 @@ inline std::unordered_map<std::type_info const*, std::function<void          (st
 inline std::unordered_map<std::type_info const*, std::function<bool          (std::byte const *fromBytes, int size, void *toObject)>> fromJSON;
 inline std::unordered_map<std::type_info const*, std::function<bool          (std::byte const *fromBytes, void *toObj)>>              fromByteArray;
 inline std::unordered_map<std::type_info const*, std::function<bool          (std::byte const *fromBytes, void *toObj)>>              fromCompressedByteArray;
+
 };
 }

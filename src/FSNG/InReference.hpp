@@ -26,6 +26,10 @@ template <typename T>
 concept IsPathSpace2 = requires { typename T::IsPathSpace2Type; };
 
 struct InReference {
+    static InReference PathSpace() {
+        return {};
+    }
+
     InReference() = default;
     InReference(void const *data, int const size, std::type_info const *info) : data(data), size(size), info(info) {};
 
@@ -79,7 +83,8 @@ struct InReference {
                                    size(N*sizeof(T)),
                                    info(&typeid(T)),
                                    isTriviallyCopyable(true),
-                                   isFundamental(true) {
+                                   isFundamental(true),
+                                   isArray(true) {
                                         int a = 0;
                                         a++;
                                    }
@@ -195,5 +200,6 @@ struct InReference {
     bool isTriviallyCopyable = false;
     bool isFundamental = false;
     bool isPathSpace = false;
+    bool isArray = false;
 };
 } 

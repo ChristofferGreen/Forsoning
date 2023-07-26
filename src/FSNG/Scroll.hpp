@@ -15,13 +15,23 @@
 
 namespace FSNG {
 
+inline auto trivially_copyable_to_byte_vec(std::vector<std::byte> &vec, InReference const &inref) {
+    std::copy(static_cast<std::byte const*>(inref.data),
+              static_cast<std::byte const*>(inref.data)+inref.size,
+              std::back_inserter(vec));
+}
+
 struct PathSpace2;
 struct Scroll {
-    Scroll() = default;
+    Scroll(InReference const &inref) {
+        if(inref.isTriviallyCopyable)
+            this->toByteVec = &trivially_copyable_to_byte_vec;
+    }
 
     Scroll& operator=(const Scroll& other) {
         this->data = other.data;
         this->itemSizes = other.itemSizes;
+        this->toByteVec = other.toByteVec;
         for(auto const &space : other.spaces)
             this->spaces.push_back(std::make_unique<PathSpace2>(*space.get()));
         return *this;
@@ -36,7 +46,7 @@ struct Scroll {
 
     auto insert(InReference const &inref) {
         if(inref.isTriviallyCopyable) {
-            std::copy(static_cast<std::byte const*>(inref.data), static_cast<std::byte const*>(inref.data)+inref.size, std::back_inserter(this->data));
+            this->toByteVec(this->data, inref);
             if(*inref.info==typeid(char*))
                 this->itemSizes.push_back(inref.size);
             if(!inref.isFundamental && this->itemSizes.empty())
@@ -101,6 +111,8 @@ struct Scroll {
     std::vector<std::byte> data; // Could be Ticket if type is Coroutine
     std::vector<unsigned int> itemSizes;
     std::vector<std::unique_ptr<PathSpace2>> spaces;
+
+    auto (*toByteVec)(std::vector<std::byte> &vec, InReference const &inref) -> void = nullptr;
 
 private:
     auto spacesToJSON() const -> nlohmann::json;

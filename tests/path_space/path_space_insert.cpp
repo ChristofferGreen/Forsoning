@@ -87,6 +87,13 @@ TEST_CASE("PathSpace2 Insert") {
 
     SECTION("Char*") {
         REQUIRE(space.insert("/test", "Test String") == true);
+        nlohmann::json json;
+        json["test"] += {"Test String"};
+        REQUIRE(space.toJSON() == json);
+    }
+    
+    SECTION("Char*2") {
+        REQUIRE(space.insert("/test", "Test String") == true);
         REQUIRE(space.insert("/test", "Test String2") == true);
         REQUIRE(space.insert("/test", "Test String3") == true);
         nlohmann::json json;
@@ -133,6 +140,14 @@ TEST_CASE("PathSpace2 Insert") {
         REQUIRE(space.insert("/test", static_cast<int>(43)) == true);
         nlohmann::json json;
         json["test"] += {static_cast<int>(43)};
+        REQUIRE(space.toJSON() == json);
+    }
+
+    SECTION("Int Array") {
+        int a[5]{0, 1, 2, 3, 4};
+        REQUIRE(space.insert("/test", a) == true);
+        nlohmann::json json;
+        json["test"] += a;
         REQUIRE(space.toJSON() == json);
     }
 
