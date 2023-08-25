@@ -65,7 +65,7 @@ private:
         if(range.isAtSpace())
             if(!this->codices.contains(range.spaceName().value()))
                 return false;
-        return this->codices[range.spaceName().value()].grab(range, obj, info);
+        return this->codices.at(range.spaceName().value()).grab(range, obj, info);
     }
 };
 
