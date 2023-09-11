@@ -34,9 +34,11 @@ target_include_directories(ForsoningTest
     ${DepIncludes}
 )
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 target_compile_options(ForsoningTest PRIVATE
   -Wno-deprecated-declarations
 )
+endif()
 
 target_compile_definitions(ForsoningTest
   PUBLIC

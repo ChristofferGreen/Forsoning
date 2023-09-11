@@ -21,15 +21,15 @@ inline auto grab_built_in(std::vector<std::byte> &data, void *obj, std::type_inf
     if(data.size()==0)
         return false;
     if(type==typeid(std::string) && typeid(T)==typeid(char*)) {
-        *reinterpret_cast<std::string*>(obj) = std::string(*reinterpret_cast<T const*>(data.data()), *this->itemSizes.begin());
+        /**reinterpret_cast<std::string*>(obj) = std::string(reinterpret_cast<char const*>(data.data()), *this->itemSizes.begin());
         data.erase(data.begin(), data.begin() + sizeof(T));
-        this->itemSizes.erase(data.begin(), data.begin() + 1);
+        this->itemSizes.erase(data.begin(), data.begin() + 1);*/
         return true;
     }
     else if(type==typeid(T)) {
         *reinterpret_cast<T*>(obj) = *reinterpret_cast<T const*>(data.data());
         data.erase(data.begin(), data.begin() + sizeof(T));
-        data.itemSizes.erase(data.begin(), data.begin() + 1);
+        //data.itemSizes.erase(data.begin(), data.begin() + 1);
         return true;
     }
     return false;
