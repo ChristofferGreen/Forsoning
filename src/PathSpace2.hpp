@@ -30,7 +30,7 @@ struct PathSpace2 {
     template<typename T>
     inline auto grab(Path const &range) -> std::optional<T> {
         T obj;
-        if(this->grabImpl(range, &obj, &typeid(T)))
+        if(this->grabImpl(range, &obj, &typeid(T), sizeof(T)))
             return obj;
         return std::nullopt;
     }
@@ -61,11 +61,11 @@ protected:
     mutable std::shared_mutex mutex;
 
 private:
-    virtual auto grabImpl(Path const &range, void *obj, std::type_info const *info) -> bool {
+    virtual auto grabImpl(Path const &range, void *obj, std::type_info const *info, std::size_t const size) -> bool {
         if(range.isAtSpace())
             if(!this->codices.contains(range.spaceName().value()))
                 return false;
-        return this->codices.at(range.spaceName().value()).grab(range, obj, info);
+        return this->codices.at(range.spaceName().value()).grab(range, obj, info, size);
     }
 };
 

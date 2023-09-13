@@ -38,7 +38,7 @@ struct Codex2 {
         return this->scrolls.at(inref.info).insert(inref);
     }
     
-    auto grab(Path const &range, void *obj, std::type_info const *info) -> bool;
+    auto grab(Path const &range, void *obj, std::type_info const *info, std::size_t const size) -> bool;
     
     virtual auto toJSON() const -> nlohmann::json {
         nlohmann::json json;

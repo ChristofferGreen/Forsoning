@@ -15,17 +15,23 @@
 
 namespace FSNG {
 
-inline auto trivially_copyable_to_byte_vec(std::vector<std::byte> &vec, InReference const &inref) {
+inline auto trivially_copyable_to_byte_vec(std::vector<std::byte> &vec, InReference const &inref) -> void {
     std::copy(static_cast<std::byte const*>(inref.data),
               static_cast<std::byte const*>(inref.data)+inref.size,
               std::back_inserter(vec));
 }
 
+inline auto trivially_copyable_from_byte_vec(void *destination, void const * const source, const std::size_t size) -> void {
+    std::memcpy(destination, source, size);
+}
+
 struct PathSpace2;
 struct Scroll {
     Scroll(InReference const &inref) {
-        if(inref.isTriviallyCopyable)
+        if(inref.isTriviallyCopyable) {
             this->toByteVec = &trivially_copyable_to_byte_vec;
+            this->fromByteVec = &trivially_copyable_from_byte_vec;
+        }
     }
 
     Scroll& operator=(const Scroll& other) {
@@ -41,15 +47,13 @@ struct Scroll {
         *this = other;
     }
 
-    auto grab(Path const &range, void *obj, std::type_info const *info) -> bool;
+    auto grab(Path const &range, void *obj, std::type_info const *info, std::size_t const size) -> bool;
     auto insert(Path const &range, InReference const &inref) -> bool;
 
     auto insert(InReference const &inref) {
         if(inref.isTriviallyCopyable) {
             this->toByteVec(this->data, inref);
             if(*inref.info==typeid(char*))
-                this->itemSizes.push_back(inref.size);
-            if(!inref.isFundamental && this->itemSizes.empty())
                 this->itemSizes.push_back(inref.size);
             return true;
         } else if(Converters::toCompressedByteArray.contains(inref.info)) {
@@ -113,8 +117,31 @@ struct Scroll {
     std::vector<std::unique_ptr<PathSpace2>> spaces;
 
     auto (*toByteVec)(std::vector<std::byte> &vec, InReference const &inref) -> void = nullptr;
+    auto (*fromByteVec)(void *destination, void const * const source, const std::size_t size) -> void = nullptr;
 
 private:
+    template<typename T>
+    inline auto grab_builtin(void *obj, std::type_info const &type) -> bool {
+        /* Todo: Have a start index that gets moved on every grab instead of erasing from vector.
+                    When the start index icrosses the halfway point->reallocate vector.
+        */
+        if(this->data.size()==0)
+            return false;
+        if(type==typeid(std::string) && typeid(T)==typeid(char*)) {
+            *reinterpret_cast<std::string*>(obj) = std::string(reinterpret_cast<char const*>(this->data.data()), *this->itemSizes.begin());
+            this->data.erase(this->data.begin(), this->data.begin() + *this->itemSizes.begin());
+            this->itemSizes.erase(this->itemSizes.begin(), this->itemSizes.begin() + 1);
+            return true;
+        }
+        else if(type==typeid(T)) {
+            *reinterpret_cast<T*>(obj) = *reinterpret_cast<T const*>(this->data.data());
+            data.erase(this->data.begin(), this->data.begin() + sizeof(T));
+            //this->itemSizes.erase(itemSizes.begin(), itemSizes.begin() + 1);
+            return true;
+        }
+        return false;
+    }
+
     auto spacesToJSON() const -> nlohmann::json;
 
     auto triviallyCopyableToJSON(std::type_info const *type) const -> nlohmann::json {

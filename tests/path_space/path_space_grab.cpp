@@ -50,6 +50,24 @@ TEST_CASE("PathSpace2 Grab") {
         REQUIRE(space.insert("/test", 234) == true);
         REQUIRE(space.grab<int>("/test") == 234);
     }
+
+    SECTION("Grab POD") {
+        POD const pod1;
+        REQUIRE(space.insert("/test", pod1) == true);
+        auto const pod2 = space.grab<POD>("/test");
+        REQUIRE(pod2.has_value());
+        REQUIRE(pod1 == pod2.value());
+    }
+
+    SECTION("Grab NonTrivial Class") {
+        NonTrivial nt;
+        nt.b = {1, 2, 3};
+        REQUIRE(space.insert("/test", nt) == true);
+
+        auto const nt2 = space.grab<NonTrivial>("/test");
+        REQUIRE(nt2.has_value());
+        REQUIRE(nt == nt2.value());
+    }    
 }
 
 TEST_CASE("PathSpace Grab") {

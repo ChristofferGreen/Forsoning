@@ -25,6 +25,36 @@ concept has_json_conversion = requires(typename std::remove_const<T>::type t, nl
 template <typename T>
 concept IsPathSpace2 = requires { typename T::IsPathSpace2Type; };
 
+struct TypeInfo {
+    TypeInfo() = default;
+
+    // std::string
+    template<typename T>
+    requires std::same_as<T, std::string>
+    TypeInfo() : element_size(sizeof(std::string::value_type)),
+                 type(&typeid(char*)),
+                 isTriviallyCopyable(false),
+                 isInternalDataTriviallyCopyable(true),
+                 isFundamental(false) {}
+
+    template<typename T>
+    TypeInfo() : element_size(sizeof(T)),
+                 type(&typeid(T)),
+                 isTriviallyCopyable(std::is_trivially_copyable<T>::value),
+                 isInternalDataTriviallyCopyable(std::is_trivially_copyable<T>::value),
+                 isFundamental(std::is_fundamental_v<T>::value) {}
+
+    std::size_t element_size = 0;
+    std::optional<int> nbr_elements; // Some types can include number of elements, for example arrays
+    std::type_info const *type = nullptr;
+    std::type_info const *shadow_type = nullptr; // Some types are better handled like if they were another type: std::string/char*
+    bool isTriviallyCopyable = false;
+    bool isInternalDataTriviallyCopyable = false; // The internal data of for example std::vector
+    bool isFundamental = false;
+    bool isPathSpace = false;
+    bool isArray = false;
+};
+
 struct InReference {
     static InReference PathSpace() {
         return {};
@@ -44,9 +74,9 @@ struct InReference {
                                 int a = 0;
                                 a++;
                               }
-    // Scalar
+    // Fundamental
     template<typename T>
-    requires std::is_scalar<T>::value
+    requires std::is_fundamental_v<T>::value
     InReference(T const &t) : data(static_cast<void const*>(&t)),
                               size(sizeof(T)),
                               info(&typeid(T)),
@@ -201,5 +231,6 @@ struct InReference {
     bool isFundamental = false;
     bool isPathSpace = false;
     bool isArray = false;
+    TypeInfo info_;
 };
 } 

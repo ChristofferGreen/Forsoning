@@ -11,6 +11,8 @@
 #include "Converters.hpp"
 #include "utils.hpp"
 
+#define UNUSED(x) ((void)(x))
+
 namespace FSNG {
 struct PathSpaceTE;
 struct Coroutine;
@@ -134,6 +136,7 @@ struct Data {
                     auto json = nlohmann::json::from_bson(std::vector<std::byte>(fromBytes, fromBytes+size));
                     *static_cast<InTRRRC*>(toObject) = json.get<InTRRRC>();
                 } catch(std::exception const &e) {
+                    UNUSED(e);
                     return false;
                 }
                 return true;
