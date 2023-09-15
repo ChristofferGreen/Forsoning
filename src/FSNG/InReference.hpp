@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include <type_traits>
 
 #include "Converters.hpp"
 #include "utils.hpp"
@@ -26,28 +27,33 @@ template <typename T>
 concept IsPathSpace2 = requires { typename T::IsPathSpace2Type; };
 
 struct TypeInfo {
-    TypeInfo() = default;
-
     // std::string
     template<typename T>
     requires std::same_as<T, std::string>
-    TypeInfo() : element_size(sizeof(std::string::value_type)),
-                 type(&typeid(char*)),
-                 isTriviallyCopyable(false),
-                 isInternalDataTriviallyCopyable(true),
-                 isFundamental(false) {}
+    static consteval auto Create() -> TypeInfo {
+        return {
+            .element_size = sizeof(std::string::value_type),
+            .type = &typeid(std::string),
+            .shadowType = &typeid(char*),
+            .isInternalDataTriviallyCopyable = true,
+        };
+    }
 
+    // General case
     template<typename T>
-    TypeInfo() : element_size(sizeof(T)),
-                 type(&typeid(T)),
-                 isTriviallyCopyable(std::is_trivially_copyable<T>::value),
-                 isInternalDataTriviallyCopyable(std::is_trivially_copyable<T>::value),
-                 isFundamental(std::is_fundamental_v<T>::value) {}
+    static consteval auto Create() -> TypeInfo {
+        return {
+            .element_size = sizeof(T),
+            .type = &typeid(T),
+            .isTriviallyCopyable = std::is_trivially_copyable<T>::value,
+            .isFundamental = std::is_fundamental<T>::value
+        };
+    }
 
     std::size_t element_size = 0;
     std::optional<int> nbr_elements; // Some types can include number of elements, for example arrays
     std::type_info const *type = nullptr;
-    std::type_info const *shadow_type = nullptr; // Some types are better handled like if they were another type: std::string/char*
+    std::type_info const *shadowType = nullptr; // Some types are better handled like if they were another type: std::string/char*
     bool isTriviallyCopyable = false;
     bool isInternalDataTriviallyCopyable = false; // The internal data of for example std::vector
     bool isFundamental = false;
@@ -76,7 +82,7 @@ struct InReference {
                               }
     // Fundamental
     template<typename T>
-    requires std::is_fundamental_v<T>::value
+    requires std::is_fundamental<T>::value
     InReference(T const &t) : data(static_cast<void const*>(&t)),
                               size(sizeof(T)),
                               info(&typeid(T)),

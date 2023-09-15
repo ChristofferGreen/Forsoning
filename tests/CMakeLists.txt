@@ -15,6 +15,7 @@ add_executable(ForsoningTest
   path_space/path_space_grab.cpp
   path_space/path_space_grab_block.cpp
   path_space/path_space_read.cpp
+  path_space/typeinfo.cpp
 
   renderer/basic_vulkan.cpp
 )
