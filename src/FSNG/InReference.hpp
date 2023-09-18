@@ -34,8 +34,31 @@ struct TypeInfo {
         return {
             .element_size = sizeof(std::string::value_type),
             .type = &typeid(std::string),
-            .shadowType = &typeid(char*),
-            .isInternalDataTriviallyCopyable = true,
+            .arrayElementType = &typeid(std::string::value_type),
+            .isInternalDataTriviallyCopyable = true,x
+        };
+    }
+    
+    // std::vector<scalar>
+    template<typename T>
+    requires std::same_as<T, std::vector<typename T::value_type>> && std::is_scalar<typename T::value_type>::value
+    static consteval auto Create() -> TypeInfo {
+        return {
+            .element_size = sizeof(typename T::value_type),
+            .type = &typeid(T),
+            .arrayElementType = &typeid(typename T::value_type),
+            .isInternalDataTriviallyCopyable = true
+        };
+    }
+
+    // PathSpace2
+    template<typename T>
+    requires IsPathSpace2<T>
+    static consteval auto Create() -> TypeInfo {
+        return {
+            .element_size = sizeof(T),
+            .type = &typeid(T),
+            .isPathSpace = true
         };
     }
 
@@ -53,7 +76,7 @@ struct TypeInfo {
     std::size_t element_size = 0;
     std::optional<int> nbr_elements; // Some types can include number of elements, for example arrays
     std::type_info const *type = nullptr;
-    std::type_info const *shadowType = nullptr; // Some types are better handled like if they were another type: std::string/char*
+    std::type_info const *arrayElementType = nullptr; // Some types are better handled like if they were another type: std::string/char*
     bool isTriviallyCopyable = false;
     bool isInternalDataTriviallyCopyable = false; // The internal data of for example std::vector
     bool isFundamental = false;

@@ -2,6 +2,14 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "CLang LLDB Debug",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/build/tests/ForsoningTest",
+            "args": [],
+            "cwd": "${workspaceRoot}/build/tests/"
+        },
+        {
             "name": "(Windows) Launch",
             "type": "cppvsdbg",
             "request": "launch",
@@ -11,14 +19,6 @@
             "cwd": "${fileDirname}",
             "environment": [],
             "console": "externalTerminal"
-        },
-        {
-            "name": "CLang LLDB Debug",
-            "type": "lldb",
-            "request": "launch",
-            "program": "${workspaceRoot}/build/tests/ForsoningTest",
-            "args": [],
-            "cwd": "${workspaceRoot}/build/tests/"
         },
         {
             "name": "GCC12 GDB Debug",
